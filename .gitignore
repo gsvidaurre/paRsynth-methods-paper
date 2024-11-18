@@ -49,3 +49,4 @@ po/*~
 rsconnect/
 ~$Rsynth_methods_draft.docx
 .gitignore.swp
+.DS_Store
