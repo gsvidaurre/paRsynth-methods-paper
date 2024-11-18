@@ -5,6 +5,8 @@ output: html_document
 date: "2024-07-08"
 ---
 
+Updated 18 Nov 2024. Copied over from Ari Cross' REU GitHub repo
+
 Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions written by Ari generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the normalized mutual information (NMI) calculated between the original classes at both the individual and group levels compared to cluster labels obtained from k-means clustering on multidimensional scaling variables generated from a spectrographic cross-correlation (SPCC) matrix. 
 
 The NMI calculations will allow us to address how much information about group membership versus individual identity is contained in patterns of acoustic variation across call datasets generated to emphasize either individual identity or group membership. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the NMI for the individual-level should be high but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about individuals' group membership. Given that all calls contain individual identity and group membership information, we should also see some interesting patterns at intermediate ratios of the string allocated to individual identity versus group membership.
@@ -19,8 +21,11 @@ Load libraries and create a temporary working path.
 # Clean the global environment
 rm(list = ls())
 
-X <- c("dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc")
+# TKTK add code to install if not already installed
 
+X <- c("dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR")
+
+# Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE))
 
 # This initial base path will need to be changed for other users
@@ -28,8 +33,10 @@ path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's Mac mini base path
 # path <- "/home/gsvidaurre/Desktop" # Grace's laptop base path
 data_dir <- "synthetic_audio_tests"
 tmp_path <- file.path(path, data_dir)
-figure_path <- file.path(path, "GitHub_repos/iCER_ACRES_MSU_REU2024/figures")
+# TKTK update to better figure path
+# figure_path <- file.path(path, "GitHub_repos/iCER_ACRES_MSU_REU2024/figures")
 
+# If the temporary directory doesn't exist, then create irt
 if(!dir.exists(tmp_path)){ 
   dir.create(tmp_path)
 }
@@ -39,7 +46,7 @@ cores <- parallel::detectCores() - 2
 
 ```
 
-Load Ari's functions.
+Load Ari's functions. TKTK Update this to focus on the paRsynth package.
 ```{r}
 
 # The string "GitHub_repos" may need need to be changed for other users
@@ -72,52 +79,72 @@ string_length <- 150
 iteratns <- 3
 
 # Testing the first iteration of each loop
-# i <- 1
-# n <- 1
-# x <- 1
+i <- 1
+n <- 1
+x <- 1
 
 system.time(
   
+  # Iterate over treatments
   invisible(pblapply(1:length(gl_middles), function(i){
     
     cat(paste("gl_middles = ", gl_middles[i], "\n", sep = ""))
     
+    # Iterating over the number of replicates per treatment
     nmi_res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
       
       ### Step 1: Generate the string for each call
       calls <- suppressMessages(gen_calls(n_groups = n_groups, n_individuals = n_individuals, n_calls = n_calls, string_length = string_length, gl_middle = gl_middles[i], il_middle = il_middles[i]))
 
+      # glimpse(calls)
+      
       ### Step 2: Convert the strings to Parsons code
       calls_parsons <- add_parsons_code(calls, "Call", parsons_code_mapping)
       
+      # glimpse(calls_parsons)
+      
       ### Step 3: Convert the Parsons code to frequency values
       
-      calls_parsons_frequencies <- generate_frequency(calls_parsons, parsons_col = "Parsons_Code", group_id_col = "Group", individual_id_col = "Individual", call_id_col = "Call.No")
+      calls_parsons_frequencies <- generate_frequency(calls_parsons, parsons_col = "Parsons_Code", group_id_col = "Group", individual_id_col = "Individual", call_id_col = "Call.No", callNo_id_col = "Call.No")
+      
+      # glimpse(calls_parsons_frequencies)
       
       ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with Ari's functions and the soundgen package
       
       synthetic_call_metadata <- write_wave(calls_parsons_frequencies, save_path = tmp_path, sampling_rate = 150000, sylLen = 400, prefix = paste("Ratio", gl_middles[i]/il_middles[i], sep = "_"))
+      
+      glimpse(synthetic_call_metadata)
+      
+      # Information recovery pipeline with traditional bioacoustics!!
       
       ### Step 5: Generate a selection table for the warbleR package
       wavs <- list.files(path = tmp_path, pattern = paste("Ratio", gl_middles[i]/il_middles[i], sep = "_"))
       
       cat(paste("Number of audio files = ", length(wavs), "\n"))
 
+      # w <- 1
+      
       sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
         
         tmp <- tuneR::readWave(file.path(tmp_path, wavs[w]))
+        
+        # An audio file
+        # tmp
 
         # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
         metadats_tmp <- synthetic_call_metadata %>%
           dplyr::filter(grepl(wavs[w], audio_file_name))
         
+        # glimpse(metadats_tmp)
+        
         if(nrow(metadats_tmp) > 0){
           
+          # TKTK why did I use 0.1 as a margin, is this in soundgen::soundgen?
           res <- data.frame(
             sound.files = wavs[w], 
             selec = 1, 
             start = 0.1, 
-            end = seewave::duration(tmp) + 0.1,
+            end = seewave::duration(tmp) + 0.1, # TKTK this is bad.....check logic
             group_ID = metadats_tmp[["Group"]],
             individual_ID = metadats_tmp[["Individual"]],
             call_ID = metadats_tmp[["Call"]],
@@ -149,8 +176,15 @@ system.time(
         
       }))
       
+      # See the selection table in warbleR format with all useful metadata for the synthetic experiment
+      # glimpse(sel_tbl)
+      
       ### Step 6: Perform SPCC using a default window length and a general bandpass filter
       xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = tmp_path)
+      
+      # str(xc_mat)
+      
+      # xc_mat[1:5, 1:5]
       
       # Get the percentage of values that are negative
       neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
@@ -172,8 +206,13 @@ system.time(
       # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
       dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
       
+      # str(1 - xc_mat)
+      # str(dist_mat)
+      
       # Reduce dimensionality of the SPCC matrix using multidimensional scaling (MDS)
-      iso_res <- invisible(MASS::isoMDS(dist_mat, k = 2, maxit = 1000, trace = FALSE))
+      iso_res <- invisible(MASS::isoMDS(dist_mat, k = 20, maxit = 1000, trace = FALSE))
+      
+      # str(iso_res)
       
       # Make a data frame of the first two MDS dimensions and call metadata
       mds_df <- data.frame(sound.files = dimnames(iso_res$points)[[1]]) %>%
@@ -186,6 +225,8 @@ system.time(
             dplyr::select(sound.files, group_ID, individual_ID, call_ID),
           by = c("sound.files")
         )
+
+      # glimpse(mds_df)
       
       cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
       
@@ -209,13 +250,19 @@ system.time(
       # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
       kmeans_grp <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
       
+      # str(kmeans_grp)
+      
       cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
       
       # Compute NMI at the group-level
       orig_classes <- mds_df$group_ID
       nmi_grp <- NMI(orig_classes, kmeans_grp$cluster)
       
+      # NMI(orig_classes, orig_classes)
+      
       ### Individual-level clustering and NMI calculation
+      
+      # TKTK two levels of analytical specificity, specificity in recognition: One is individuals within a group (this is going to be complicated and may require nested NMI calculations within groups), the other is all individuals across groups
       
       # Set the number of clusters to the number of unique individuals across groups
       num_clusters <- mds_df %>% 
@@ -227,6 +274,8 @@ system.time(
       kmeans_ind <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
       
       cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind$cluster)), "\n"))
+      
+      # TKTK do we need to control for sample size across NMI analyses? Check Kershenbaum et al 2013 dolphin whistle paper as reference
       
       # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
       orig_classes <- paste(mds_df$group_ID, mds_df$individual_ID, sep = "-")
