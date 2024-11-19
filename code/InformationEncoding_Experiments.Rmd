@@ -12,53 +12,95 @@ Purpose: The following code was designed to test the behavior of functions writt
 The NMI calculations will allow us to address how much information about group membership versus individual identity is contained in patterns of acoustic variation across call datasets generated to emphasize either individual identity or group membership. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the NMI for the individual-level should be high but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about individuals' group membership. Given that all calls contain individual identity and group membership information, we should also see some interesting patterns at intermediate ratios of the string allocated to individual identity versus group membership.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 ```
 
-Load libraries and create a temporary working path.
+Load packages and set cores.
 ```{r}
 
 # Clean the global environment
 rm(list = ls())
 
-# TKTK add code to install if not already installed
+# Initialize packages for data processing and analysis
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR")
 
-X <- c("dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR")
+# Install packages if they're not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
 
 # Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE))
 
-# This initial base path will need to be changed for other users
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's Mac mini base path
-# path <- "/home/gsvidaurre/Desktop" # Grace's laptop base path
-data_dir <- "synthetic_audio_tests"
-tmp_path <- file.path(path, data_dir)
-# TKTK update to better figure path
-# figure_path <- file.path(path, "GitHub_repos/iCER_ACRES_MSU_REU2024/figures")
-
-# If the temporary directory doesn't exist, then create irt
-if(!dir.exists(tmp_path)){ 
-  dir.create(tmp_path)
-}
+# Install the paRsynth package from GitHub
+devtools::install_github("gsvidaurre/paRsynth")
 
 # Set cores for parallel processing
 cores <- parallel::detectCores() - 2
 
 ```
 
-Load Ari's functions. TKTK Update this to focus on the paRsynth package.
+Initialize working directories for data and figures.
 ```{r}
 
-# The string "GitHub_repos" may need need to be changed for other users
-code_path <- file.path(path, "GitHub_repos", "iCER_ACRES_MSU_REU2024")
+# Initialize a base path (we may need a separate base path per user)
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's Mac mini base path
+# path <- "/home/gsvidaurre/Desktop" # Grace's laptop base path
+path <- "" # Brittany's path
 
-source(file.path(code_path, "functions.R"))
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_synthetic_experiments"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+data_dir <- "data"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+data_path <- file.path(path, analysis_dir, data_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(data_path)){ 
+  dir.create(data_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+figure_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figure_path <- file.path(path, analysis_dir, figure_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figure_path)){ 
+  dir.create(figure_path)
+}
 
 ```
 
+Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used.
+```{r eval = FALSE}
+
+?paRsynth::generate_strings
+?paRsynth::parsons_code
+?paRsynth::frequency_anchors
+?paRsynth::write_audio
+
+```
+
+
 # Generate synthetic call datasets and run SPCC
 
-Generate the individually distinctive or group distinctive character strings and audio files over varying proportions of il_middle to gl_middle. These ratios should be 0.01, 0.02, 0.04, 0.5, 5, 10, 25, and 50, and will correspond to gl_middle:il_middle values of 1:100, 2:100, 4:100, 50:100, 100:20, 100:10, 100:4, 100:2.
+Generate the individually distinctive or group distinctive character strings and audio files over varying proportions of individual_information to group_information. These ratios should be 0.01, 0.02, 0.04, 0.5, 5, 10, 25, and 50, and will correspond to group_information:individual_information values of 1:100, 2:100, 4:100, 50:100, 100:20, 100:10, 100:4, 100:2.
 
 Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each NMI line below. Update the loop so that a selection table is made and SPCC is performed each time a new call dataset is generated. Then save the selection table and SPCC matrix but remove audio files before initiating the subsequent iteration. Audio files can be regenerated in another script in order to generate spectrogram image files. The duration of the audio files impacts the computational time (files over 400 ms take a long time to generate).
 ```{r}
@@ -66,92 +108,126 @@ Iterate over each treatment a number of times so that we can calculate a 95% con
 # Set a seed for reproducibility
 set.seed(888)
 
-# Initialize the values of gl_middle and il_middle, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
-gl_middles <- c(1, 2, 4, 50, rep(100, 4))
-il_middles <- c(rep(100, 4), 20, 10, 4, 2)
+# Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
+group_information <- c(1, 2, 4, 50, rep(100, 4))
+individual_information <- c(rep(100, 4), 20, 10, 4, 2)
 
-# Iterate over each unique pair of gl_middle and il_middle values to create call datasets with varying amounts of group versus individual information (e.g. more convergence within groups versus more divergence within groups). Keep the number of groups, individuals, call per individual, and string length the same across iterations
+# Iterate over each unique pair of group_information and individual_information values to create call datasets with varying amounts of group versus individual information (e.g. more convergence within groups versus more divergence within groups). Keep the number of groups, individuals, call per individual, and string length the same across iterations
 
 n_groups <- 2
 n_individuals <- 5 # Dropping sample sizes to 5 individuals and 5 calls per individual
 n_calls <- 5
-string_length <- 150
+# string_length <- 150
 iteratns <- 3
 
+string_length <- 20
+group_information <- 2
+individual_information <- 10
+
 # Testing the first iteration of each loop
-i <- 1
-n <- 1
-x <- 1
+# i <- 1
+# n <- 1
+# x <- 1
 
 system.time(
   
   # Iterate over treatments
-  invisible(pblapply(1:length(gl_middles), function(i){
+  invisible(pblapply(1:length(group_information), function(i){
     
-    cat(paste("gl_middles = ", gl_middles[i], "\n", sep = ""))
+    cat(paste("group_information = ", group_information[i], "\n", sep = ""))
     
     # Iterating over the number of replicates per treatment
     nmi_res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
       
       ### Step 1: Generate the string for each call
-      calls <- suppressMessages(gen_calls(n_groups = n_groups, n_individuals = n_individuals, n_calls = n_calls, string_length = string_length, gl_middle = gl_middles[i], il_middle = il_middles[i]))
-
-      # glimpse(calls)
+      calls <- suppressMessages(paRsynth::generate_strings(
+        n_groups = n_groups, 
+        n_individuals = n_individuals, 
+        n_calls = n_calls, 
+        string_length = string_length, 
+        group_information = group_information[i], 
+        individual_information = individual_information[i])
+      )
+      
+      glimpse(calls)
       
       ### Step 2: Convert the strings to Parsons code
-      calls_parsons <- add_parsons_code(calls, "Call", parsons_code_mapping)
+      calls_parsons <- paRsynth::parsons_code(
+        df = calls, 
+        string_col = "Call", 
+        mapping = list(A = "up", B = "down", C = "constant")
+      )
       
-      # glimpse(calls_parsons)
+      glimpse(calls_parsons)
       
       ### Step 3: Convert the Parsons code to frequency values
       
-      calls_parsons_frequencies <- generate_frequency(calls_parsons, parsons_col = "Parsons_Code", group_id_col = "Group", individual_id_col = "Individual", call_id_col = "Call.No", callNo_id_col = "Call.No")
+      calls_parsons_frequencies <- paRsynth::frequency_anchors(
+        df = calls_parsons, 
+        parsons_col = "Parsons_Code", 
+        group_id_col = "Group", 
+        individual_id_col = "Individual", 
+        call_id_col = "Call_ID", 
+        call_string_col = "Call"
+      )
       
-      # glimpse(calls_parsons_frequencies)
+      glimpse(calls_parsons_frequencies)
+      View(calls_parsons_frequencies)
       
       ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with Ari's functions and the soundgen package
       
-      synthetic_call_metadata <- write_wave(calls_parsons_frequencies, save_path = tmp_path, sampling_rate = 150000, sylLen = 400, prefix = paste("Ratio", gl_middles[i]/il_middles[i], sep = "_"))
+      synthetic_call_metadata <- paRsynth::write_audio(
+        df = calls_parsons_frequencies, 
+        save_path = data_path, 
+        sampling_rate = 150000, 
+        sylLen = 400, 
+        prefix = paste("Ratio", group_information[i]/individual_information[i], sep = "_")
+      )
       
       glimpse(synthetic_call_metadata)
       
       # Information recovery pipeline with traditional bioacoustics!!
       
       ### Step 5: Generate a selection table for the warbleR package
-      wavs <- list.files(path = tmp_path, pattern = paste("Ratio", gl_middles[i]/il_middles[i], sep = "_"))
+      wavs <- list.files(
+        path = data_path, 
+        pattern = paste("Ratio", group_information[i]/individual_information[i], sep = "_")
+      )
       
       cat(paste("Number of audio files = ", length(wavs), "\n"))
-
+      
       # w <- 1
       
       sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
         
-        tmp <- tuneR::readWave(file.path(tmp_path, wavs[w]))
+        tmp <- tuneR::readWave(file.path(data_path, wavs[w]))
         
         # An audio file
         # tmp
-
+        
         # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
         metadats_tmp <- synthetic_call_metadata %>%
           dplyr::filter(grepl(wavs[w], audio_file_name))
         
         # glimpse(metadats_tmp)
         
+        # Create a row for the selection table in warbleR format if the audio file exists and metadata for that file also exists
         if(nrow(metadats_tmp) > 0){
           
-          # TKTK why did I use 0.1 as a margin, is this in soundgen::soundgen?
+          # Use 0.1s as a margin to indicate where the vocalization starts and ends in the audio file
+          # soundgen::soundgen() adds 100ms of silence before and after the synthetic vocalization by default 
           res <- data.frame(
             sound.files = wavs[w], 
-            selec = 1, 
+            selec = 1,
             start = 0.1, 
-            end = seewave::duration(tmp) + 0.1, # TKTK this is bad.....check logic
+            end = seewave::duration(tmp) + 0.1,
             group_ID = metadats_tmp[["Group"]],
             individual_ID = metadats_tmp[["Individual"]],
             call_ID = metadats_tmp[["Call"]],
             sampling_rate = tmp@samp.rate,
-            gl_middle = gl_middles[i],
-            il_middle = il_middles[i],
-            proportion = gl_middles[i]/il_middles[i]
+            group_information = group_information[i],
+            individual_information = individual_information[i],
+            proportion = group_information[i]/individual_information[i]
           )
           
         } else {
@@ -165,9 +241,9 @@ system.time(
             individual_ID = NA,
             call_ID = NA,
             sampling_rate = tmp@samp.rate,
-            gl_middle = gl_middles[i],
-            il_middle = il_middles[i],
-            proportion = gl_middles[i]/il_middles[i]
+            group_information = group_information[i],
+            individual_information = individual_information[i],
+            proportion = group_information[i]/individual_information[i]
           )
           
         }
@@ -177,14 +253,24 @@ system.time(
       }))
       
       # See the selection table in warbleR format with all useful metadata for the synthetic experiment
-      # glimpse(sel_tbl)
+      glimpse(sel_tbl)
+      
+      # Stinking sampling rate.....got variation in one run here with sampling rate of 150000 that had been working before. Need to troubleshoot soundgen::soundgen
+      # Still getting negative values even with a sampling rate of 200000, I think there must be negative values in the frequency anchors. Just checked, not seeing any
+      # I think this is a stochastic problem but really needs to be fixed
+      # What's happening is that the frequency anchors are all being created at the same time, and each vector of anchors is prety stochastic (and depends on the trajectory set by the very first few characters) which means that the global tail becomes very different across calls, when it's meant to be the same across calls. This is especially a problem for very long strings
+      # We need to update the behavior of the functions, we should be creating the frequency anchors SEPARATELY for each of the pieces (global head, group info_head, global_info_tail, individual info, and global tail). This overwrites the current Parsons code logic, which is not good. This should also address the SPCC negative values we're getting AND it should be a more logical basis for information encoding in the audio files for our information recovery pipeline
+      unique(sel_tbl$sampling_rate)
       
       ### Step 6: Perform SPCC using a default window length and a general bandpass filter
-      xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = tmp_path)
+      xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = data_path)
       
-      # str(xc_mat)
+      str(xc_mat)
       
       # xc_mat[1:5, 1:5]
+      
+      # Need to troubleshoot this more...can't get negative values
+      xc_mat[xc_mat < 0]
       
       # Get the percentage of values that are negative
       neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
@@ -225,7 +311,7 @@ system.time(
             dplyr::select(sound.files, group_ID, individual_ID, call_ID),
           by = c("sound.files")
         )
-
+      
       # glimpse(mds_df)
       
       cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
@@ -235,7 +321,7 @@ system.time(
       cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
       
       ### Step 8: Remove .wav files to free up storage space
-      rem_files <- file.path(tmp_path, wavs)
+      rem_files <- file.path(data_path, wavs)
       invisible(file.remove(rem_files))
       
       ### Step 9: Perform clustering and Normalized Mutual Information (NMI) calculation
@@ -284,21 +370,21 @@ system.time(
       ### Step 10: return NMI results
       return(
         data.frame(
-          exptl_ratio = gl_middles[i]/il_middles[i],
+          exptl_ratio = group_information[i]/individual_information[i],
           iteration = n,
           NMI_group = nmi_grp,
           NMI_individual = nmi_ind
         )
       )
-      
+
     }))
     
     ### Step 11. Write out the NMI results for the given treatment across iterations
     nmi_res_tmp %>% 
-      write.csv(file.path(tmp_path, paste("nmi_results_", gl_middles[i]/il_middles[i], ".csv", sep = "")), row.names = FALSE)
+      write.csv(file.path(data_path, paste("nmi_results_", group_information[i]/individual_information[i], ".csv", sep = "")), row.names = FALSE)
     
   }))
-
+  
 )
 
 # On the Mac Mini this process took about 23 minutes
@@ -310,12 +396,12 @@ system.time(
 How often do the NMI calculations go below 0 or above 1?
 ```{r}
 
-nmi_files <- list.files(path = tmp_path, pattern = "nmi_")
+nmi_files <- list.files(path = data_path, pattern = "nmi_")
 nmi_files
 
 nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
   
-  return(read.csv(file.path(tmp_path, nmi_files[n])))
+  return(read.csv(file.path(data_path, nmi_files[n])))
   
 }))
 
@@ -352,12 +438,12 @@ nmi_res %>%
 Generate plots of NMI values at the individual and group-level across the experimental call datasets. I added 95% CIs, but these don't make sense because they vary to go below 0 and above 1. I decided to use the interquartile range (the difference between the upper and lower quartiles) instead.
 ```{r}
 
-nmi_files <- list.files(path = tmp_path, pattern = "nmi_")
+nmi_files <- list.files(path = data_path, pattern = "nmi_")
 nmi_files
 
 nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
   
-  return(read.csv(file.path(tmp_path, nmi_files[n])))
+  return(read.csv(file.path(data_path, nmi_files[n])))
   
 }))
 
@@ -443,9 +529,9 @@ nmi_sum %>%
   #     ) %>% 
   #     dplyr::mutate(
   #       label = parseLabel
-  #     ),
-  #   aes(x = log(exptl_ratio), y = 1.07, label = parseLabel), hjust = 0.5, parse = TRUE, size = 3.5) +
-  scale_linetype_manual(values = ltys) +
+#     ),
+#   aes(x = log(exptl_ratio), y = 1.07, label = parseLabel), hjust = 0.5, parse = TRUE, size = 3.5) +
+scale_linetype_manual(values = ltys) +
   xlab("Log ratio of group to individual information") +
   ylab("Normalized Mutual Information") +
   guides(linetype = guide_legend(title = "Social level", override.aes = list(linewidth = 1))) +
@@ -504,9 +590,9 @@ nmi_sum %>%
   #     ) %>% 
   #     dplyr::mutate(
   #       label = parseLabel
-  #     ),
-  #   aes(x = log(exptl_ratio), y = 1.05, label = parseLabel), hjust = 0.45, parse = TRUE, size = 3) +
-  scale_linetype_manual(values = ltys) +
+#     ),
+#   aes(x = log(exptl_ratio), y = 1.05, label = parseLabel), hjust = 0.45, parse = TRUE, size = 3) +
+scale_linetype_manual(values = ltys) +
   xlab("Log ratio of group to individual information") +
   ylab("Normalized Mutual Information") +
   guides(linetype = guide_legend(title = "Social level", override.aes = list(linewidth = 1))) +
