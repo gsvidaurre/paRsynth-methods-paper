@@ -438,7 +438,7 @@ nmi_res %>%
 ```
 
 
-# Plot NMI results
+# Plot NMI results....needs to be updated
 
 Generate plots of NMI values at the individual and group-level across the experimental call datasets. I added 95% CIs, but these don't make sense because they vary to go below 0 and above 1. I decided to use the interquartile range (the difference between the upper and lower quartiles) instead.
 ```{r}
