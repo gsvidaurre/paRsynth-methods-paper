@@ -4,7 +4,9 @@ output: html_document
 date: "2024-11-20"
 ---
 
-Purpose: In this script, we will develop a traditional pipeline to create spectrograms and build spectrographic cross-correlation acoustic space for synthetic calls. We will generate synthetic vocal signals with strong group membership information encoding. We will generate a synthetic dataset of 2 groups, 4 individuals per group, and 3 calls per individual (group information can outweigh individual information by a factor of at least 10 or higher). 
+Purpose: In this script, we will develop a traditional pipeline to create spectrograms and build spectrographic cross-correlation acoustic space for synthetic calls. We will generate synthetic vocal signals with strong group membership information encoding. We will generate a synthetic dataset of 2 groups, 4 individuals per group, and 3 calls per individual (group information can outweigh individual information by a factor of at least 10 or higher).
+
+Next steps: Update this code to generate group distinctive and individually distinctive call datasets, including audio files, spectrograms, and acoustic space plots. Add the parameters we use to generate calls as columns in the metadata.
 
 ```{r setup, include = FALSE}
 
@@ -22,11 +24,13 @@ rm(list = ls())
 X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR")
 
 # Install the packages in X if not already installed, TKTK change to remove require statement
-for (pkg in X) {
-  if (!require(pkg, character.only = TRUE)) {
-    install.packages(pkg)
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
   }
-}
+}))
 
 # Install the paRsynth package from GitHub if you haven't installed it already
 # devtools::install_github("gsvidaurre/paRsynth")
@@ -95,19 +99,19 @@ Check out documentation for the paRsynth functions. These functions are written 
 ```{r}
 
 # Set the seed for reproducibility
-set.seed(123)
+set.seed(44)
 
 # Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
-# Group information can outweigh individual information by a factor of at least 10 or higher
-factor_ratio <- 10
-individual_information <- 2
+# Group information can outweigh individual information by a factor of at least 3 or higher
+factor_ratio <- 4
+individual_information <- 4
 group_information <- individual_information * factor_ratio
 
 # Initialize the values of the number of groups, individuals, calls, and string length
 n_groups <- 2
-n_individuals <- 4
-n_calls <- 3
-string_length <- 28
+n_individuals <- 2
+n_calls <- 2
+string_length <- (group_information + individual_information) + 10
 
 ### Generate the string for each call
 calls <- paRsynth::generate_strings(
@@ -155,29 +159,103 @@ glimpse(calls_parsons_frequencies)
 ```
 
 # Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with the soundgen package
+
+TKTK see notes below, need to work on adding the soundgen arguments and parameters below.
 ```{r}
 
 synthetic_call_metadata <- write_audio(
   df = calls_parsons_frequencies, 
   save_path = audio_path, 
-  sampling_rate = 150000, 
+  sampling_rate = 200000, 
   sylLen = 400, 
   prefix = "GroupMembership"
 )
 
 glimpse(synthetic_call_metadata)
 
+
+# No change to f0 width: vocalTract, rolloff
+soundgen(
+  sylLen = 1500, rolloff = -20,
+  pitch = c(500, 1000, 1800, 1700, 500),
+  formants = NULL, vocalTract = 55,
+  formantLocking = c(0, 1, 1, 1, 1, 0),  # except the beginning and end
+  shortestEpoch = 200,  # affects both subharmonics (if any) and formantLocking
+  noise = -20, # just to make formants visible in this example
+  samplingRate = 22000, pitchSamplingRate = 22000,
+  plot = TRUE, ylim = c(0, 8)
+)
+
+# Testing
+pitches <- synthetic_call_metadata %>% 
+    dplyr::select(names(synthetic_call_metadata)[grepl("Frequency", names(synthetic_call_metadata))]) %>% 
+    slice(8) %>% 
+    t(.) %>% 
+    as.vector(.)
+
+length(pitches)
+
+
+# TKTK see below, this matrix is used to control amplitide across the harmonics
+# rolloffExact = matrix(c(1, 0.2, 1, 0.02, .02,  # strength of H1-H5 at time 0
+                        # 1, 0.2, 0.01, 0.1, 0.4), # strength of H1-H5 at time 1000
+                      # ncol = 2)
+
+# Use a vector to indicate that the source spectrum (glottal source) that produces harmonics does not change over time, or that the strength or amplitude of each harmonic does not change over time
+rolloffExact <- c(0.1, 0.5, 0.25, 1, 0.25, 0.08, 0.05, 0.02)
+
+# Is it possible to control the number of harmonics with these objects? YES
+rolloffExact <- c(0.1, 0.1)
+rolloffExact <- c(0.1)
+
+soundgen(
+  sylLen = 4000, # TKTK add specific guidelines for duration based on character string or freqency anchor length, see below
+  # rolloff = -20, # do we want to keep this?
+  # pitch = pitches[1:5], # fundamental frequency contour is much less thick with fewer anchors and duration of 400 ms
+  pitch = pitches, # fundamental frequency contour is much less thick with the full number of anchors but longer duration (4000 ms)
+  formants = NULL, 
+  vocalTract = 5,
+  # formantLocking = c(0, 1, 1, 1, 1, 0),  # except the beginning and end
+  # shortestEpoch = 200,  # affects both subharmonics (if any) and formantLocking
+  # noise = -20, # just to make formants visible in this example
+  samplingRate = 44100, 
+  pitchSamplingRate = 44100,
+  pitchCeiling = 7000,
+  # TKTK This works for smoothing!! And Loess smoothing works better than approx
+  smoothing = list(interpol = "loess", loessSpan = 1, discontThres = 0, jumpThres = 0),
+  # TKTK what works for controlling harmonics?
+  # nonlinBalance = 1, # 0 and 2 make only slight differences here
+  subRatio = 1, # TKTK this does make a difference and add subharmonics but it's only noticeable when this argument is set to 2, when enegry is more evenly allocated across the harmonics, and when the rolloff argument above is set to -20
+  vibratoFreq = 1, # set vibrato to the lowest value
+  # TKTK this argument works for allocating energy across the harmonics
+  rolloffExact = rolloffExact,
+  plot = TRUE, 
+  windowLength = 30,
+  step = 30*0.9,
+  ylim = c(0, 20),
+  contrast = 0.1
+)
+
 ```
+
+
+TKTK changes to write_audio: set formants to NA, nonlinBalance to 0 (default is 100), also allow changes to subratio or the number of subharmonics, also supDep (amplitude or salience across harmonics?), vibratoFreq should be none, also smoothing should be available!!
+
+http://cogsci.se/soundgen/sound_generation.html#specifying-the-strength-of-each-harmonic: need to specify the salience of each harmonic when these are chosen
+
+Do we need to pass timestamps to the function and also have default smoothing values??
+
+We also need to change the thickness of each frequency contour but especially f0
+
+
+TKTK in vignettes add code to check the sampling rate before running cross-correlation (otherwise will get negative values).
+
 
 # Step 5: Save the metadata for the synthetic audio files to a CSV file
 ```{r}
 
 # Add extra metadata for upcoming image files names and rearrange columns
 synthetic_call_metadata %>%
-  # dplyr::mutate(
-  #   image_file_name = gsub(".wav", ".jpeg", audio_file_name)
-  # ) %>% 
-  # dplyr::select(audio_file_name, image_file_name, Group, Individual, Call_ID, Call, Parsons_Code, names(.)[grepl("Frequency", names(.))]) %>% 
   write.csv(., file = file.path(analysis_path, "synthetic_call_metadata.csv"), row.names = FALSE) 
 
 ```
@@ -212,6 +290,7 @@ sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
       selec = 1,
       start = 0.1, 
       end = seewave::duration(tmp) - 0.1,
+      sampling_rate = tmp@samp.rate,
       group_ID = metadats_tmp[["Group"]],
       individual_ID = metadats_tmp[["Individual"]],
       call_ID = metadats_tmp[["Call"]]
@@ -224,6 +303,7 @@ sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
       selec = 1, 
       start = 0.1, 
       end = seewave::duration(tmp) + 0.1,
+      sampling_rate = NA,
       group_ID = NA,
       individual_ID = NA,
       call_ID = NA
@@ -237,6 +317,8 @@ sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
 
 # See the selection table in warbleR format with all useful metadata for the synthetic experiment
 glimpse(sel_tbl)
+
+unique(sel_tbl$sampling_rate)
 
 ```
 
@@ -252,7 +334,7 @@ imgs
 new_nms <- gsub(".wav-1", "", imgs)
 new_nms
 
-file.rename(file.path(images_path, imgs), file.path(images_path, new_nms))
+invisible(file.rename(file.path(images_path, imgs), file.path(images_path, new_nms)))
 
 ```
 
@@ -262,14 +344,13 @@ file.rename(file.path(images_path, imgs), file.path(images_path, new_nms))
 
 glimpse(sel_tbl)
 
-xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = 1, na.rm = FALSE, type = "spectrogram", path = audio_path)
+xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 20), wn = "hanning", cor.method = "pearson", parallel = 1, na.rm = FALSE, type = "spectrogram", path = audio_path)
 
 str(xc_mat)
 dim(xc_mat)
 
 # xc_mat[1:5, 16:24]
 
-# Need to troubleshoot this more...can't get negative values
 xc_mat[xc_mat < 0]
 
 # Get the percentage of values that are negative
@@ -279,6 +360,8 @@ neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
 if(neg_values > 0){
   stop("Negative values are present in the spectrographic cross-correlation matrix")
 }
+
+xc_mat[xc_mat < 0]
 
 # Update the dimension names of the matrix
 dimnames(xc_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
@@ -303,37 +386,49 @@ mds_df <- data.frame(
   sound.files = dimnames(xc_mat)[[1]],
   X = as.vector(iso$points[, 1]), 
   Y = as.vector(iso$points[, 2])
-  ) %>% 
+) %>% 
   inner_join(
     sel_tbl %>% 
       dplyr::select(sound.files, group_ID, individual_ID),
     by = c("sound.files")
   ) %>% 
   dplyr::mutate(
-    group_ID = as.character(group_ID),
-    individual_ID = as.character(individual_ID),
-    group_ID = as.factor(group_ID),
-    individual_ID = as.factor(individual_ID)
+    group_ID = paste("group", group_ID, sep = "_"),
+    individual_ID = paste("individual", individual_ID, sep = "_"),
+    unique_individuals = paste(group_ID, individual_ID, sep = " - "),
+    group_ID = factor(group_ID),
+    individual_ID = factor(individual_ID),
+    unique_individuals = factor(unique_individuals)
   )
-  
+
 glimpse(mds_df)
+# View(mds_df)
+
+levels(mds_df$group_ID)
+levels(mds_df$individual_ID)
+levels(mds_df$unique_individuals)
 
 # Colors by group
-cols <- scales::alpha(c("navy", "orange"), 0.65)
+cols <- scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey"), 0.65)
 
 # Shapes by individual within groups
-shps <- c(21, 23, 24, 6)
+shps <- rep(c(21, 23, 24, 6), length(levels(mds_df$group_ID)))
 
-# Convex hull polygons per group
+# Convex hull polygons per group or unique individual
+# hulls <- plyr::ddply(mds_df, "unique_individuals", function(x){
+#   x[chull(x$X, x$Y), ]
+# })
+
 hulls <- plyr::ddply(mds_df, "group_ID", function(x){
   x[chull(x$X, x$Y), ]
 })
 
+glimpse(hulls)
+
 mds_df %>%
-  # glimpse()
-  ggplot(aes(x = X, y = Y, color = group_ID, shape = individual_ID)) + 
+  ggplot(aes(x = X, y = Y, color = group_ID)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID, color = group_ID), alpha = 0.2, size = 0.2, show.legend = FALSE) +
-  geom_point(aes(fill = group_ID, color = group_ID), size = 2, stroke = 0.5) +
+  geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = cols) +

@@ -1,6 +1,6 @@
 ---
 title: "Information Encoding Experiments"
-author: "Grace Smith-Vidaurre, Ari Cross"
+author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
 output: html_document
 date: "2024-07-08"
 ---
