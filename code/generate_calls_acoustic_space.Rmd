@@ -1,0 +1,355 @@
+---
+title: "Generate calls, spectrograms, acoustic space"
+output: html_document
+date: "2024-11-20"
+---
+
+Purpose: In this script, we will develop a traditional pipeline to create spectrograms and build spectrographic cross-correlation acoustic space for synthetic calls. We will generate synthetic vocal signals with strong group membership information encoding. We will generate a synthetic dataset of 2 groups, 4 individuals per group, and 3 calls per individual (group information can outweigh individual information by a factor of at least 10 or higher). 
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+
+```
+
+Load packages and set paths.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Specify the required packages
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR")
+
+# Install the packages in X if not already installed, TKTK change to remove require statement
+for (pkg in X) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
+# Install the paRsynth package from GitHub if you haven't installed it already
+# devtools::install_github("gsvidaurre/paRsynth")
+
+# Add paRsynth to the list of packages to load
+X <- c(X, "paRsynth")
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+```
+
+Initialize working directories for data on your local machine.
+```{r}
+
+# Initialize a base path (this will need to be different per user)
+# path <- "/Users/raneemsamman/Desktop" # Raneem's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_methods_synthetic_dataset"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where audio will be written out/read in
+audio_dir <- "audio"
+
+# Combine the base path, the analysis directory, and the audio directory into a single path
+audio_path <- file.path(path, analysis_dir, audio_dir)
+
+# Create the audio directory if it doesn't already exist on your computer
+if(!dir.exists(audio_path)){ 
+  dir.create(audio_path)
+}
+
+# Specify a folder inside the analysis directory where images will be written out/read in
+images_dir <- "images"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+images_path <- file.path(path, analysis_dir, images_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(images_path)){ 
+  dir.create(images_path)
+}
+
+```
+
+Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used.
+```{r eval = FALSE}
+
+?paRsynth::generate_strings
+?paRsynth::parsons_code
+?paRsynth::frequency_anchors
+?paRsynth::write_audio
+
+```
+
+# Step 1: Create character strings representing vocal signals with more group membership information than individual information
+```{r}
+
+# Set the seed for reproducibility
+set.seed(123)
+
+# Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
+# Group information can outweigh individual information by a factor of at least 10 or higher
+factor_ratio <- 10
+individual_information <- 2
+group_information <- individual_information * factor_ratio
+
+# Initialize the values of the number of groups, individuals, calls, and string length
+n_groups <- 2
+n_individuals <- 4
+n_calls <- 3
+string_length <- 28
+
+### Generate the string for each call
+calls <- paRsynth::generate_strings(
+  n_groups = n_groups, 
+  n_individuals = n_individuals, 
+  n_calls = n_calls, 
+  string_length = string_length, 
+  group_information = group_information, 
+  individual_information = individual_information
+)
+
+glimpse(calls)
+
+```
+
+# Step 2: Convert the strings to Parsons code
+```{r}
+
+calls_parsons <- paRsynth::parsons_code(
+  df = calls, 
+  string_col = "Call", 
+  mapping = list("A" = "up", "B" = "down", "C" = "constant")
+)
+
+glimpse(calls_parsons)
+
+```
+
+# Step 3: Convert the Parsons code to frequency values
+```{r}
+
+calls_parsons_frequencies <- frequency_anchors(
+  df = calls_parsons, 
+  parsons_col = "Parsons_Code", 
+  group_id_col = "Group", 
+  individual_id_col = "Individual", 
+  call_id_col = "Call_ID", 
+  call_string_col = "Call", 
+  starting_frequency = 4000, 
+  frequency_shift = 1000
+)
+
+glimpse(calls_parsons_frequencies)
+
+```
+
+# Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with the soundgen package
+```{r}
+
+synthetic_call_metadata <- write_audio(
+  df = calls_parsons_frequencies, 
+  save_path = audio_path, 
+  sampling_rate = 150000, 
+  sylLen = 400, 
+  prefix = "GroupMembership"
+)
+
+glimpse(synthetic_call_metadata)
+
+```
+
+# Step 5: Save the metadata for the synthetic audio files to a CSV file
+```{r}
+
+# Add extra metadata for upcoming image files names and rearrange columns
+synthetic_call_metadata %>%
+  # dplyr::mutate(
+  #   image_file_name = gsub(".wav", ".jpeg", audio_file_name)
+  # ) %>% 
+  # dplyr::select(audio_file_name, image_file_name, Group, Individual, Call_ID, Call, Parsons_Code, names(.)[grepl("Frequency", names(.))]) %>% 
+  write.csv(., file = file.path(analysis_path, "synthetic_call_metadata.csv"), row.names = FALSE) 
+
+```
+
+# Step 6: Create a warbleR selection table
+```{r}
+
+# Create a vector of all of the audio files in the analysis path
+wavs <- list.files(path = audio_path, pattern = ".wav$", full.names = FALSE)
+length(wavs)
+head(wavs)
+
+# w <- 1 # testing
+
+sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
+  
+  tmp <- tuneR::readWave(file.path(audio_path, wavs[w]))
+  
+  # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
+  metadats_tmp <- synthetic_call_metadata %>%
+    dplyr::filter(grepl(wavs[w], audio_file_name))
+  
+  # glimpse(metadats_tmp)
+  
+  # Create a row for the selection table in warbleR format if the audio file exists and metadata for that file also exists
+  if(nrow(metadats_tmp) > 0){
+    
+    # Use 0.1s as a margin to indicate where the vocalization starts and ends in the audio file
+    # soundgen::soundgen() adds 100ms of silence before and after the synthetic vocalization by default 
+    res <- data.frame(
+      sound.files = wavs[w], 
+      selec = 1,
+      start = 0.1, 
+      end = seewave::duration(tmp) - 0.1,
+      group_ID = metadats_tmp[["Group"]],
+      individual_ID = metadats_tmp[["Individual"]],
+      call_ID = metadats_tmp[["Call"]]
+    )
+    
+  } else {
+    
+    res <- data.frame(
+      sound.files = wavs[w], 
+      selec = 1, 
+      start = 0.1, 
+      end = seewave::duration(tmp) + 0.1,
+      group_ID = NA,
+      individual_ID = NA,
+      call_ID = NA
+    )
+    
+  }
+  
+  return(res)
+  
+}))
+
+# See the selection table in warbleR format with all useful metadata for the synthetic experiment
+glimpse(sel_tbl)
+
+```
+
+# Step 7: Create spectrogram image files of each audio file
+```{r}
+
+warbleR::spectrograms(sel_tbl, wl = 512, flim = c(0, 12), wn = "hanning", pal = reverse.gray.colors.2,ovlp = 90, inner.mar = c(5, 4, 4, 2), outer.mar = c(0, 0, 0, 0), picsize = 1, res = 100, cexlab = 1, propwidth = FALSE, xl = 1, osci = FALSE, gr = FALSE, sc = FALSE, line = FALSE, mar = 0.05, it = "jpeg", parallel = 1, path = audio_path, pb = TRUE, fast.spec = FALSE, by.song = NULL, sel.labels = NULL, title.labels = NULL, dest.path = images_path, box = TRUE, axis = TRUE)
+
+# Rename the image files
+imgs <- list.files(images_path)
+imgs
+
+new_nms <- gsub(".wav-1", "", imgs)
+new_nms
+
+file.rename(file.path(images_path, imgs), file.path(images_path, new_nms))
+
+```
+
+# Step 8. Perform spectrogrphic cross-correlation (SPCC) to measure acoustic simialrity of all calls in dataset (pairwise similarity matrix)
+
+```{r}
+
+glimpse(sel_tbl)
+
+xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = 1, na.rm = FALSE, type = "spectrogram", path = audio_path)
+
+str(xc_mat)
+dim(xc_mat)
+
+# xc_mat[1:5, 16:24]
+
+# Need to troubleshoot this more...can't get negative values
+xc_mat[xc_mat < 0]
+
+# Get the percentage of values that are negative
+neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
+
+# Stop the function if the percentage of negative values is > 0%
+if(neg_values > 0){
+  stop("Negative values are present in the spectrographic cross-correlation matrix")
+}
+
+# Update the dimension names of the matrix
+dimnames(xc_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
+
+```
+
+TKTK consider creating heatmaps to visually represent the similarities and differences across categories at different levels. Add to the mehtods paper AND the paRsynth vignettes! Here the question would be: are we creating the expected patterns of acoustic variation. Complementary to acoustic space plots
+
+Acoustic space plots.
+```{r}
+
+# View(xc_mat)
+
+# Convert to a distance matrix and dist object for isoMDS
+dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+# str(dist_mat)
+
+iso <- invisible(MASS::isoMDS(dist_mat, k = 2, maxit = 1000, trace = FALSE))
+str(iso)
+
+mds_df <- data.frame(
+  sound.files = dimnames(xc_mat)[[1]],
+  X = as.vector(iso$points[, 1]), 
+  Y = as.vector(iso$points[, 2])
+  ) %>% 
+  inner_join(
+    sel_tbl %>% 
+      dplyr::select(sound.files, group_ID, individual_ID),
+    by = c("sound.files")
+  ) %>% 
+  dplyr::mutate(
+    group_ID = as.character(group_ID),
+    individual_ID = as.character(individual_ID),
+    group_ID = as.factor(group_ID),
+    individual_ID = as.factor(individual_ID)
+  )
+  
+glimpse(mds_df)
+
+# Colors by group
+cols <- scales::alpha(c("navy", "orange"), 0.65)
+
+# Shapes by individual within groups
+shps <- c(21, 23, 24, 6)
+
+# Convex hull polygons per group
+hulls <- plyr::ddply(mds_df, "group_ID", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+mds_df %>%
+  # glimpse()
+  ggplot(aes(x = X, y = Y, color = group_ID, shape = individual_ID)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID, color = group_ID), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = group_ID, color = group_ID), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = "none", shape = "none", fill = "none") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    plot.margin = margin(0, 3, -3, -3)
+  )
+
+```
+
