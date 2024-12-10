@@ -103,15 +103,15 @@ set.seed(44)
 
 # Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
 # Group information can outweigh individual information by a factor of at least 3 or higher
-factor_ratio <- 4
-individual_information <- 4
+factor_ratio <- 3
+individual_information <- 6
 group_information <- individual_information * factor_ratio
 
 # Initialize the values of the number of groups, individuals, calls, and string length
 n_groups <- 2
 n_individuals <- 2
 n_calls <- 2
-string_length <- (group_information + individual_information) + 10
+string_length <- (group_information + individual_information) + 4
 
 ### Generate the string for each call
 calls <- paRsynth::generate_strings(
@@ -167,26 +167,14 @@ synthetic_call_metadata <- write_audio(
   df = calls_parsons_frequencies, 
   save_path = audio_path, 
   sampling_rate = 200000, 
-  sylLen = 400, 
+  sylLen = 200, 
   prefix = "GroupMembership"
 )
 
 glimpse(synthetic_call_metadata)
 
 
-# No change to f0 width: vocalTract, rolloff
-soundgen(
-  sylLen = 1500, rolloff = -20,
-  pitch = c(500, 1000, 1800, 1700, 500),
-  formants = NULL, vocalTract = 55,
-  formantLocking = c(0, 1, 1, 1, 1, 0),  # except the beginning and end
-  shortestEpoch = 200,  # affects both subharmonics (if any) and formantLocking
-  noise = -20, # just to make formants visible in this example
-  samplingRate = 22000, pitchSamplingRate = 22000,
-  plot = TRUE, ylim = c(0, 8)
-)
-
-# Testing
+# Testing soundgen arguments
 pitches <- synthetic_call_metadata %>% 
     dplyr::select(names(synthetic_call_metadata)[grepl("Frequency", names(synthetic_call_metadata))]) %>% 
     slice(8) %>% 
@@ -202,14 +190,20 @@ length(pitches)
                       # ncol = 2)
 
 # Use a vector to indicate that the source spectrum (glottal source) that produces harmonics does not change over time, or that the strength or amplitude of each harmonic does not change over time
-rolloffExact <- c(0.1, 0.5, 0.25, 1, 0.25, 0.08, 0.05, 0.02)
+# rolloffExact <- c(0.1, 0.5, 0.25, 1, 0.25, 0.08, 0.05, 0.02)
 
 # Is it possible to control the number of harmonics with these objects? YES
 rolloffExact <- c(0.1, 0.1)
-rolloffExact <- c(0.1)
+# rolloffExact <- c(0.1)
 
+# 32 frequency anchors and 4000ms (4s) produce calls that have thinner and clearer frequency contours
+# 32 anchors and 1000ms produces calls that have thicker and blurrier contours
+# TKTK focus on a good number of characters for 200ms and 400ms
+# 18 and 22 characters is a bit blurry at 400 ms, 12 is a bit better
+# 12 characters is also a bit blurry at 200 ms, 10 is a little better
+# 30 anchors and 200 ms is very blurry and the contours are thicker
 soundgen(
-  sylLen = 4000, # TKTK add specific guidelines for duration based on character string or freqency anchor length, see below
+  sylLen = 200, # TKTK add specific guidelines for duration based on character string or freqency anchor length, see below
   # rolloff = -20, # do we want to keep this?
   # pitch = pitches[1:5], # fundamental frequency contour is much less thick with fewer anchors and duration of 400 ms
   pitch = pitches, # fundamental frequency contour is much less thick with the full number of anchors but longer duration (4000 ms)
