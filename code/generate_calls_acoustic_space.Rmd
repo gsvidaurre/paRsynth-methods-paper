@@ -104,7 +104,7 @@ set.seed(44)
 # Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
 # Group information can outweigh individual information by a factor of at least 3 or higher
 factor_ratio <- 3
-individual_information <- 6
+individual_information <- 2
 group_information <- individual_information * factor_ratio
 
 # Initialize the values of the number of groups, individuals, calls, and string length
@@ -167,7 +167,7 @@ synthetic_call_metadata <- write_audio(
   df = calls_parsons_frequencies, 
   save_path = audio_path, 
   sampling_rate = 200000, 
-  sylLen = 200, 
+  sylLen = 400, 
   prefix = "GroupMembership"
 )
 
