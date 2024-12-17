@@ -23,7 +23,7 @@ rm(list = ls())
 # Specify the required packages
 X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR")
 
-# Install the packages in X if not already installed, TKTK change to remove require statement
+# Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
 
 invisible(lapply(1:length(X), function(x){
@@ -33,6 +33,7 @@ invisible(lapply(1:length(X), function(x){
 }))
 
 # Install the paRsynth package from GitHub if you haven't installed it already
+# remove.packages("paRsynth")
 # devtools::install_github("gsvidaurre/paRsynth")
 
 # Add paRsynth to the list of packages to load
@@ -161,90 +162,19 @@ glimpse(calls_parsons_frequencies)
 
 # Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with the soundgen package
 
-TKTK see notes below, need to work on adding the soundgen arguments and parameters below.
 ```{r}
 
 synthetic_call_metadata <- write_audio(
   df = calls_parsons_frequencies, 
   save_path = audio_path, 
   sampling_rate = 200000, 
-  sylLen = 400, 
+  sylLen = 200, 
   prefix = "GroupMembership"
 )
 
 glimpse(synthetic_call_metadata)
 
-
-# Testing soundgen arguments
-pitches <- synthetic_call_metadata %>% 
-    dplyr::select(names(synthetic_call_metadata)[grepl("Frequency", names(synthetic_call_metadata))]) %>% 
-    slice(8) %>% 
-    t(.) %>% 
-    as.vector(.)
-
-length(pitches)
-
-
-# TKTK see below, this matrix is used to control amplitide across the harmonics
-# rolloffExact = matrix(c(1, 0.2, 1, 0.02, .02,  # strength of H1-H5 at time 0
-                        # 1, 0.2, 0.01, 0.1, 0.4), # strength of H1-H5 at time 1000
-                      # ncol = 2)
-
-# Use a vector to indicate that the source spectrum (glottal source) that produces harmonics does not change over time, or that the strength or amplitude of each harmonic does not change over time
-# rolloffExact <- c(0.1, 0.5, 0.25, 1, 0.25, 0.08, 0.05, 0.02)
-
-# Is it possible to control the number of harmonics with these objects? YES
-rolloffExact <- c(0.1, 0.1)
-# rolloffExact <- c(0.1)
-
-# 32 frequency anchors and 4000ms (4s) produce calls that have thinner and clearer frequency contours
-# 32 anchors and 1000ms produces calls that have thicker and blurrier contours
-# TKTK focus on a good number of characters for 200ms and 400ms
-# 18 and 22 characters is a bit blurry at 400 ms, 12 is a bit better
-# 12 characters is also a bit blurry at 200 ms, 10 is a little better
-# 30 anchors and 200 ms is very blurry and the contours are thicker
-soundgen(
-  sylLen = 200, # TKTK add specific guidelines for duration based on character string or freqency anchor length, see below
-  # rolloff = -20, # do we want to keep this?
-  # pitch = pitches[1:5], # fundamental frequency contour is much less thick with fewer anchors and duration of 400 ms
-  pitch = pitches, # fundamental frequency contour is much less thick with the full number of anchors but longer duration (4000 ms)
-  formants = NULL, 
-  vocalTract = 5,
-  # formantLocking = c(0, 1, 1, 1, 1, 0),  # except the beginning and end
-  # shortestEpoch = 200,  # affects both subharmonics (if any) and formantLocking
-  # noise = -20, # just to make formants visible in this example
-  samplingRate = 44100, 
-  pitchSamplingRate = 44100,
-  pitchCeiling = 7000,
-  # TKTK This works for smoothing!! And Loess smoothing works better than approx
-  smoothing = list(interpol = "loess", loessSpan = 1, discontThres = 0, jumpThres = 0),
-  # TKTK what works for controlling harmonics?
-  # nonlinBalance = 1, # 0 and 2 make only slight differences here
-  subRatio = 1, # TKTK this does make a difference and add subharmonics but it's only noticeable when this argument is set to 2, when enegry is more evenly allocated across the harmonics, and when the rolloff argument above is set to -20
-  vibratoFreq = 1, # set vibrato to the lowest value
-  # TKTK this argument works for allocating energy across the harmonics
-  rolloffExact = rolloffExact,
-  plot = TRUE, 
-  windowLength = 30,
-  step = 30*0.9,
-  ylim = c(0, 20),
-  contrast = 0.1
-)
-
 ```
-
-
-TKTK changes to write_audio: set formants to NA, nonlinBalance to 0 (default is 100), also allow changes to subratio or the number of subharmonics, also supDep (amplitude or salience across harmonics?), vibratoFreq should be none, also smoothing should be available!!
-
-http://cogsci.se/soundgen/sound_generation.html#specifying-the-strength-of-each-harmonic: need to specify the salience of each harmonic when these are chosen
-
-Do we need to pass timestamps to the function and also have default smoothing values??
-
-We also need to change the thickness of each frequency contour but especially f0
-
-
-TKTK in vignettes add code to check the sampling rate before running cross-correlation (otherwise will get negative values).
-
 
 # Step 5: Save the metadata for the synthetic audio files to a CSV file
 ```{r}
