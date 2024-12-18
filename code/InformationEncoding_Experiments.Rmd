@@ -35,11 +35,13 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
+# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
+# TKTK once we start using the package again in package format, we need to add paRsynth:: before eeach function
 # Install the paRsynth package from GitHub if you haven't installed it already
-devtools::install_github("gsvidaurre/paRsynth")
+# devtools::install_github("gsvidaurre/paRsynth")
 
 # Add paRsynth to the list of packages to load
-X <- c(X, "paRsynth")
+# X <- c(X, "paRsynth")
 
 # Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE))
@@ -52,10 +54,18 @@ cores <- parallel::detectCores() - 2
 Initialize working directories for data and figures.
 ```{r}
 
+###################### MANULLY UPDATE EVERY TIME ##################################
+
 # Initialize a base path (we may need a separate base path per user)
 path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's Mac mini base path
 # path <- "/home/gsvidaurre/Desktop" # Grace's laptop base path
-path <- "" # Brittany's path
+# path <- "" # Brittany's path
+
+###################################################################################
+
+```
+
+```{r}
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_synthetic_experiments"
@@ -92,16 +102,30 @@ if(!dir.exists(figure_path)){
 
 ```
 
-Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used.
-```{r eval = FALSE}
+Source the paRsynth functions directly from the GitHub repository. 
+```{r}
 
-?paRsynth::generate_strings
-?paRsynth::parsons_code
-?paRsynth::frequency_anchors
-?paRsynth::write_audio
+# Brittany's path should include "GitHub/paRsynth"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+
+# Get all of the R files for each function in this directory
+function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
+function_files
+
+# Iterate over these files to load each function, and silence the output
+invisible(sapply(X = function_files, FUN = source))
 
 ```
 
+Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used. TKTK this will only work when paRsynth is installed as a package 
+```{r eval = FALSE}
+
+# ?paRsynth::generate_strings
+# ?paRsynth::parsons_code
+# ?paRsynth::frequency_anchors
+# ?paRsynth::write_audio
+
+```
 
 # Generate synthetic call datasets and run SPCC
 
@@ -114,8 +138,8 @@ Iterate over each treatment a number of times so that we can calculate a 95% con
 set.seed(888)
 
 # Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
-group_information <- c(1, 2, 4, 50, rep(100, 4))
-individual_information <- c(rep(100, 4), 20, 10, 4, 2)
+# group_information <- c(1, 2, 4, 50, rep(100, 4))
+# individual_information <- c(rep(100, 4), 20, 10, 4, 2)
 
 # Iterate over each unique pair of group_information and individual_information values to create call datasets with varying amounts of group versus individual information (e.g. more convergence within groups versus more divergence within groups). Keep the number of groups, individuals, call per individual, and string length the same across iterations
 
@@ -123,16 +147,16 @@ n_groups <- 2
 n_individuals <- 5 # Dropping sample sizes to 5 individuals and 5 calls per individual
 n_calls <- 5
 # string_length <- 150
-iteratns <- 3
+iteratns <- 1
 
 string_length <- 20
 group_information <- 2
 individual_information <- 10
 
 # Testing the first iteration of each loop
-# i <- 1
-# n <- 1
-# x <- 1
+i <- 1
+n <- 1
+x <- 1
 
 system.time(
   
@@ -145,7 +169,7 @@ system.time(
     nmi_res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
       
       ### Step 1: Generate the string for each call
-      calls <- suppressMessages(paRsynth::generate_strings(
+      calls <- suppressMessages(generate_strings(
         n_groups = n_groups, 
         n_individuals = n_individuals, 
         n_calls = n_calls, 
@@ -157,23 +181,31 @@ system.time(
       glimpse(calls)
       
       ### Step 2: Convert the strings to Parsons code
-      calls_parsons <- paRsynth::parsons_code(
+      calls_parsons <- parsons_code(
         df = calls, 
-        string_col = "Call", 
+        string_col = "Call",
+        global_head_col = "Global_head",
+        group_head_col = "Group_head", 
+        individual_middle_col = "Individual_middle", 
+        group_tail_col = "Group_tail", 
+        global_tail_col = "Global_tail",
         mapping = list(A = "up", B = "down", C = "constant")
       )
       
       glimpse(calls_parsons)
       
+      # TKTK add a bug issue: recursive indexing failed at level 2
       ### Step 3: Convert the Parsons code to frequency values
-      
-      calls_parsons_frequencies <- paRsynth::frequency_anchors(
+      calls_parsons_frequencies <- frequency_anchors(
         df = calls_parsons, 
-        parsons_col = "Parsons_Code", 
+        parsons_col = "Call_Parsons_Code", 
         group_id_col = "Group", 
         individual_id_col = "Individual", 
         call_id_col = "Call_ID", 
-        call_string_col = "Call"
+        call_string_col = "Call",
+        starting_frequency = 4000, 
+        frequency_shift = 1000, 
+        section_transition = "continuous_trajectory"
       )
       
       glimpse(calls_parsons_frequencies)
@@ -181,7 +213,7 @@ system.time(
       
       ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with Ari's functions and the soundgen package
       
-      synthetic_call_metadata <- paRsynth::write_audio(
+      synthetic_call_metadata <- write_audio(
         df = calls_parsons_frequencies, 
         save_path = data_path, 
         sampling_rate = 150000, 

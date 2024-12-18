@@ -105,7 +105,7 @@ set.seed(44)
 
 # Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
 # Group information can outweigh individual information by a factor of at least 3 or higher
-factor_ratio <- 3
+factor_ratio <- 12
 individual_information <- 2
 group_information <- individual_information * factor_ratio
 
@@ -168,11 +168,51 @@ synthetic_call_metadata <- write_audio(
   df = calls_parsons_frequencies, 
   save_path = audio_path, 
   sampling_rate = 200000, 
-  sylLen = 200, 
+  sylLen = 800,
+  rolloffExact = c(0.25),
   prefix = "GroupMembership"
 )
 
 glimpse(synthetic_call_metadata)
+
+df = calls_parsons_frequencies
+sylLen = 800
+sampling_rate = 200000
+smoothing = list(interpol = "loess", loessSpan = 1, discontThres = 0, jumpThres = 0)
+rolloffExact = c(0.25, 0.25, 0.25, 0.25, 0.25)
+formants = NA
+vocalTract = NA
+temperature = 0
+subratio = 2
+vibratoFreq = 1
+prefix = "IndividualSignatures"
+save_path = audio_path
+
+# Extract the frequency anchors from the data frame
+frequencies <- as.numeric(df[1, grep("^Frequency", colnames(df))])
+
+# Adjust pitch floor and ceiling based on the sampling rate
+pitch_floor <- 1 # this is the default value in soundgen
+pitch_ceiling <- sampling_rate / 2 # Nyquist rule for sampling rate and max frequency
+
+suppressMessages(soundgen(
+      pitch = frequencies,
+      sylLen = sylLen,
+      samplingRate = sampling_rate,
+      pitchFloor = pitch_floor,
+      pitchCeiling = pitch_ceiling,
+      smoothing = smoothing,
+      subratio = subratio,
+      rolloffExact = NULL,
+      formants = formants,
+      vocalTract = vocalTract,
+      temperature = temperature,
+      vibratoFreq = vibratoFreq,
+      plot = TRUE,
+      ylim = c(0, 20)
+))
+
+
 
 ```
 
@@ -262,6 +302,8 @@ new_nms
 invisible(file.rename(file.path(images_path, imgs), file.path(images_path, new_nms)))
 
 ```
+
+TKTK 12 character strings might be too small...need to keep testing a bit. Smoothing also seems to not be working well...
 
 # Step 8. Perform spectrogrphic cross-correlation (SPCC) to measure acoustic simialrity of all calls in dataset (pairwise similarity matrix)
 
