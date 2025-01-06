@@ -57,8 +57,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's Mac mini base path
-# path <- "/home/gsvidaurre/Desktop" # Grace's laptop base path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/home/gsvidaurre/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "" # Brittany's path
 
 ###################################################################################
@@ -137,21 +138,21 @@ Iterate over each treatment a number of times so that we can calculate a 95% con
 # Set a seed for reproducibility
 set.seed(888)
 
-# Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
-# group_information <- c(1, 2, 4, 50, rep(100, 4))
-# individual_information <- c(rep(100, 4), 20, 10, 4, 2)
+# Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information. Iterate over each unique pair of group_information and individual_information values to create call datasets with varying amounts of group versus individual information (e.g. more convergence within groups versus more divergence within groups). Keep the number of groups, individuals, call per individual, and string length the same across iterations
+group_information <- c(1, 2, 4, 50, rep(100, 4))
+individual_information <- c(rep(100, 4), 20, 10, 4, 2)
+random_variation <- 4 # create variation within individuals
 
-# Iterate over each unique pair of group_information and individual_information values to create call datasets with varying amounts of group versus individual information (e.g. more convergence within groups versus more divergence within groups). Keep the number of groups, individuals, call per individual, and string length the same across iterations
-
-n_groups <- 2
-n_individuals <- 5 # Dropping sample sizes to 5 individuals and 5 calls per individual
+# Initialize the values of the number of groups, individuals, calls, and string length
+# TKTK need to check which parameters will change across iterations
+n_groups <- 5
+n_individuals <- 5
 n_calls <- 5
-# string_length <- 150
-iteratns <- 1
 
-string_length <- 20
-group_information <- 2
-individual_information <- 10
+# TKTK this may need to go inside of the loop
+string_length <- (group_information + individual_information + random_variation) + 20
+
+iteratns <- 1
 
 # Testing the first iteration of each loop
 i <- 1
