@@ -19,7 +19,7 @@ Load packages and set paths.
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR", "paletteer")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -78,6 +78,18 @@ images_path <- file.path(path, analysis_dir, images_dir)
 # Create the data directory if it doesn't already exist on your computer
 if(!dir.exists(images_path)){ 
   dir.create(images_path)
+}
+
+
+# Specify a folder inside the analysis directory where images for figures will be written out/read in
+figures_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figures_path <- file.path(path, analysis_dir, figures_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figures_path)){ 
+  dir.create(figures_path)
 }
 
 ```
@@ -179,8 +191,8 @@ if(neg_values > 0){
 # Update the dimension names of the matrix
 dimnames(xc_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
 
-
-# TKTK save the matrix too
+# Save this matrix since it can take a long time to generate when there are many vocalizations
+saveRDS(xc_mat, file.path(analysis_path, "xc_mat.RDS"))
 
 ```
 
@@ -190,6 +202,9 @@ Here the question would be: are we creating the expected patterns of acoustic va
 
 # Step 4: Reduce the dimensionality of the SPCC matrix with multidimensional scaling.
 ```{r}
+
+xc_mat <- readRDS(file.path(analysis_path, "xc_mat.RDS"))
+str(xc_mat)
 
 # Convert to a distance matrix and dist object for isoMDS
 dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
@@ -211,12 +226,12 @@ mds_df <- data.frame(
     by = c("sound.files")
   ) %>%
   dplyr::mutate(
-    group_ID = paste("group", group_ID, sep = "_"),
-    individual_ID = paste("individual", individual_ID, sep = "_"),
     unique_individuals = paste(group_ID, individual_ID, sep = " - "),
     group_ID = factor(group_ID),
     individual_ID = factor(individual_ID),
-    unique_individuals = factor(unique_individuals)
+    unique_individuals = factor(unique_individuals),
+    dataset = gsub("_", " ", dataset),
+    dataset = factor(dataset)
   )
 
 glimpse(mds_df)
@@ -225,76 +240,55 @@ glimpse(mds_df)
 
 # Step 5: Generate low-dimensional acoustic space plots
 
-Calls from both datasets in the same universal acoustic space.
+Calls from both datasets in the same universal acoustic space. Start with aesthetics.
 ```{r}
 
-levels(mds_df$dataset)
-
-# Colors by dataset
-cols <- c("black", "black")
-fills <- c("black", "white")
-
-# Shapes by dataset
-shps <- c(21, 23)
-
-mds_df %>%
-  ggplot(aes(x = X, y = Y, color = dataset, fill = dataset, shape = dataset)) + 
-  geom_point(size = 2, stroke = 0.5) +
-  scale_shape_manual(values = shps) +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = cols) +
-  xlab("") + ylab("") + 
-  guides(color = "none", shape = "none", fill = "none") +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
-    strip.text.x = element_text(size = 12),
-    strip.text.y = element_text(size = 10),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3)
+mds_df_all <- mds_df %>%
+  # Create a column that combines dataset and group
+  dplyr::mutate(
+    dataset_group = paste(dataset, group_ID, sep = "-"),
+    dataset_group = factor(dataset_group)
   )
 
-```
+length(levels(mds_df_all$dataset_group))
 
-Group membership.
-```{r}
+# Colors by group (five) per dataset (two), ten total
+cols <- rep(scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey5"), 0.65), length(levels(mds_df_all$dataset)))
 
-levels(mds_df$group_ID)
-levels(mds_df$individual_ID)
-levels(mds_df$unique_individuals)
+# Shapes by dataset across groups
+# The solid circles (19) are the group membership dataset vocalizations
+shps <- rep(c(19, 23), length(levels(mds_df_all$group_ID)))
 
-# Colors by group (five)
-cols <- scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey"), 0.65)
+length(cols)
+length(shps)
 
-# Colors by group (two)
-# cols <- scales::alpha(c("navy", "orange"), 0.65)
-
-# Shapes by individual within groups
-shps <- rep(c(0, 1, 2, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_df$group_ID)))
-
-# Convex hull polygons per group
-hulls <- plyr::ddply(mds_df, "group_ID", function(x){
+hulls <- plyr::ddply(mds_df_all, "dataset_group", function(x){
   x[chull(x$X, x$Y), ]
 })
 
 glimpse(hulls)
 
-mds_df %>%
-   # Filter by the group membership calls
-  dplyr::filter(
-    dataset == "Group_Membership"
-  ) %>% 
-  ggplot(aes(x = X, y = Y, color = group_ID)) + 
-  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID, color = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
-  geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
+```
+
+Create the plot.
+```{r}
+
+mds_df_all %>% 
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = dataset_group), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = dataset), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = cols) +
   xlab("") + ylab("") + 
-  guides(color = "none", shape = "none", fill = "none") +
+  # The legend is currently on but should be modified downstream as needed
+  guides(color = guide_legend(title = "Group ID", override.aes = list(size = 3)), shape = guide_legend(title = "Dataset", override.aes = list(size = 3)), fill = guide_legend(title = "Group ID", override.aes = list(size = 3))) +
+  # Uncomment this line to remove the legend
+  # guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -304,36 +298,61 @@ mds_df %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 8),
+    legend.key.spacing = unit(0.15, "lines"),
+    legend.box.spacing =  unit(0.1, "lines"),
     plot.margin = margin(0, 3, -3, -3)
   )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_bothDatasets.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 ```
 
-Individual identity.
+Group membership, two panels (convex hull polygons by group then individual). Start with aesthetics.
 ```{r}
 
-levels(mds_df$group_ID)
-levels(mds_df$individual_ID)
-levels(mds_df$unique_individuals)
+mds_df_grp <- mds_df %>%
+  # Filter by the group membership calls
+  dplyr::filter(
+    dataset == "Group Membership"
+  )
 
-# Colors by individual within groups (10)
-cols <- scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey", "black", "purple", "khaki", "pink", "limegreen"), 0.65)
+levels(mds_df_grp$group_ID)
+levels(mds_df_grp$individual_ID)
+levels(mds_df_grp$unique_individuals)
+
+# Colors by group (five)
+cols <- scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey5"), 0.65)
+
+# Fill colors by individuals across groups. One color per group and individuals are coded in hues
+fills <- c(
+  paletteer_c("ggthemes::Blue", length(levels(mds_df_grp$individual_ID))),
+  paletteer_c("ggthemes::Brown", length(levels(mds_df_grp$individual_ID))),
+  paletteer_c("ggthemes::Green", length(levels(mds_df_grp$individual_ID))),
+  paletteer_c("ggthemes::Red", length(levels(mds_df_grp$individual_ID))),
+  paletteer_c("ggthemes::Gray", length(levels(mds_df_grp$individual_ID)))
+)
 
 # Shapes by individual within groups
-shps <- rep(c(0, 1, 2, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_df$group_ID)))
+shps <- rep(c(0, 1, 2, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_df_grp$group_ID)))
 
-# Convex hull polygons per unique individual
-hulls <- plyr::ddply(mds_df, "unique_individuals", function(x){
-x[chull(x$X, x$Y), ]
+```
+
+Create the group membership plots.
+```{r}
+
+# Panel A: Convex hull polygons per group
+
+hulls <- plyr::ddply(mds_df_grp, "group_ID", function(x){
+  x[chull(x$X, x$Y), ]
 })
 
-glimpse(hulls)
+# glimpse(hulls)
 
-mds_df %>%
-  # Filter by the individual identity calls
-  dplyr::filter(
-    dataset == "Individual_Identity"
-  ) %>% 
+mds_df_grp %>%
   ggplot(aes(x = X, y = Y, color = group_ID)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID, color = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
@@ -342,6 +361,10 @@ mds_df %>%
   scale_fill_manual(values = cols) +
   xlab("") + ylab("") + 
   guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -353,5 +376,150 @@ mds_df %>%
     axis.ticks = element_line(size = 0.25),
     plot.margin = margin(0, 3, -3, -3)
   )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+
+# Panel B: Convex hull polygons per individual
+
+# Regenerate the convex hull polygons by a different social level
+hulls <- plyr::ddply(mds_df_grp, "unique_individuals", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# glimpse(hulls)
+
+mds_df_grp %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = unique_individuals), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fills) +
+  xlab("") + ylab("") + 
+  guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    plot.margin = margin(0, 3, -3, -3)
+  )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_IndivPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+```
+
+Individual identity, two panels (convex hull polygons by group then individual). Start with aesthetics.
+```{r}
+
+mds_df_ind <- mds_df %>%
+  # Filter by the group membership calls
+  dplyr::filter(
+    dataset == "Individual Identity"
+  )
+
+levels(mds_df_ind$group_ID)
+levels(mds_df_ind$individual_ID)
+levels(mds_df_ind$unique_individuals)
+
+# Border colors by group (five)
+cols <- scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey5"), 0.65)
+
+# Fill colors by individuals across groups. One color per group and individuals are coded in hues
+fills <- c(
+  paletteer_c("ggthemes::Blue", length(levels(mds_df_ind$individual_ID))),
+  paletteer_c("ggthemes::Brown", length(levels(mds_df_ind$individual_ID))),
+  paletteer_c("ggthemes::Green", length(levels(mds_df_ind$individual_ID))),
+  paletteer_c("ggthemes::Red", length(levels(mds_df_ind$individual_ID))),
+  paletteer_c("ggthemes::Gray", length(levels(mds_df_ind$individual_ID)))
+)
+
+# Shapes by individual within groups
+shps <- rep(c(0, 1, 2, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_df_ind$group_ID)))
+
+```
+
+Create the plots with polygons at the two social levels.
+```{r}
+
+# Panel C: convex hull polygons by groups
+hulls <- plyr::ddply(mds_df_ind, "group_ID", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+mds_df_ind %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = unique_individuals), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    plot.margin = margin(0, 3, -3, -3)
+  )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_IndividualIdentity_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+# Panel D: Convex hull polygons per individual within groups
+
+hulls <- plyr::ddply(mds_df_ind, "unique_individuals", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# glimpse(hulls)
+
+mds_df_ind %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = unique_individuals), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fills) +
+  xlab("") + ylab("") + 
+  guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    plot.margin = margin(0, 3, -3, -3)
+  )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_IndividualIdentity_IndivPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 ```
