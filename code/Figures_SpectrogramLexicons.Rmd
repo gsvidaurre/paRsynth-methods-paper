@@ -1,0 +1,171 @@
+---
+title: "Generate calls, spectrograms, acoustic space"
+output: html_document
+date: "2024-11-20"
+---
+
+Purpose: Here we generate spectrogram image files for two synthetic datasets of vocal identity signals with more group than individual information an vice versa. We use the `warbleR` paclage to generate spectrograms. These original spectrogram image files can be read back into R for further modification (e.g. resizing, adding color borders) prior to creating composite figures of lexicons in Inkscape.
+
+For this script to work, you will need to either run the script `Generate_SyntheticDatasets.Rmd` to create the synthetic vocal identity signals, or you will need to access files we have already created that are stored in a shared location. If you want to reproduce the same results, then we recommend using the files stored in a shared location.
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+
+```
+
+Load packages and set paths.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Specify the required packages
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR")
+
+# Install the packages in X if not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+```
+
+Initialize working directories for data on your local machine.
+```{r}
+
+# Initialize a base path (this will need to be different per user)
+# path <- "/Users/raneemsamman/Desktop" # Raneem's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_methods_synthetic_dataset"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where audio will be written out/read in
+audio_dir <- "audio"
+
+# Combine the base path, the analysis directory, and the audio directory into a single path
+audio_path <- file.path(path, analysis_dir, audio_dir)
+
+# Create the audio directory if it doesn't already exist on your computer
+if(!dir.exists(audio_path)){ 
+  dir.create(audio_path)
+}
+
+# Specify a folder inside the analysis directory where images will be written out/read in
+images_dir <- "images"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+images_path <- file.path(path, analysis_dir, images_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(images_path)){ 
+  dir.create(images_path)
+}
+
+```
+
+Read in the synthetic call metadata.
+```{r}
+
+synthetic_call_metadata <- read.csv(file.path(analysis_path, "synthetic_call_metadata.csv"))
+
+glimpse(synthetic_call_metadata)
+
+```
+
+# Step 1: Create a warbleR selection table
+```{r}
+
+# Create a vector of all of the audio files in the analysis path
+wavs <- list.files(path = audio_path, pattern = ".wav$", full.names = FALSE)
+length(wavs)
+head(wavs)
+
+# Iterate over the audio files to create one row of the selection table at a time. warbleR selection tables have a very specific format that must be used for downstream analysis.
+sel_tbl <- data.table::rbindlist(pblapply(1:length(wavs), function(w){
+  
+  tmp <- tuneR::readWave(file.path(audio_path, wavs[w]))
+  
+  # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
+  metadats_tmp <- synthetic_call_metadata %>%
+    dplyr::filter(grepl(wavs[w], audio_file_name))
+  
+  # Create a row for the selection table in warbleR format if the audio file exists and metadata for that file also exists
+  if(nrow(metadats_tmp) > 0){
+    
+    # Use 0.1s as a margin to indicate where the vocalization starts and ends in the audio file
+    # soundgen::soundgen() adds 100ms of silence before and after the synthetic vocalization by default 
+    res <- data.frame(
+      sound.files = wavs[w], 
+      selec = 1,
+      start = 0.1, 
+      end = seewave::duration(tmp) - 0.1,
+      sampling_rate = tmp@samp.rate,
+      group_ID = metadats_tmp[["Group"]],
+      individual_ID = metadats_tmp[["Individual"]],
+      call_ID = metadats_tmp[["Call"]]
+    )
+    
+  } else {
+    
+    res <- data.frame(
+      sound.files = wavs[w], 
+      selec = 1, 
+      start = 0.1, 
+      end = seewave::duration(tmp) + 0.1,
+      sampling_rate = NA,
+      group_ID = NA,
+      individual_ID = NA,
+      call_ID = NA
+    )
+    
+  }
+  
+  return(res)
+  
+}))
+
+# See the selection table in warbleR format with all useful metadata for the synthetic experiment
+glimpse(sel_tbl)
+
+# Looks good, a single sampling rate across files
+unique(sel_tbl$sampling_rate)
+
+```
+
+# Step 2: Create spectrogram image files of each audio file
+```{r}
+
+warbleR::spectrograms(sel_tbl, wl = 512, flim = c(0, 12), wn = "hanning", pal = reverse.gray.colors.2,ovlp = 90, inner.mar = c(5, 4, 4, 2), outer.mar = c(0, 0, 0, 0), picsize = 1, res = 100, cexlab = 1, propwidth = FALSE, xl = 1, osci = FALSE, gr = FALSE, sc = FALSE, line = FALSE, mar = 0.05, it = "jpeg", parallel = 1, path = audio_path, pb = TRUE, fast.spec = FALSE, by.song = NULL, sel.labels = NULL, title.labels = NULL, dest.path = images_path, box = TRUE, axis = TRUE)
+
+# Rename the image files to remove the -1 appended after the extension
+imgs <- list.files(images_path)
+imgs
+
+new_nms <- gsub(".wav-1", "", imgs)
+new_nms
+
+invisible(file.rename(file.path(images_path, imgs), file.path(images_path, new_nms)))
+
+```
+
+# Step 3: Manually upload the original image files to a shared location
+
+The image files were uploaded to a shared Google Drive folder that also contains the audio files.
+
+# Step 4: Read the spectrogram image files back in for resizing and adding custom color borders.
+
+We need to decide whether we want a single figure or one per dataset, and then how many individuals and calls per individual to use per lexicon. Then we need to select the specific files that will be used and modified. 
