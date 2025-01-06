@@ -37,10 +37,7 @@ invisible(lapply(1:length(X), function(x){
 # devtools::install_github("gsvidaurre/paRsynth")
 
 # Add paRsynth to the list of packages to load
-X <- c(X, "paRsynth")
-
-# Load all of the packages specified above
-invisible(lapply(X, library, character.only = TRUE))
+# X <- c(X, "paRsynth")
 
 ```
 
@@ -87,13 +84,28 @@ if(!dir.exists(images_path)){
 
 ```
 
+```{r}
+
+# For now, load the paRsynth functions from GitHub
+files <- list.files(pattern = ".R$", file.path(path, "GitHub_repos/paRsynth/R"), full.names = TRUE)
+files
+
+invisible(sapply(1:length(files), function(x){
+  source(files[x])
+}))
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+```
+
 Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used.
 ```{r eval = FALSE}
 
-?paRsynth::generate_strings
-?paRsynth::parsons_code
-?paRsynth::frequency_anchors
-?paRsynth::write_audio
+# ?paRsynth::generate_strings
+# ?paRsynth::parsons_code
+# ?paRsynth::frequency_anchors
+# ?paRsynth::write_audio
 
 ```
 
@@ -105,18 +117,18 @@ set.seed(44)
 
 # Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
 # Group information can outweigh individual information by a factor of at least 3 or higher
-factor_ratio <- 12
-individual_information <- 2
+factor_ratio <- 2
+individual_information <- 6
 group_information <- individual_information * factor_ratio
 
 # Initialize the values of the number of groups, individuals, calls, and string length
 n_groups <- 2
-n_individuals <- 2
-n_calls <- 2
-string_length <- (group_information + individual_information) + 4
+n_individuals <- 5
+n_calls <- 5
+string_length <- (group_information + individual_information) + 20
 
 ### Generate the string for each call
-calls <- paRsynth::generate_strings(
+calls <- generate_strings(
   n_groups = n_groups, 
   n_individuals = n_individuals, 
   n_calls = n_calls, 
@@ -127,14 +139,25 @@ calls <- paRsynth::generate_strings(
 
 glimpse(calls)
 
+# Why are there only 10 unique strings...
+length(unique(calls$Call))
+
+# There's only one unique string per individual here...
+View(calls[which(!duplicated(calls$Call)), ])
+
 ```
 
 # Step 2: Convert the strings to Parsons code
 ```{r}
 
-calls_parsons <- paRsynth::parsons_code(
+calls_parsons <- parsons_code(
   df = calls, 
-  string_col = "Call", 
+  string_col = "Call",
+  global_head_col = "Global_head",
+  group_head_col = "Group_head",
+  individual_middle_col = "Individual_middle",
+  group_tail_col = "Group_tail",
+  global_tail_col = "Global_tail",
   mapping = list("A" = "up", "B" = "down", "C" = "constant")
 )
 
@@ -147,10 +170,10 @@ glimpse(calls_parsons)
 
 calls_parsons_frequencies <- frequency_anchors(
   df = calls_parsons, 
-  parsons_col = "Parsons_Code", 
+  parsons_col = "Call_Parsons_Code", 
   group_id_col = "Group", 
   individual_id_col = "Individual", 
-  call_id_col = "Call_ID", 
+  call_id_col = "Call_ID",
   call_string_col = "Call", 
   starting_frequency = 4000, 
   frequency_shift = 1000
@@ -175,42 +198,42 @@ synthetic_call_metadata <- write_audio(
 
 glimpse(synthetic_call_metadata)
 
-df = calls_parsons_frequencies
-sylLen = 800
-sampling_rate = 200000
-smoothing = list(interpol = "loess", loessSpan = 1, discontThres = 0, jumpThres = 0)
-rolloffExact = c(0.25, 0.25, 0.25, 0.25, 0.25)
-formants = NA
-vocalTract = NA
-temperature = 0
-subratio = 2
-vibratoFreq = 1
-prefix = "IndividualSignatures"
-save_path = audio_path
-
-# Extract the frequency anchors from the data frame
-frequencies <- as.numeric(df[1, grep("^Frequency", colnames(df))])
-
-# Adjust pitch floor and ceiling based on the sampling rate
-pitch_floor <- 1 # this is the default value in soundgen
-pitch_ceiling <- sampling_rate / 2 # Nyquist rule for sampling rate and max frequency
-
-suppressMessages(soundgen(
-      pitch = frequencies,
-      sylLen = sylLen,
-      samplingRate = sampling_rate,
-      pitchFloor = pitch_floor,
-      pitchCeiling = pitch_ceiling,
-      smoothing = smoothing,
-      subratio = subratio,
-      rolloffExact = NULL,
-      formants = formants,
-      vocalTract = vocalTract,
-      temperature = temperature,
-      vibratoFreq = vibratoFreq,
-      plot = TRUE,
-      ylim = c(0, 20)
-))
+# df = calls_parsons_frequencies
+# sylLen = 800
+# sampling_rate = 200000
+# smoothing = list(interpol = "loess", loessSpan = 1, discontThres = 0, jumpThres = 0)
+# rolloffExact = c(0.25, 0.25, 0.25, 0.25, 0.25)
+# formants = NA
+# vocalTract = NA
+# temperature = 0
+# subratio = 2
+# vibratoFreq = 1
+# prefix = "IndividualSignatures"
+# save_path = audio_path
+# 
+# # Extract the frequency anchors from the data frame
+# frequencies <- as.numeric(df[1, grep("^Frequency", colnames(df))])
+# 
+# # Adjust pitch floor and ceiling based on the sampling rate
+# pitch_floor <- 1 # this is the default value in soundgen
+# pitch_ceiling <- sampling_rate / 2 # Nyquist rule for sampling rate and max frequency
+# 
+# suppressMessages(soundgen(
+#       pitch = frequencies,
+#       sylLen = sylLen,
+#       samplingRate = sampling_rate,
+#       pitchFloor = pitch_floor,
+#       pitchCeiling = pitch_ceiling,
+#       smoothing = smoothing,
+#       subratio = subratio,
+#       rolloffExact = NULL,
+#       formants = formants,
+#       vocalTract = vocalTract,
+#       temperature = temperature,
+#       vibratoFreq = vibratoFreq,
+#       plot = TRUE,
+#       ylim = c(0, 20)
+# ))
 
 
 
@@ -303,8 +326,6 @@ invisible(file.rename(file.path(images_path, imgs), file.path(images_path, new_n
 
 ```
 
-TKTK 12 character strings might be too small...need to keep testing a bit. Smoothing also seems to not be working well...
-
 # Step 8. Perform spectrogrphic cross-correlation (SPCC) to measure acoustic simialrity of all calls in dataset (pairwise similarity matrix)
 
 ```{r}
@@ -318,7 +339,7 @@ dim(xc_mat)
 
 # xc_mat[1:5, 16:24]
 
-xc_mat[xc_mat < 0]
+xc_mat[xc_mat <= 0]
 
 # Get the percentage of values that are negative
 neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
@@ -328,7 +349,7 @@ if(neg_values > 0){
   stop("Negative values are present in the spectrographic cross-correlation matrix")
 }
 
-xc_mat[xc_mat < 0]
+xc_mat[xc_mat <= 0]
 
 # Update the dimension names of the matrix
 dimnames(xc_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
@@ -344,7 +365,14 @@ Acoustic space plots.
 
 # Convert to a distance matrix and dist object for isoMDS
 dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
-# str(dist_mat)
+str(dist_mat)
+
+dist_mat
+unique(dist_mat)
+
+xc_mat[11, 12]
+dimnames(xc_mat)[[1]][1]
+dimnames(xc_mat)[[1]][2]
 
 iso <- invisible(MASS::isoMDS(dist_mat, k = 2, maxit = 1000, trace = FALSE))
 str(iso)
