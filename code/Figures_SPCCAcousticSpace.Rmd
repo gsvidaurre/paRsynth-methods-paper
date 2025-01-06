@@ -6,6 +6,8 @@ date: "2024-11-20"
 
 Purpose: Here we use the `warbleR` package to run spectrographic cross-correlation and generate figures of acoustic variation in two dimensional acoustic space. We perform these analyses for synthetic vocal identity signal datasets that contain more group than individual information, and more individual than group information, respectively.
 
+You can run the chunks in this script in order, although SPCC may take a while on your local computer. Alternaively, you cn skip Step 2 and read in an SPCC matrix after downloading it from the same shared location where audio files are held.
+
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
@@ -168,7 +170,7 @@ unique(sel_tbl$sampling_rate)
 
 ```
 
-# Step 2. Perform spectrogrphic cross-correlation (SPCC) to measure acoustic similarity of all calls in dataset (pairwise similarity matrix)
+# Step 2. Perform spectrographic cross-correlation (SPCC) to measure acoustic similarity of all calls in dataset (pairwise similarity matrix)
 
 If the `temperature` argument used by `soundgen` is set to 0 (for no stochasticity in sound generation), then you will need to filter out any calls that have duplicated strings prior to running cross-correlation. Otherwise you will have values of 1 outside of the diagonal representing comparisons among calls of exactly the same structure or duplicates, and multidimensional scaling will fail.
 
