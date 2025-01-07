@@ -364,138 +364,8 @@ system.time(
         # Get the percentage of values that are negative
         neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
         
-        # Stop the function if the percentage of negative values is > 0%
+        # Return NA values in the final results structure if the percentage of negative values is > 0%
         if(neg_values > 0){
-          stop("Negative values are present in the spectrographic cross-correlation matrix")
-        }
-        
-        # Continue with downstream analyses only if there are no 1's off of the diagonal, otherwise MDS will fail. Record NA values if there are 1's off of the diagonal (e.g. two calls of the same structure will present values of 1 as if the same call were compared to itself)
-        if(!any(xc_mat[lower.tri(xc_mat)] == 1)){
-          
-          # Update the dimension names of the matrix
-          dimnames(xc_mat) <- list(wavs, wavs)
-          
-          cat(paste("Dimensions of SPCC matrix = ", dim(xc_mat)[1], dim(xc_mat)[2], "\n"))
-          
-          cat(paste("NA's in SPCC matrix?", any(is.na(xc_mat)), "\n"))
-          
-          ### Step 7: Perform MDS
-          
-          # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
-          dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
-          
-          # str(1 - xc_mat)
-          # str(dist_mat)
-          
-          # Reduce dimensionality of the SPCC matrix using multidimensional scaling (MDS). Use the floor of 1/3rd of the dimensions in the SPCC matrix rather than 2 dimensions in order to reduce the stress of the final solution
-          iso_res <- invisible(MASS::isoMDS(dist_mat, k = floor(dim(xc_mat)[1]/3) + 1, maxit = 1000, trace = FALSE))
-          
-          # str(iso_res)
-          
-          # Make a data frame of the first two MDS dimensions and call metadata
-          mds_df <- data.frame(sound.files = dimnames(iso_res$points)[[1]]) %>%
-            dplyr::mutate(
-              X = iso_res$points[, 1],
-              Y = iso_res$points[, 2]
-            ) %>%
-            inner_join(
-              sel_tbl %>%
-                dplyr::select(sound.files, group_ID, individual_ID, call_ID),
-              by = c("sound.files")
-            )
-          
-          # glimpse(mds_df)
-          
-          cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
-          
-          cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
-          
-          cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
-          
-          ### Step 8: Remove .wav files to free up storage space
-          rem_files <- file.path(data_path, wavs)
-          invisible(file.remove(rem_files))
-          
-          ### Step 9: Perform clustering and Normalized Mutual Information (NMI) calculation
-          # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
-          
-          ### Group-level clustering and NMI calculation
-          
-          # Set the number of clusters to the number of unique groups
-          num_clusters <- length(unique(mds_df$group_ID))
-          
-          # Perform k-means clustering with this number of clusters
-          # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
-          kmeans_grp <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
-          
-          # str(kmeans_grp)
-          
-          cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
-          
-          # Compute NMI at the group-level
-          orig_classes <- mds_df$group_ID
-          nmi_grp <- NMI(orig_classes, kmeans_grp$cluster)
-          
-          # NMI(orig_classes, orig_classes)
-          
-          # There two levels of specificity at the individual level. One is individuals is all individuals across groups (fine-grained), and the other is all individuals within a group, which will require nested NMI calculations within groups (coarse-grained)
-          
-          ### Fine-grained individual-level clustering and NMI calculation
-          
-          # Set the number of clusters to the number of unique individuals within each group
-          num_clusters <- mds_df %>% 
-            distinct(group_ID, individual_ID) %>% 
-            nrow()
-          
-          # Perform k-means clustering with this number of clusters
-          # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
-          kmeans_ind_fg <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
-          
-          cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind_fg$cluster)), "\n"))
-          
-          # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
-          orig_classes <- paste(mds_df$group_ID, mds_df$individual_ID, sep = "-")
-          nmi_ind <- NMI(orig_classes, kmeans_ind_fg$cluster)
-          
-          ### Coarse-grained individual-level clustering and NMI calculation
-          
-          # Set the number of clusters to the number of unique individuals within each group
-          num_clusters <- mds_df %>% 
-            distinct(individual_ID) %>% 
-            nrow()
-          
-          # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation
-          # n <- 1 # testing
-          kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(n){
-            
-            tmp <- mds_df[grep(n, mds_df$group_ID), ]
-            
-            # Perform clustering using the MDS coordinates as input
-            res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
-            
-            cat(paste("NA's in individual clustering?", any(is.na(res$cluster)), "\n"))
-            
-            # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
-            orig_classes <- tmp$individual_ID
-            
-            return(NMI(orig_classes, res$cluster))
-            
-          }))
-          
-          nmi_ind_cg <- mean(kmeans_ind_cg)
-          
-          nmi_results <- data.frame(
-            social_envt_treatment = social_envts[z],
-            information_encoding_treatment = ratios[i],
-            iteration = n,
-            group_information = information[["group_information"]][i], 
-            individual_information = information[["individual_information"]][i],
-            NMI_group = nmi_grp,
-            NMI_individual_fine = nmi_ind,
-            NMI_individual_coarse = nmi_ind_cg
-          )
-          
-        } else {
           
           nmi_results <- data.frame(
             social_envt_treatment = social_envts[z],
@@ -505,8 +375,155 @@ system.time(
             individual_information = information[["individual_information"]][i],
             NMI_group = NA,
             NMI_individual_fine = NA,
-            NMI_individual_coarse = NA
+            NMI_individual_coarse = NA,
+            notes = "SPCC matrix: contains negative values"
           )
+          
+          # Continue with downstream analyses if there were no negative values in the SPCC matrix
+        } else {
+          
+          # Also, continue with downstream analyses only if there are no 1's off of the diagonal, otherwise MDS will fail. Record NA values if there are 1's off of the diagonal (e.g. two calls of the same structure will present values of 1 as if the same call were compared to itself)
+          if(!any(xc_mat[lower.tri(xc_mat)] == 1)){
+            
+            # Update the dimension names of the matrix
+            dimnames(xc_mat) <- list(wavs, wavs)
+            
+            cat(paste("Dimensions of SPCC matrix = ", dim(xc_mat)[1], dim(xc_mat)[2], "\n"))
+            
+            cat(paste("NA's in SPCC matrix?", any(is.na(xc_mat)), "\n"))
+            
+            ### Step 7: Perform MDS
+            
+            # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
+            dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+            
+            # str(1 - xc_mat)
+            # str(dist_mat)
+            
+            # Reduce dimensionality of the SPCC matrix using multidimensional scaling (MDS). Use the floor of 1/3rd of the dimensions in the SPCC matrix rather than 2 dimensions in order to reduce the stress of the final solution
+            iso_res <- invisible(MASS::isoMDS(dist_mat, k = floor(dim(xc_mat)[1]/3) + 1, maxit = 1000, trace = FALSE))
+            
+            # str(iso_res)
+            
+            # Make a data frame of the first two MDS dimensions and call metadata
+            mds_df <- data.frame(sound.files = dimnames(iso_res$points)[[1]]) %>%
+              dplyr::mutate(
+                X = iso_res$points[, 1],
+                Y = iso_res$points[, 2]
+              ) %>%
+              inner_join(
+                sel_tbl %>%
+                  dplyr::select(sound.files, group_ID, individual_ID, call_ID),
+                by = c("sound.files")
+              )
+            
+            # glimpse(mds_df)
+            
+            cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
+            
+            cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
+            
+            cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
+            
+            ### Step 8: Remove .wav files to free up storage space
+            rem_files <- file.path(data_path, wavs)
+            invisible(file.remove(rem_files))
+            
+            ### Step 9: Perform clustering and Normalized Mutual Information (NMI) calculation
+            # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
+            
+            ### Group-level clustering and NMI calculation
+            
+            # Set the number of clusters to the number of unique groups
+            num_clusters <- length(unique(mds_df$group_ID))
+            
+            # Perform k-means clustering with this number of clusters
+            # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
+            kmeans_grp <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
+            
+            # str(kmeans_grp)
+            
+            cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
+            
+            # Compute NMI at the group-level
+            orig_classes <- mds_df$group_ID
+            nmi_grp <- NMI(orig_classes, kmeans_grp$cluster)
+            
+            # NMI(orig_classes, orig_classes)
+            
+            # There two levels of specificity at the individual level. One is individuals is all individuals across groups (fine-grained), and the other is all individuals within a group, which will require nested NMI calculations within groups (coarse-grained)
+            
+            ### Fine-grained individual-level clustering and NMI calculation
+            
+            # Set the number of clusters to the number of unique individuals within each group
+            num_clusters <- mds_df %>% 
+              distinct(group_ID, individual_ID) %>% 
+              nrow()
+            
+            # Perform k-means clustering with this number of clusters
+            # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
+            kmeans_ind_fg <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
+            
+            cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind_fg$cluster)), "\n"))
+            
+            # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+            orig_classes <- paste(mds_df$group_ID, mds_df$individual_ID, sep = "-")
+            nmi_ind <- NMI(orig_classes, kmeans_ind_fg$cluster)
+            
+            ### Coarse-grained individual-level clustering and NMI calculation
+            
+            # Set the number of clusters to the number of unique individuals within each group
+            num_clusters <- mds_df %>% 
+              distinct(individual_ID) %>% 
+              nrow()
+            
+            # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation
+            # n <- 1 # testing
+            kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(n){
+              
+              tmp <- mds_df[grep(n, mds_df$group_ID), ]
+              
+              # Perform clustering using the MDS coordinates as input
+              res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+              
+              cat(paste("NA's in individual clustering?", any(is.na(res$cluster)), "\n"))
+              
+              # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+              orig_classes <- tmp$individual_ID
+              
+              return(NMI(orig_classes, res$cluster))
+              
+            }))
+            
+            nmi_ind_cg <- mean(kmeans_ind_cg)
+            
+            nmi_results <- data.frame(
+              social_envt_treatment = social_envts[z],
+              information_encoding_treatment = ratios[i],
+              iteration = n,
+              group_information = information[["group_information"]][i], 
+              individual_information = information[["individual_information"]][i],
+              NMI_group = nmi_grp,
+              NMI_individual_fine = nmi_ind,
+              NMI_individual_coarse = nmi_ind_cg,
+              notes = ""
+            )
+            
+          } else {
+            
+            nmi_results <- data.frame(
+              social_envt_treatment = social_envts[z],
+              information_encoding_treatment = ratios[i],
+              iteration = n,
+              group_information = information[["group_information"]][i], 
+              individual_information = information[["individual_information"]][i],
+              NMI_group = NA,
+              NMI_individual_fine = NA,
+              NMI_individual_coarse = NA,
+              notes = "SPCC matrix: values of 1 off of the diagonal"
+            )
+          }
+          
         }
         
         ### Step 10: return NMI results
