@@ -1,10 +1,10 @@
 ---
-title: "Generate calls, spectrograms, acoustic space"
+title: "Generate spectrogram image files"
 output: html_document
 date: "2024-11-20"
 ---
 
-Purpose: Here we generate spectrogram image files for two synthetic datasets of vocal identity signals with more group than individual information an vice versa. We use the `warbleR` paclage to generate spectrograms. These original spectrogram image files can be read back into R for further modification (e.g. resizing, adding color borders) prior to creating composite figures of lexicons in Inkscape.
+Purpose: Here we generate spectrogram image files for two synthetic datasets of vocal identity signals with more group than individual information an vice versa. We use the `warbleR` package to generate spectrograms. These original spectrogram image files can be read back into R for further modification (e.g. resizing, adding color borders) prior to creating composite figures of lexicons in Inkscape.
 
 For this script to work, you will need to either run the script `Generate_SyntheticDatasets.Rmd` to create the synthetic vocal identity signals, or you will need to access files we have already created that are stored in a shared location. If you want to reproduce the same results, then we recommend using the files stored in a shared location.
 

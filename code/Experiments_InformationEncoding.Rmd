@@ -57,9 +57,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
 # path <- "" # Brittany's path
 
 ###################################################################################
@@ -138,30 +138,82 @@ Iterate over each treatment a number of times so that we can calculate a 95% con
 # Set a seed for reproducibility
 set.seed(888)
 
-# Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information. Iterate over each unique pair of group_information and individual_information values to create call datasets with varying amounts of group versus individual information (e.g. more convergence within groups versus more divergence within groups). Keep the number of groups, individuals, call per individual, and string length the same across iterations
-group_information <- c(1, 2, 4, 50, rep(100, 4))
-individual_information <- c(rep(100, 4), 20, 10, 4, 2)
-random_variation <- 4 # create variation within individuals
+#################### Social environment treatments #################### 
 
-# Initialize the values of the number of groups, individuals, calls, and string length
-# TKTK need to check which parameters will change across iterations
-n_groups <- 5
-n_individuals <- 5
-n_calls <- 5
+# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals)
+n_groups <- c(2, 10, 20)
+n_individuals <- c(2, 10, 20)
 
-# TKTK this may need to go inside of the loop
-string_length <- (group_information + individual_information + random_variation) + 20
+# Keep the number of calls per individual constant across iterations
+n_calls <- 2
 
-iteratns <- 1
+# Check the total number of call comparisons in the largest social environment treatment, which will need to run 5 times (one per information encoding treatment)
+(max(n_groups) * max(n_individuals) ) * n_calls
+
+
+#################### Information encoding treatments #################### 
+
+# TKTK need to check if generate_strings will correctly generate strings with all group membership and all individual information
+# Ratios of group : individual information in a string
+# Here these ratios are written as proportions from 0 to 1, such that 0 indicates 0:1 (no group membership and all individual information), and 1 indicates 1:0 (all group membership information)
+ratios <- c(0, 0.2, 0.5, 0.8, 1)
+
+# The total length of the individual and group information together should be constant across strings
+encoding_length <- 120
+
+# Check the string lengths that will be assigned to group and individual information across the ratios above
+information <- data.table::rbindlist(lapply(1:length(ratios), function(i){
+  
+  if(ratios[i] < 1){
+    
+    group_information <- ratios[i] * encoding_length
+    
+  } else {
+    
+    group_information <- encoding_length / ratios[i]
+    
+  }
+  
+  individual_information <- encoding_length - group_information
+  
+  return(
+    data.frame(
+      group_information = group_information,
+      individual_information = individual_information
+    )
+  )
+  
+}))
+
+information
+
+# The length of the global header and tail should be the same across strings
+globals <- 40 # 20 characters for the global head, 20 for the global tail
+
+# Create variation within individuals, and this will be the same across strings
+random_variation <- 4
+
+# Initialize the total string length
+string_length <- (globals + encoding_length + random_variation)
+string_length # 164
+
+# Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
+iteratns <- 10
 
 # Testing the first iteration of each loop
 i <- 1
 n <- 1
 x <- 1
 
+
+# Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments. TKTK continue
+
 system.time(
   
-  # Iterate over treatments
+  # Iterate over social environment treatments
+  
+  
+  # Iterate over information encoding treatments
   invisible(pblapply(1:length(group_information), function(i){
     
     cat(paste("group_information = ", group_information[i], "\n", sep = ""))
@@ -414,7 +466,7 @@ system.time(
           NMI_individual = nmi_ind
         )
       )
-
+      
     }))
     
     ### Step 11. Write out the NMI results for the given treatment across iterations

@@ -4,8 +4,9 @@ output: html_document
 date: "2024-11-20"
 ---
 
-Purpose: Here we generate a synthetic identity signal datasets with more group than individual information, and more individual than group information. In each dataset, information at these two social levels is encoded in frequency modulation patterns. We use functions from the `paRsynth` package to create character strings, Parsons code strings, and frequency anchors that encode information at these two social leves. We then use the `soundgen` package to create synthetic audio files with the encoded information, and the `warbleR` package to create spectrograms. The resulting audio files, selection table spreadsheet, and spectrogram image files are uploaded to a shared location for subsequent analysis and figures.
+Purpose: Here we generate a synthetic identity signal datasets with more group than individual information, and more individual than group information. In each dataset, information at these two social levels is encoded in frequency modulation patterns. We use functions from the `paRsynth` package to create character strings, Parsons code strings, and frequency anchors that encode information at these two social levels. We then use the `soundgen` package to create synthetic audio files with the encoded information, and the `warbleR` package to create spectrograms. The resulting audio files, selection table spreadsheet are uploaded to a shared location for subsequent analysis and figures.
 
+You can run this script to generate audio files and metadata, or if you want to reproduce results in later code, you can download the files saved in a shared location.
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
