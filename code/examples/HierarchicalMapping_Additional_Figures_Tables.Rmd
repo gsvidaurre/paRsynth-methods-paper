@@ -1,0 +1,2729 @@
+---
+title: <center style="font-size:30px;font-style:normal;color:black;">Hierarchical Mapping: Additional Figures and Tables :</center>
+subtitle: <center style="font-size:30px;font-style:normal;color:#0E0E7D;"></center>
+ &nbsp;
+author: |
+  <center style="font-style:normal;">
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="http://smith-vidaurre.com/">G. Smith-Vidaurre</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1*</span></sup>, 
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="http://wrightbehaviorlab.org">V. Perez</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1</span></sup>,
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="http://wrightbehaviorlab.org">T.F. Wright</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1</span></sup></center>
+  &nbsp;
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">1</span></sup>Department of Biology, New Mexico State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">2</span></sup>Department of Biological Sciences, University of Cincinnati</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">3</span></sup>Facultad de Biologia, Universidad Michoacana de San Nicolas de Hidalgo</center>
+  <br />
+  <center style="font-size:18px;"><sup style="font-size:12px;">*</sup>gsvidaurre@gmail.com</center>
+  &nbsp;
+date: <center style="font-size:22px;font-style:normal;>`r format(Sys.time(), '%d %B, %Y')`</center>
+  <br />
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+---
+
+<style type="text/css">
+
+a:hover {
+  color: #23527c !important;
+}
+
+h1.title {
+  font-size: 32px;
+  color: black;
+  font-weight: normal;
+}
+
+h1 {
+   color: black;
+   font-size: 26px;
+   font-weight: normal;
+}
+
+h2 {
+   color: black;
+   font-size: 24px;
+   font-weight: bold;
+}
+
+h3 {
+   color: black;
+   font-size: 20px;
+   font-weight: normal;
+}
+
+h4 {
+   color: black;
+   font-size: 20px;
+   font-weight: normal;
+}
+
+body{ /* Normal */
+      font-size: 18px;
+  }
+code.r{ /* Code block */
+    font-size: 18px;
+}
+</style>
+
+```{r setup, eval = TRUE, echo = FALSE}
+
+knitr::opts_knit$set(root.dir = "/home/owner/Desktop/GitHub_repos/vocal-learning-invasion")
+
+```
+
+```{r echo = TRUE, eval = TRUE, message = FALSE}
+
+rm(list = ls())
+
+X <- c("tidyverse", "pbapply", "dplyr", "data.table", "parallel", "scales", "knitr", "warbleR", "magick", "grid", "gridExtra", "ggplot2", "ggsn", "maptools", "png", "pracma", "dynaSpec", "viridis")
+
+invisible(lapply(X, library, character.only = TRUE))
+
+path <- "/media/gsvidaurre/MYIOPSITTA/R/VocalLearning_PostInvasion/Data"
+gpath <- "/media/gsvidaurre/MYIOPSITTA/R/VocalLearning_PostInvasion/Graphics"
+twt_path <- "/home/gsvidaurre/Desktop/Professional_Development/ABSTwitterTakeover"
+seed <- 401
+cores <- parallel::detectCores() - 2
+
+```
+
+Read in the full extended selection table for both ranges, and the selection table of the site-scale calls that went through visual inspection, to choose among calls less likely to be potential repeated individuals for an example lexicon in the main manuscript. 
+```{r echo = TRUE, eval = TRUE}
+
+nat_inv_est <- readRDS(file.path(path, "nat_inv_indiv_site_EST.RDS"))
+glimpse(nat_inv_est)
+
+site_scale_vf <- readRDS(file.path(path, "site_scale_vf.RDS"))
+glimpse(site_scale_vf)
+
+```
+
+Make spectrograms for the example lexicons at each social scale that are main figures.
+
+First, individual scale calls. 
+```{echo = TRUE, eval = FALSE}
+
+# Select 3 individuals per range that are used in the acoustic space panel
+# indivs <- c("NAT-AAT", "NAT-UM2", "NAT-UM4", "INV-UM7", "INV-UM9", "INV-UM16")
+
+# indivs <- c("NAT-AAT", "INV-UM7")
+# Select 1 individual per range
+
+indivs <- c("NAT-UM5", "INV-UM16")
+calls <- c(
+  "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_1.WAV",
+  "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_5.WAV",
+  "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_6.WAV",
+  "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_7.WAV",
+  "2019_08_09_FIEL_GSV1088_8.WAV",
+  "2019_08_09_FIEL_GSV1088_9.WAV",
+  "2019_08_09_FIEL_GSV1088_10.WAV",
+  "2019_08_09_FIEL_GSV1088_11.WAV" 
+)
+
+indiv_calls <- nat_inv_est %>%
+  as_tibble() %>%
+  dplyr::filter(social_scale == "Individual") %>%
+  dplyr::filter(Bird_ID %in% indivs) %>%
+  dplyr::filter(sound.files %in% calls) %>%
+  pull(sound.files)
+
+head(indiv_calls)
+
+# Filter the full EST by these calls
+tmp_est <- nat_inv_est[grep(paste(paste("^", indiv_calls, "$", sep = ""), collapse = "|"), nat_inv_est$sound.files), ]
+nrow(tmp_est)
+class(tmp_est)
+
+# Make spectrograms with axis labels, inner.mar helps cut out the axis titles
+# spectrograms(tmp_est, wl = 378, flim = c(1, 8), ovlp = 90, mar = 0.01, res = 300, path = gpath, osci = FALSE, parallel = cores, line = FALSE, title.labels = NULL, axisX = TRUE, axisY = TRUE, inner.mar =  c(2, 3, 0.5, 0), propwidth = FALSE)
+
+# Make spectrograms with no axes
+# specreator(tmp_est, flim = c(1, 8), ovlp = 90, mar = 0.01, res = 300, path = gpath, osci = FALSE, parallel = cores, line = FALSE, title.labels = NULL, axisX = FALSE, axisY = FALSE, inner.mar = c(0, 0, 0, 0), wl = 378)
+
+# Make spectrograms with ggspectro to have more control over axis text, need to loop over .wav files in the EST
+# https://rug.mnhn.fr/seewave/spec.html
+
+# x label formatter
+s_formatter <- function(x){
+  # lab <- paste0(x, " s")
+  lab <- sprintf("%0.2f", x)
+}
+
+# y label formatter
+khz_formatter <- function(y){
+  lab <- paste0(y)
+  # lab <- paste0(y, " kHz")
+}
+
+oscillo_theme_dark <- theme(
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.background = element_rect(fill = "transparent"),
+  panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
+  axis.line = element_line(size = 0.15),
+  legend.position = "none",
+  plot.background = element_rect(fill = "white"),
+  plot.margin = unit(c(0, 0, 0.1, 0.1), "lines"), # top, right, bottom, left
+  axis.title = element_blank(),
+  axis.text = element_text(size = 6.5, color = "black", vjust = 0),
+  axis.ticks = element_line(color = "black", size = 0.15)
+)
+
+gray_colors <- reverse.gray.colors.2(12)
+
+x11()
+
+# attributes(tmp_est)
+
+tmp_est_nat <- tmp_est[grep("Native", tmp_est$range), ]
+glimpse(tmp_est_nat)
+
+# The native range calls, x-axis limits up to 0.24 s
+invisible(pblapply(1:nrow(tmp_est_nat), function(w){
+  
+  gg <- ggspectro(wave = attr(tmp_est_nat, "wave.objects")[[w]], f = attr(tmp_est_nat, "wave.objects")[[w]]@samp.rate, ovlp = 90)+ 
+    scale_x_continuous(limits = c(0.04, 0.26), breaks = seq(from = 0.04, to = 0.24, by = 0.04), labels = s_formatter, expand = c(0, 0))+
+    scale_y_continuous(limits = c(0.5, 6.75), breaks = seq(from = 1, to = 6, by = 1), expand = c(0, 0), labels = khz_formatter, position = "left")+
+    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
+    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0)) +
+    oscillo_theme_dark
+  
+  print(gg)
+  
+  ggsave(file.path(gpath, paste(tmp_est_nat$sound.files[w], "-1.jpeg", sep = "")), dpi = 300, units = "px", width = 425, height = 300)
+  
+}))
+
+# Invasive range calls, which are slightly shorter
+tmp_est_inv <- tmp_est[grep("Invasive", tmp_est$range), ]
+glimpse(tmp_est_inv)
+
+# The invasive range calls, x-axis limits up to 0.2 s
+invisible(pblapply(1:nrow(tmp_est_inv), function(w){
+  
+  gg <- ggspectro(wave = attr(tmp_est_inv, "wave.objects")[[w]], f = attr(tmp_est_inv, "wave.objects")[[w]]@samp.rate, ovlp = 90)+ 
+    scale_x_continuous(limits = c(0.04, 0.22), breaks = seq(from = 0.04, to = 0.20, by = 0.04), labels = s_formatter, expand = c(0, 0))+
+    scale_y_continuous(limits = c(0.5, 6.75), breaks = seq(from = 1, to = 6, by = 1), expand = c(0, 0), labels = khz_formatter, position = "left")+
+    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
+    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0)) +
+    oscillo_theme_dark
+  
+  print(gg)
+  
+  ggsave(file.path(gpath, paste(tmp_est_inv$sound.files[w], "-1.jpeg", sep = "")), dpi = 300, units = "px", width = 425, height = 300)
+  
+}))
+
+```
+
+I selected 4 of the highest quality calls from each individual. This is the list of spectrograms I used, in order per individual by top to bottom:
+
+NAT-UM5:
+
+2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_1.WAV
+2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_5.WAV
+2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_6.WAV
+2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_7.WAV
+
+
+INV-UM16:
+
+2019_08_09_FIEL_GSV1088_8.WAV
+2019_08_09_FIEL_GSV1088_9.WAV
+2019_08_09_FIEL_GSV1088_10.WAV
+2019_08_09_FIEL_GSV1088_11.WAV (used as guide image, made smaller to have axes fit)
+
+
+
+Other individuals if need these later:
+
+NAT-UM2:
+
+2017_07_24_1145-01_INDIV-UNMARKED-BIRD2_MZ000284_20.WAV
+2017_07_24_1145-01_INDIV-UNMARKED-BIRD2_MZ000284_17.WAV
+2017_07_24_1145-01_INDIV-UNMARKED-BIRD2_MZ000284_7.WAV
+
+
+NAT-UM4:
+
+2017_07_26_1145-02_INDIV-UNMARKED-BIRD4_MZ000321_10.WAV
+2017_07_26_1145-02_INDIV-UNMARKED-BIRD4_MZ000321_6.WAV
+2017_07_26_1145-02_INDIV-UNMARKED-BIRD4_MZ000321_7.WAV
+
+INV-UM9:
+
+2019_08_06_ELEM_GSV1033_8.WAV
+2019_08_06_ELEM_GSV1033_9.WAV
+2019_08_06_ELEM_GSV1033_10.WAV
+
+INV-UM16:
+
+2019_08_09_FIEL_GSV1088_9.WAV
+2019_08_09_FIEL_GSV1088_10.WAV
+2019_08_09_FIEL_GSV1088_11.WAV
+
+```{r echo = TRUE, eval = FALSE}
+
+# Add colored borders by individual.
+cols <- scales::alpha(c("navy", "gold2", 0.45))
+indivs <- c("NAT-UM5", "INV-UM16")
+
+img_list <- list(
+  c(
+    "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_1.WAV",
+    "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_5.WAV",
+    "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_6.WAV",
+    "2017_08_21_CHAC_INDIV-UNMARKED-BIRD5_1242_7.WAV"
+    ),
+  c(
+    "2019_08_09_FIEL_GSV1088_8.WAV",
+    "2019_08_09_FIEL_GSV1088_9.WAV",
+    "2019_08_09_FIEL_GSV1088_10.WAV",
+    "2019_08_09_FIEL_GSV1088_11.WAV"
+  )
+)
+
+
+# i <- 1
+# z <- 1
+invisible(pblapply(1:length(img_list), function(i){
+  
+  lapply(1:length(img_list[[i]]), function(z){
+    
+    img <- image_read(file.path(gpath, paste(img_list[[i]][z], "-1.jpeg", sep = "")))
+  
+    image_write(image_border(img, cols[i], "10x10"), path = file.path(gpath, paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+    
+  })
+  
+}))
+
+```
+
+Second, site scale calls. 
+```{echo = TRUE, eval = FALSE}
+
+# Select 1 site per range
+sites <- c("LENA_2017", "INTR_2019")
+
+# Filter the full EST by these sites and randomly select 10 calls per site to select 4 among these for the main figure
+# set.seed(seed)
+# site_calls <- site_scale_vf %>%
+#   filter(social_scale == "Site") %>%
+#   filter(site_year %in% sites) %>%
+#   droplevels() %>%
+#   group_by(site_year) %>%
+#   nest() %>%
+#   ungroup() %>%
+#   inner_join(
+#     site_scale_vf %>%
+#       filter(social_scale == "Site") %>%
+#       filter(site_year %in% sites) %>%
+#       droplevels() %>%
+#       group_by(site_year) %>%
+#       dplyr::summarise(
+#         n_calls = length(sound.files)
+#       ) %>%
+#       dplyr::mutate(
+#         n_samp = ifelse(n_calls > 12, 12, n_calls)
+#       ) %>%
+#       dplyr::select(c(-n_calls)),
+#     by = "site_year"
+#   ) %>%
+#   dplyr::mutate(
+#     rsamp_call = purrr::map2(data, n_samp, sample_n, replace = FALSE)
+#   ) %>%
+#   dplyr::select(-data) %>%
+#   unnest(rsamp_call) %>%
+#   pull(sound.files)
+# 
+# head(site_calls)
+
+site_calls <- c(
+  "2017_10_23_LENA_1550_1.WAV",
+  "2017_10_23_LENA_1553_2.WAV",
+  "2017_10_23_LENA_1554_5.WAV",
+  "2017_10_23_LENA_1554_6.WAV",
+  "2019_08_08_INTR_1094_8.WAV",
+  "2019_08_08_INTR_GSV1056_5.WAV",
+  "2019_08_08_INTR_1088_2.WAV",
+  "2019_08_08_INTR_1094_31.WAV"
+)
+
+
+# Filter the full EST by these calls
+tmp_est <- nat_inv_est[grep(paste(paste("^", site_calls, "$", sep = ""), collapse = "|"), nat_inv_est$sound.files), ]
+nrow(tmp_est)
+class(tmp_est)
+
+# Make spectrograms with ggspectro to have more control over axis text, need to loop over .wav files in the EST
+# https://rug.mnhn.fr/seewave/spec.html
+
+# x label formatter
+s_formatter <- function(x){
+  # lab <- paste0(x, " s")
+  lab <- sprintf("%0.2f", x)
+}
+
+# y label formatter
+khz_formatter <- function(y){
+  lab <- paste0(y)
+  # lab <- paste0(y, " kHz")
+}
+
+oscillo_theme_dark <- theme(
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.background = element_rect(fill = "transparent"),
+  panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
+  axis.line = element_line(size = 0.15),
+  legend.position = "none",
+  plot.background = element_rect(fill = "white"),
+  plot.margin = unit(c(0, 0, 0.1, 0.1), "lines"), # top, right, bottom, left
+  axis.title = element_blank(),
+  axis.text = element_text(size = 6.5, color = "black", vjust = 0),
+  axis.ticks = element_line(color = "black", size = 0.15)
+)
+
+gray_colors <- reverse.gray.colors.2(12)
+
+x11()
+
+# attributes(tmp_est)
+
+tmp_est_nat <- tmp_est[grep("Native", tmp_est$range), ]
+glimpse(tmp_est_nat)
+
+# The native range calls, x-axis limits up to 0.24 s
+invisible(pblapply(1:nrow(tmp_est_nat), function(w){
+  
+  gg <- ggspectro(wave = attr(tmp_est_nat, "wave.objects")[[w]], f = attr(tmp_est_nat, "wave.objects")[[w]]@samp.rate, ovlp = 90)+ 
+    scale_x_continuous(limits = c(0.04, 0.24), breaks = seq(from = 0.04, to = 0.22, by = 0.04), labels = s_formatter, expand = c(0, 0))+
+    scale_y_continuous(limits = c(0.5, 6.75), breaks = seq(from = 1, to = 6, by = 1), expand = c(0, 0), labels = khz_formatter, position = "left")+
+    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
+    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0)) +
+    oscillo_theme_dark
+  
+  print(gg)
+  
+  ggsave(file.path(gpath, paste(tmp_est_nat$sound.files[w], "-1.jpeg", sep = "")), dpi = 300, units = "px", width = 425, height = 300)
+  
+}))
+
+# Invasive range calls, which are slightly shorter
+tmp_est_inv <- tmp_est[grep("Invasive", tmp_est$range), ]
+glimpse(tmp_est_inv)
+
+# The invasive range calls, x-axis limits up to 0.2 s
+invisible(pblapply(1:nrow(tmp_est_inv), function(w){
+  
+  gg <- ggspectro(wave = attr(tmp_est_inv, "wave.objects")[[w]], f = attr(tmp_est_inv, "wave.objects")[[w]]@samp.rate, ovlp = 90)+ 
+    scale_x_continuous(limits = c(0.04, 0.24), breaks = seq(from = 0.04, to = 0.22, by = 0.04), labels = s_formatter, expand = c(0, 0))+
+    scale_y_continuous(limits = c(0.5, 6.75), breaks = seq(from = 1, to = 6, by = 1), expand = c(0, 0), labels = khz_formatter, position = "left")+
+    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
+    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0)) +
+    oscillo_theme_dark
+  
+  print(gg)
+  
+  ggsave(file.path(gpath, paste(tmp_est_inv$sound.files[w], "-1.jpeg", sep = "")), dpi = 300, units = "px", width = 425, height = 300)
+  
+}))
+
+```
+
+I selected 4 of the highest quality calls from each site. This is the list of spectrograms I used, in order per site by top to bottom:
+
+LENA:
+
+2017_10_23_LENA_1550_1.WAV
+2017_10_23_LENA_1553_2.WAV
+2017_10_23_LENA_1554_5.WAV
+2017_10_23_LENA_1554_6.WAV
+
+INTR:
+
+2019_08_08_INTR_1094_8.WAV
+2019_08_08_INTR_GSV1056_5.WAV
+2019_08_08_INTR_1088_2.WAV
+2019_08_08_INTR_1094_31.WAV
+
+
+```{r echo = TRUE, eval = FALSE}
+
+# Also add colored borders by individual...wavs <- ccs_est_predict %>%
+cols <- scales::alpha(c("navy", "gold2", 0.45))
+sites <- c("LENA_2017", "INTR_2019")
+
+img_list <- list(
+  c(
+    "2017_10_23_LENA_1550_1.WAV",
+    "2017_10_23_LENA_1553_2.WAV",
+    "2017_10_23_LENA_1554_5.WAV",
+    "2017_10_23_LENA_1554_6.WAV"
+  ),
+  c(
+    "2019_08_08_INTR_1094_8.WAV",
+    "2019_08_08_INTR_GSV1056_5.WAV",
+    "2019_08_08_INTR_1094_31.WAV",
+    "2019_08_08_INTR_1088_2.WAV"
+  )
+)
+
+# i <- 1
+# z <- 1
+invisible(pblapply(1:length(img_list), function(i){
+  
+  lapply(1:length(img_list[[i]]), function(z){
+    
+    img <- image_read(file.path(gpath, paste(img_list[[i]][z], "-1.jpeg", sep = "")))
+  
+    image_write(image_border(img, cols[i], "10x10"), path = file.path(gpath, paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+    
+  })
+  
+}))
+
+
+```
+
+### Audio files
+
+Chose one call from spectrograms above, and wrote out .wav files in real and 1/4 time to be used for talks. 
+```{r echo = TRUE, eval = FALSE}
+
+wav_nm <- "2017_10_23_LENA_1553_2.WAV"
+
+# Wrote out the .wav file
+nat_inv_est
+
+wav <- attr(nat_inv_est, "wave.objects")[grep(wav_nm, names(attr(nat_inv_est, "wave.objects")))]
+wav[[1]]
+
+writeWave(wav[[1]], filename = file.path(gpath, "2017_10_23_LENA_1553_2.WAV"))
+
+# Then used sox to created a slowed version 
+# sox /media/owner/MYIOPSITTA/R/VocalLearning_PostInvasion/Graphics/2017_10_23_LENA_1553_2.WAV /media/owner/MYIOPSITTA/R/VocalLearning_PostInvasion/Graphics/2017_10_23_LENA_1553_2_quarterTime.WAV speed 0.25
+
+# Made spectrograms (had to use more than one .wav file or else the EST isn't recognized)
+# Filter the full EST by these calls
+tmp_est <- nat_inv_est[grep("LENA", nat_inv_est$site), ]
+nrow(tmp_est)
+class(tmp_est)
+
+# Make spectrograms with axis labels, inner.mar helps cut out the axis titles
+specreator(tmp_est, flim = c(0, 10), ovlp = 90, mar = 0.01, res = 300, path = path, osci = FALSE, parallel = cores, line = FALSE, title.labels = NULL, wl = 378)
+
+```
+
+
+# Spectrograms for defense talk lexicon, native range only
+
+Individual scale calls for the 5 individuals at site 1145, and calls for sites INES-08, LENA, RIAC, SEMI.  
+```{echo = TRUE, eval = FALSE}
+
+indiv_calls <- nat_inv_est %>%
+  as_tibble() %>%
+  filter(social_scale == "Individual") %>%
+  filter(site == "1145") %>%
+  droplevels() %>%
+  pull(sound.files)
+
+head(indiv_calls)
+
+# Filter the full EST by these calls
+tmp_est <- nat_inv_est[grep(paste(paste("^", indiv_calls, "$", sep = ""), collapse = "|"), nat_inv_est$sound.files), ]
+nrow(tmp_est)
+class(tmp_est)
+
+# Make spectrograms with axis labels, inner.mar helps cut out the axis titles
+specreator(tmp_est, flim = c(1, 8), ovlp = 90, mar = 0.01, res = 300, path = gpath, osci = FALSE, parallel = cores, line = FALSE, title.labels = NULL, axisX = FALSE, axisY = FALSE, wl = 378, inner.mar = c(0, 0, 0, 0))
+# inner.mar = c(2, 2, 0.5, 0) # if axis text not desired, note that the font size scales very poorly
+
+# Resize the image files to be used for the lexicon
+imgs <- c(
+  "2017_07_29_1145-02_INDIV-AAT_1224_1.WAV",
+  "2017_07_29_1145-02_INDIV-AAT_1224_2.WAV",
+  "2017_07_29_1145-02_INDIV-AAT_1224_3.WAV",
+  "2017_07_29_1145-02_INDIV-AAT_1224_4.WAV",
+  "2017_07_28_1145-01_INDIV-UNMARKED-BIRD1_1193_8.WAV",
+  "2017_07_28_1145-01_INDIV-UNMARKED-BIRD1_1193_9.WAV",
+  "2017_07_28_1145-01_INDIV-UNMARKED-BIRD1_1193_10.WAV",
+  "2017_07_28_1145-01_INDIV-UNMARKED-BIRD1_1193_16.WAV",
+  "2017_07_24_1145-01_INDIV-UNMARKED-BIRD2_MZ000284_4.WAV",
+  "2017_07_24_1145-01_INDIV-UNMARKED-BIRD2_MZ000284_5.WAV",
+  "2017_07_24_1145-01_INDIV-UNMARKED-BIRD2_MZ000284_6.WAV",
+  "2017_07_24_1145-01_INDIV-UNMARKED-BIRD2_MZ000284_10.WAV"
+  
+  )
+
+# Resize images to 430 pixels wide by 285 pixels high, ignore aspect ratio
+# Leaves enough space for adding a colored border around each image file
+invisible(pblapply(1:length(imgs), function(i){
+  
+  img <- image_read(file.path(gpath, paste(imgs[i], "-1.jpeg", sep = "")))
+  image_write(image_scale(img, geometry = "435x300!"), path = file.path(gpath, paste(imgs[i], "sm.jpeg", sep = "_")))
+  
+}))
+
+# Site scale calls
+site_calls <- nat_inv_est %>%
+  as_tibble() %>%
+  filter(social_scale == "Site") %>%
+  filter(site %in% c("INES-08", "LENA", "RIAC")) %>%
+  droplevels() %>%
+  pull(sound.files)
+
+head(site_calls)
+
+# Filter the full EST by these calls
+tmp_est <- nat_inv_est[grep(paste(paste("^", site_calls, "$", sep = ""), collapse = "|"), nat_inv_est$sound.files), ]
+nrow(tmp_est)
+class(tmp_est)
+
+# Make spectrograms with axis labels, inner.mar helps cut out the axis titles
+specreator(tmp_est, flim = c(1, 8), ovlp = 90, mar = 0.01, res = 300, path = gpath, osci = FALSE, parallel = cores, line = FALSE, title.labels = NULL, axisX = FALSE, axisY = FALSE, inner.mar = c(0, 0, 0, 0), wl = 378)
+
+imgs <- c(
+  "2017_07_13_INES-08_1103_5.WAV",
+  "2017_07_13_INES-08_1094_3.WAV",
+  "2017_07_13_INES-08_1094_4.WAV",
+  "2017_07_13_INES-08_1098_2.WAV",
+  "2017_10_23_LENA_1550_1.WAV",
+  "2017_10_23_LENA_1553_2.WAV",
+  "2017_10_23_LENA_1554_5.WAV",
+  "2017_10_23_LENA_1554_6.WAV",
+  "2017_06_28_RIAC-01_1045_1.WAV",
+  "2017_06_28_RIAC-01_1048_3.WAV",
+  "2017_06_28_RIAC-01_1049_7.WAV",
+  "2017_06_28_RIAC-01_1050_3.WAV"
+  )
+
+
+# Resize images to 430 pixels wide by 285 pixels high, ignore aspect ratio
+# Leaves enough space for adding a colored border around each image file
+invisible(pblapply(1:length(imgs), function(i){
+  
+  img <- image_read(file.path(gpath, paste(imgs[i], "-1.jpeg", sep = "")))
+  image_write(image_scale(img, geometry = "435x300!"), path = file.path(gpath, paste(imgs[i], "sm.jpeg", sep = "_")))
+  
+}))
+
+```
+
+
+# Acoustic space figures for talks (monk parakeet, yellow-naped amazon)
+
+Read in the full dataset used for comparison between ranges.
+```{r echo = TRUE, eval = TRUE}
+
+site_scale_nf <- readRDS(file.path(path, "site_scale_nf.RDS"))
+
+# Full site scale dataset
+# 1191 calls
+site_scale_nf %>%
+  nrow()
+
+```
+
+## Acoustic space for species comparison
+
+SPCC acoustic space for monk parakeets (both ranges), and yellow-naped amazons. Used as a visual for talks. 
+
+# Individual scale for both species
+
+Here, performed t-SNE for the YNA similarity matrix. MDS did not pull apart sites as well as I hoped.
+```{r echo = TRUE, eval = FALSE}
+
+yna_est <- readRDS(file.path(path, "YNA_extended_selection_table.RDS"))
+glimpse(yna_est)
+
+```
+
+```{r echo = TRUE, eval = FALSE}
+
+xc_mat_yna <- readRDS(file.path(path, "xc_mat_yna.RDS"))
+
+# Change dimension names
+dimnames(xc_mat_yna) <- list(yna_est$sound.files, yna_est$sound.files)
+str(xc_mat_yna)
+
+########## MDS #################
+
+# Convert to a distance matrix and dist object for isoMDS
+# dist_mat <- stats::as.dist(1 - xc_mat_yna, diag = TRUE, upper = TRUE)
+# str(dist_mat)
+
+# Reduce dimensionality of the SPCC matrix to visualize calls in 2D acoustic space
+# iso <- invisible(MASS::isoMDS(dist_mat, k = 2, maxit = 1000, trace = FALSE))
+# str(iso)
+
+########## t-SNE #################
+
+X <- stats::as.dist(1 - xc_mat_yna, diag = TRUE, upper = TRUE)
+  
+tmp <- list()
+  
+# Embed in 2 dimensions for visualization with intermediate perplexity
+tmp <- lapply(1:10, function(n){
+  Rtsne::Rtsne(X, dims = 2, pca = FALSE, max_iter = 5000, perplexity = round((dim(xc_mat_yna)[1] - 1)/4), is_distance = TRUE, theta = 0.0)
+})
+# str(tmp)
+
+KL <- sapply(1:length(tmp), function(i){
+  tmp[[i]]$itercosts[100]
+}, simplify = TRUE)
+  
+# Overwrite tmp with the solution that minimized KL
+tsne_yna <- tmp[[which(KL == min(KL))]]
+
+saveRDS(tsne_yna, file.path(path, "tsne_spcc_yna.RDS"))
+
+```
+
+Get individuals from a single Northern dialect site.
+```{r echo = TRUE, eval = TRUE}
+
+tsne_yna <- readRDS(file.path(path, "tsne_spcc_yna.RDS"))
+
+yna_spcc_tsne_df <- data.frame(X = tsne_yna$Y[, 1]) %>%
+  dplyr::mutate(
+    Y = tsne_yna$Y[, 2], 
+    spp = "Yellow-naped amazon",
+    dialect = yna_est$regional_dialect,
+    site = yna_est$site,
+    indiv = yna_est$bird_ID, 
+    sound.files = yna_est$sound.files
+  )
+glimpse(yna_spcc_tsne_df)
+
+# Filter by Northern dialect calls
+yna_nor <- yna_spcc_tsne_df %>%
+  as_tibble() %>%
+  filter(dialect == "Nor") %>%
+  droplevels()
+
+# How many individuals per site?
+yna_nor %>%
+  group_by(site) %>%
+  dplyr::summarise(
+    n_indivs = n_distinct(indiv)
+  )
+
+# Get 4 individuals from one site
+# set.seed(seed)
+indivs <- yna_nor %>%
+  filter(site == "horiz") %>%
+  pull(indiv) %>%
+  unique() %>%
+  as.character()
+
+indivs
+
+yna_indivs_df <- yna_spcc_tsne_df %>%
+  filter(indiv %in% indivs) %>%
+  dplyr::mutate(
+    indiv = toupper(indiv)
+  ) %>%
+  droplevels()
+
+glimpse(yna_indivs_df)
+
+```
+
+Make the acoustic space plot.
+```{r echo = TRUE, eval = TRUE}
+
+### Yellow-naped amazon, individual scale
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("maroon", "firebrick", "red", "orangered"), 0.65)
+
+# Shapes by individual
+shps <- c(21, 23, 24, 25)
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(yna_indivs_df, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+glimpse(yna_indivs_df)
+
+gg <- yna_indivs_df %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("firebrick", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_SPCC_tSNE_YNA_IndivScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+```
+
+## Monk parakeets
+
+Performed t-SNE for the monk parakeet similarity matrix, individual scale calls.
+```{r echo = TRUE, echo = TRUE}
+
+xc_mat_spec <- readRDS(file.path(path, "xc_mat_NAT_INV.RDS"))
+# dim(xc_mat_spec) == nrow(nat_inv_est)
+
+# Rename dimension names of matrix
+wavs <- dimnames(xc_mat_spec)[[1]]
+wavs <- gsub(".WAV-1", ".WAV", wavs)
+# head(wavs)
+
+dimnames(xc_mat_spec) <- list(wavs, wavs)
+
+nat_indivs <- c("NAT-AAT", "NAT-UM1", "NAT-UM2", "NAT-UM4")
+inv_indivs <- c("INV-UM7", "INV-UM9", "INV-UM16", "INV-UM17")
+
+# Subset the ESTby these individuals
+mnk_indiv_df <- nat_inv_est %>%
+  as_tibble() %>%
+  filter(social_scale == "Individual") %>%
+  filter(Bird_ID %in% c(nat_indivs, inv_indivs)) %>%
+  droplevels()
+glimpse(mnk_indiv_df)
+
+```
+
+```{r echo = TRUE, echo = TRUE}
+
+# Get calls for these birds
+calls_tmp <- mnk_indiv_df %>%
+  pull(sound.files) %>%
+  as.character()
+
+# Subset matrices by these calls
+inds <- grep(paste(paste("^", calls_tmp, "$", sep = ""), collapse = "|"), dimnames(xc_mat_spec)[[1]])
+# length(inds) == length(calls_tmp)
+
+xc_mat_tmp <- xc_mat_spec[inds, inds]
+# Calls in the filtered are in the same order as in calls_tmp
+# all(dimnames(xc_mat_tmp)[[1]] == calls_tmp)
+
+# Convert to a distance matrix and dist object for isoMDS
+# dist_mat <- stats::as.dist(1 - xc_mat_tmp, diag = TRUE, upper = TRUE)
+# str(dist_mat)
+
+# Reduce dimensionality of the SPCC matrix to visualize calls in 2D acoustic space
+# iso <- invisible(MASS::isoMDS(dist_mat, k = 2, maxit = 1000, trace = FALSE))
+# str(iso)
+
+X <- stats::as.dist(1 - xc_mat_tmp, diag = TRUE, upper = TRUE)
+  
+tmp <- list()
+  
+# Embed in 2 dimensions for visualization with intermediate perplexity
+tmp <- lapply(1:10, function(n){
+  Rtsne::Rtsne(X, dims = 2, pca = FALSE, max_iter = 5000, perplexity = round((dim(xc_mat_tmp)[1] - 1)/4), is_distance = TRUE, theta = 0.0)
+})
+# str(tmp)
+
+KL <- sapply(1:length(tmp), function(i){
+  tmp[[i]]$itercosts[100]
+}, simplify = TRUE)
+  
+# Overwrite tmp with the solution that minimized KL
+tsne_mnk <- tmp[[which(KL == min(KL))]]
+
+saveRDS(tsne_mnk, file.path(path, "tsne_spcc_indiv_mnk.RDS"))
+
+```
+
+```{r echo = TRUE, eval = TRUE}
+
+tsne_mnk <- readRDS(file.path(path, "tsne_spcc_indiv_mnk.RDS"))
+
+mnk_spcc_indiv_tsne_df <- data.frame(spp = "Monk parakeet", X = tsne_mnk$Y[, 1], Y = tsne_mnk$Y[, 2]) %>%
+  dplyr::mutate(
+    indiv = mnk_indiv_df$Bird_ID,
+    range = mnk_indiv_df$range,
+    indiv = gsub("NAT-|INV-", "", indiv)
+  )
+glimpse(mnk_spcc_indiv_tsne_df)
+
+```
+
+Native range individuals.
+```{r echo = TRUE, echo = TRUE}
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("navy", "royalblue2", "turquoise", "dodgerblue", "deepskyblue4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24, 25, 6)
+
+mnk_nat_indiv <- mnk_spcc_indiv_tsne_df %>%
+  filter(range == "Native") %>%
+  dplyr::mutate(
+    spp = paste(spp, "Native", sep = " - ")
+  ) %>%
+  droplevels()
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(mnk_nat_indiv, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+gg <- mnk_nat_indiv %>%
+  droplevels() %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_SPCC_tSNE_MNKNative_IndivScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+```
+
+Monks, invasive range individuals.
+```{r echo = TRUE, echo = TRUE}
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("gold2", "goldenrod2", "darkorange3", "gold4", "darkorange4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24, 25, 6)
+
+mnk_inv_indiv <- mnk_spcc_indiv_tsne_df %>%
+  filter(range == "Invasive") %>%
+  dplyr::mutate(
+    spp = paste(spp, "Invasive", sep = " - ")
+  ) %>%
+  droplevels()
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(mnk_inv_indiv, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+gg <- mnk_inv_indiv %>%
+  droplevels() %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_SPCC_tSNE_MNKInvasive_IndivScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+```
+
+
+# Site scale for both species
+
+```{r echo = TRUE, eval = TRUE}
+
+tsne_yna <- readRDS(file.path(path, "tsne_spcc_yna.RDS"))
+
+yna_spcc_tsne_df <- data.frame(X = tsne_yna$Y[, 1]) %>%
+  dplyr::mutate(
+    Y = tsne_yna$Y[, 2], 
+    spp = "Yellow-naped amazon",
+    ids = yna_est$site, 
+    sound.files = yna_est$sound.files
+  )
+glimpse(yna_spcc_tsne_df)
+
+# Filter by Northern dialect calls
+yna_nor <- yna_est %>%
+  as_tibble() %>%
+  filter(regional_dialect == "Nor") %>%
+  droplevels()
+
+# Get 4 sites for YNA Northern dialect (all sites were recorded in the same year)
+set.seed(seed)
+sites <- yna_nor %>%
+  pull(site) %>%
+  unique() %>%
+  as.character() %>%
+  sample(4, replace = FALSE)
+
+sites
+
+yna_spcc_tsne_df <- yna_spcc_tsne_df %>%
+  filter(ids %in% sites) %>%
+  droplevels()
+
+glimpse(yna_spcc_tsne_df)
+
+```
+
+Yellow-naped amazon sites.
+```{r echo = TRUE, eval = FALSE}
+
+### Yellow-naped amazons
+
+yna_spcc_tsne_df <- yna_spcc_tsne_df %>%
+  dplyr::mutate(
+    ids = toupper(ids)
+  )
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("brown", "maroon", "firebrick", "red", "orangered"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24, 25, 6)
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(yna_spcc_tsne_df, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+gg <- yna_spcc_tsne_df %>%
+  ggplot(aes(x = X, y = Y, shape = ids)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("firebrick", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_SPCC_tSNE_YNA_SiteScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+```
+
+# Monks, site scale, SPCC
+
+Performed t-SNE for the monk parakeet SPCC similarity matrix.
+```{r echo = TRUE, echo = TRUE}
+
+############### Site scale calls, full dataset #############
+
+# Native range: Randomly sample 4 sites from the Colonia department
+# Invasive range: 4 sites from Austin 2019
+
+# set.seed(seed)
+# nat_sites <- nat_inv_est %>%
+#   filter(range == "Native" & dept_state == "Colonia" & social_scale == "Site") %>%
+#   pull(site_year) %>%
+#   unique() %>%
+#   sample(5, replace = FALSE)
+
+nat_sites <- c("INES-08_2017", "LENA_2017", "RIAC_2017", "SEMI_2017")
+
+# set.seed(seed)
+# inv_sites <- nat_inv_est %>%
+#   filter(range == "Invasive" & year == "2019" & social_scale == "Site" & invasive_city == "Austin") %>%
+#   pull(site_year) %>%
+#   unique() %>%
+#   sample(5, replace = FALSE)
+
+inv_sites <- c("INTR_2019", "ELEM_2019", "SOCC_2019", "MART_2019")
+
+nat_sites
+inv_sites
+
+# Subset the site scale calls by these site-years
+sites_df <- site_scale_nf %>%
+  filter(social_scale == "Site") %>%
+  filter(site_year %in% c(nat_sites, inv_sites)) %>%
+  droplevels()
+glimpse(sites_df)
+
+# Get calls from the full dataset (no filtering) for these sites
+calls_tmp <- sites_df %>%
+  pull(sound.files) %>%
+  as.character()
+
+```
+
+```{r echo = TRUE, echo = TRUE}
+
+# Subset matrices by these calls
+inds <- grep(paste(paste("^", calls_tmp, "$", sep = ""), collapse = "|"), dimnames(xc_mat_spec)[[1]])
+# length(inds) == length(calls_tmp)
+
+xc_mat_tmp <- xc_mat_spec[inds, inds]
+# Calls in the filtered are in the same order as in calls_tmp
+# all(dimnames(xc_mat_tmp)[[1]] == calls_tmp)
+
+# Convert to a distance matrix and dist object for isoMDS
+# dist_mat <- stats::as.dist(1 - xc_mat_tmp, diag = TRUE, upper = TRUE)
+# str(dist_mat)
+
+# Reduce dimensionality of the SPCC matrix to visualize calls in 2D acoustic space
+# iso <- invisible(MASS::isoMDS(dist_mat, k = 2, maxit = 1000, trace = FALSE))
+# str(iso)
+
+X <- stats::as.dist(1 - xc_mat_tmp, diag = TRUE, upper = TRUE)
+  
+tmp <- list()
+  
+# Embed in 2 dimensions for visualization with intermediate perplexity
+# Did not use perplexity = round((dim(xc_mat_tmp)[1] - 1)/4), too high 
+tmp <- lapply(1:10, function(n){
+  Rtsne::Rtsne(X, dims = 2, pca = FALSE, max_iter = 5000, perplexity = 35, is_distance = TRUE, theta = 0.0)
+})
+# str(tmp)
+
+KL <- sapply(1:length(tmp), function(i){
+  tmp[[i]]$itercosts[100]
+}, simplify = TRUE)
+  
+# Overwrite tmp with the solution that minimized KL
+tsne_mnk <- tmp[[which(KL == min(KL))]]
+
+saveRDS(tsne_mnk, file.path(path, "tsne_spcc_sites_mnk.RDS"))
+
+```
+
+```{r echo = TRUE, eval = TRUE}
+
+tsne_mnk <- readRDS(file.path(path, "tsne_spcc_sites_mnk.RDS"))
+
+mnk_spcc_tsne_df <- data.frame(spp = "Monk parakeet", X = tsne_mnk$Y[, 1], Y = tsne_mnk$Y[, 2], ids = sites_df %>%
+  pull(site_year) %>%
+  as.character(), sound.files = calls_tmp, range = sites_df %>%
+  pull(range) %>%
+  as.character())
+glimpse(mnk_spcc_tsne_df)
+
+```
+
+Monk parakeets, both ranges.
+```{r echo = TRUE, echo = TRUE}
+
+mnk_spcc_tsne_df <- mnk_spcc_tsne_df %>%
+  dplyr::mutate(
+    spp_range = paste(spp, range, sep = " - "),
+    spp_range = factor(spp_range, levels = c("Monk parakeet - Native", "Monk parakeet - Invasive")),
+    # Remove year labels in IDs
+    ids = gsub("_2017|_2019", "", ids)
+  )
+
+glimpse(mnk_spcc_tsne_df)
+
+
+# Monk parakeets, native
+mnk_nat <- mnk_spcc_tsne_df %>%
+  filter(spp_range == "Monk parakeet - Native") %>%
+  droplevels()
+glimpse(mnk_nat)
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("navy", "royalblue2", "turquoise", "dodgerblue", "deepskyblue4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24, 25, 6)
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(mnk_nat, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+gg1 <- mnk_nat %>%
+  ggplot(aes(x = X, y = Y, shape = ids)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg1
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg1))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_SPCC_tSNE_MNKNative_SiteScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+
+# Monk parakeets, invasive
+mnk_inv <- mnk_spcc_tsne_df %>%
+  filter(spp_range == "Monk parakeet - Invasive") %>%
+  droplevels()
+glimpse(mnk_inv)
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("gold2", "goldenrod2", "darkorange3", "gold4", "darkorange4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24, 25, 6)
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(mnk_inv, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+gg2 <- mnk_inv %>%
+  ggplot(aes(x = X, y = Y, shape = ids)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg2
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg2))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_SPCC_tSNE_MNKInvasive_SiteScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+```
+
+# Monks, site scale, random forests
+
+Performed t-SNE for the monk parakeet random forests similarity matrix.
+```{r echo = TRUE, echo = TRUE}
+
+# Read RF similarity
+predictn_prox_mat <- readRDS(file.path(path, "prediction_prox_mat.RDS"))
+
+# Random forests datasets (training, validation, prediction)
+sup_rf_df <- read.csv(file.path(path, "supervised_RF_datasets_acousticSimilarity.csv")) %>%
+ dplyr::mutate(
+    year = as.character(year)
+  )
+
+predictn_df <- sup_rf_df %>%
+  filter(rf_set == "prediction") %>%
+  droplevels()
+
+# Add dimension names to the RF similarity matrix
+dimnames(predictn_prox_mat) <- list(predictn_df$sound.files, predictn_df$sound.files)
+
+############### Site scale calls, full dataset #############
+
+nat_sites <- c("INES-08_2017", "LENA_2017", "RIAC_2017", "SEMI_2017")
+
+inv_sites <- c("INTR_2019", "ELEM_2019", "SOCC_2019", "MART_2019")
+
+nat_sites
+inv_sites
+
+# Subset the site scale calls by these site-years
+sites_df <- site_scale_nf %>%
+  filter(social_scale == "Site") %>%
+  filter(site_year %in% c(nat_sites, inv_sites)) %>%
+  droplevels()
+glimpse(sites_df)
+
+# Get calls from the full dataset (no filtering) for these sites
+calls_tmp <- sites_df %>%
+  pull(sound.files) %>%
+  as.character()
+
+# Subset matrices by these calls
+inds <- grep(paste(paste("^", calls_tmp, "$", sep = ""), collapse = "|"), dimnames(predictn_prox_mat)[[1]])
+# length(inds) == length(calls_tmp)
+
+prox_mat_tmp <- predictn_prox_mat[inds, inds]
+# Calls in the filtered are in the same order as in calls_tmp
+# all(dimnames(prox_mat_tmp)[[1]] == calls_tmp)
+
+X <- stats::as.dist(1 - prox_mat_tmp, diag = TRUE, upper = TRUE)
+  
+tmp <- list()
+  
+# Embed in 2 dimensions for visualization with intermediate perplexity
+# Did not use perplexity = round((dim(xc_mat_tmp)[1] - 1)/4), too high 
+tmp <- lapply(1:10, function(n){
+  Rtsne::Rtsne(X, dims = 2, pca = FALSE, max_iter = 5000, perplexity = 35, is_distance = TRUE, theta = 0.0)
+})
+# str(tmp)
+
+KL <- sapply(1:length(tmp), function(i){
+  tmp[[i]]$itercosts[100]
+}, simplify = TRUE)
+  
+# Overwrite tmp with the solution that minimized KL
+tsne_mnk <- tmp[[which(KL == min(KL))]]
+
+saveRDS(tsne_mnk, file.path(path, "tsne_rf_sites_mnk.RDS"))
+
+```
+
+```{r echo = TRUE, eval = TRUE}
+
+tsne_mnk <- readRDS(file.path(path, "tsne_rf_sites_mnk.RDS"))
+
+mnk_rf_tsne_df <- data.frame(spp = "Monk parakeet", X = tsne_mnk$Y[, 1], Y = tsne_mnk$Y[, 2], ids = sites_df %>%
+  pull(site_year) %>%
+  as.character(), sound.files = calls_tmp, range = sites_df %>%
+  pull(range) %>%
+  as.character())
+glimpse(mnk_rf_tsne_df)
+
+```
+
+Monk parakeets, both ranges.
+```{r echo = TRUE, echo = TRUE}
+
+mnk_rf_tsne_df <- mnk_rf_tsne_df %>%
+  dplyr::mutate(
+    spp_range = paste(spp, range, sep = " - "),
+    spp_range = factor(spp_range, levels = c("Monk parakeet - Native", "Monk parakeet - Invasive")),
+    # Remove year labels in IDs
+    ids = gsub("_2017|_2019", "", ids)
+  )
+
+glimpse(mnk_rf_tsne_df)
+
+
+# Monk parakeets, native
+mnk_nat <- mnk_rf_tsne_df %>%
+  filter(spp_range == "Monk parakeet - Native") %>%
+  droplevels()
+glimpse(mnk_nat)
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("navy", "royalblue2", "turquoise", "dodgerblue", "deepskyblue4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24, 25, 6)
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(mnk_nat, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+gg1 <- mnk_nat %>%
+  ggplot(aes(x = X, y = Y, shape = ids)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg1
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg1))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_RF_tSNE_MNKNative_SiteScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+
+# Monk parakeets, invasive
+mnk_inv <- mnk_rf_tsne_df %>%
+  filter(spp_range == "Monk parakeet - Invasive") %>%
+  droplevels()
+glimpse(mnk_inv)
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("gold2", "goldenrod2", "darkorange3", "gold4", "darkorange4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24, 25, 6)
+
+# Convex hull polygons by species, range, site
+hulls <- plyr::ddply(mnk_inv, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+gg2 <- mnk_inv %>%
+  ggplot(aes(x = X, y = Y, shape = ids)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids), size = 1.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y", scales = "free") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+
+gg2
+
+# Color strip labels by range
+g <- ggplot_gtable(ggplot_build(gg2))
+stripr <- which(grepl('strip-t', g$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+grid.draw(g)
+
+dev.off()
+
+# Change resolution later as needed
+tiff(file.path(gpath, "HierarchicalMapping_TalkFigure_RF_tSNE_MNKInvasive_SiteScale.tiff"), units = "in", width = 3.6, height = 2.25, res = 300) 
+grid.draw(g)
+dev.off()
+
+```
+
+
+#######################################
+
+# Acoustic space plots for Twitter Takeover GIFs
+
+Will use the same native and invasive range spectrograms used to generate slides for the defense, and I want spectrograms per individual to pop up with their convex hull polygons in acoustic space per still in the GIF. Per range and social scale: 4 GIFS total, and 12 stills total of acoustic space (3 individuals and sites per range).
+
+```{r echo = TRUE, eval = TRUE}
+
+nat_indivs <- c("NAT-AAT", "NAT-UM1", "NAT-UM2", "NAT-UM4")
+inv_indivs <- c("INV-UM7", "INV-UM9", "INV-UM16", "INV-UM17", "INV-UM10") # Austin 2019 birds
+
+# Subset the EST by these individuals
+mnk_indiv_df <- nat_inv_est %>%
+  as_tibble() %>%
+  filter(social_scale == "Individual") %>%
+  filter(Bird_ID %in% c(nat_indivs, inv_indivs)) %>%
+  droplevels()
+glimpse(mnk_indiv_df)
+
+# Reran t-SNE to include the 5th Austin 2019 bird, which is not included in the RDS object saved above for SPCC t-SNE
+# Get calls for these birds
+calls_tmp <- mnk_indiv_df %>%
+  pull(sound.files) %>%
+  as.character()
+
+xc_mat_spec <- readRDS(file.path(path, "xc_mat_NAT_INV.RDS"))
+# dim(xc_mat_spec) == nrow(nat_inv_est)
+
+# Rename dimension names of matrix
+wavs <- dimnames(xc_mat_spec)[[1]]
+wavs <- gsub(".WAV-1", ".WAV", wavs)
+# head(wavs)
+
+dimnames(xc_mat_spec) <- list(wavs, wavs)
+
+# Subset matrices by these calls
+inds <- grep(paste(paste("^", calls_tmp, "$", sep = ""), collapse = "|"), dimnames(xc_mat_spec)[[1]])
+# length(inds) == length(calls_tmp)
+
+xc_mat_tmp <- xc_mat_spec[inds, inds]
+# Calls in the filtered are in the same order as in calls_tmp
+# all(dimnames(xc_mat_tmp)[[1]] == calls_tmp)
+
+# Convert to a distance matrix and dist object for isoMDS
+# dist_mat <- stats::as.dist(1 - xc_mat_tmp, diag = TRUE, upper = TRUE)
+# str(dist_mat)
+
+# Reduce dimensionality of the SPCC matrix to visualize calls in 2D acoustic space
+# iso <- invisible(MASS::isoMDS(dist_mat, k = 2, maxit = 1000, trace = FALSE))
+# str(iso)
+
+X <- stats::as.dist(1 - xc_mat_tmp, diag = TRUE, upper = TRUE)
+  
+tmp <- list()
+  
+# Embed in 2 dimensions for visualization with intermediate perplexity
+tmp <- lapply(1:10, function(n){
+  Rtsne::Rtsne(X, dims = 2, pca = FALSE, max_iter = 5000, perplexity = round((dim(xc_mat_tmp)[1] - 1)/4), is_distance = TRUE, theta = 0.0)
+})
+# str(tmp)
+
+KL <- sapply(1:length(tmp), function(i){
+  tmp[[i]]$itercosts[100]
+}, simplify = TRUE)
+  
+# Overwrite tmp with the solution that minimized KL
+tsne_mnk <- tmp[[which(KL == min(KL))]]
+
+# tsne_mnk <- readRDS(file.path(path, "tsne_spcc_indiv_mnk.RDS"))
+
+mnk_spcc_indiv_tsne_df <- data.frame(spp = "Monk parakeet", X = tsne_mnk$Y[, 1], Y = tsne_mnk$Y[, 2]) %>%
+  dplyr::mutate(
+    indiv = mnk_indiv_df$Bird_ID,
+    range = mnk_indiv_df$range,
+    indiv = gsub("NAT-|INV-", "", indiv)
+  )
+glimpse(mnk_spcc_indiv_tsne_df)
+
+```
+
+Native range individuals. Make 3 images that will be placed into LibreOffice draw and concatenated into GIFS with command line tools. Using just AAT, UM1, UM2, as these were in the lexicon for my defense slides.
+```{r echo = TRUE, echo = TRUE}
+
+# Make a Twitter TO theme to avoid using this code over and over
+theme_AcousticSpace <- function(){ 
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    strip.text = element_text(size = 13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 14),
+    legend.justification = "center",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.margin = ggplot2::margin(0, 0, 0, 0),
+    legend.box.margin = ggplot2::margin(-2, -5, -11, -5),
+    legend.key.width = unit(0.5, "lines"),
+    plot.margin = ggplot2::margin(0, 3, -3, -3)
+  )
+}
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("navy", "royalblue2", "turquoise"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24)
+
+mnk_nat_indiv <- mnk_spcc_indiv_tsne_df %>%
+  filter(range == "Native") %>%
+  filter(indiv %in% c("AAT", "UM1", "UM2")) %>%
+  dplyr::mutate(
+    spp = paste(spp, "Native", sep = " - ")
+  ) %>%
+  droplevels()
+
+# One individual added at a time
+tmp_df1 <- mnk_nat_indiv %>%
+  filter(indiv %in% c("AAT")) %>%
+  droplevels() 
+
+tmp_df2 <- mnk_nat_indiv %>%
+  filter(indiv %in% c("AAT", "UM1")) %>%
+  droplevels() 
+
+# Convex hull polygons by species, range, site
+hulls1 <- plyr::ddply(tmp_df1, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls2 <- plyr::ddply(tmp_df2, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls3 <- plyr::ddply(mnk_nat_indiv, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# One individual added at a time
+gg1 <- tmp_df1 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls1, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y", scales = "fixed") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-6, 8)) +
+  scale_y_continuous(limits = c(-4, 12)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg1
+
+gg2 <- tmp_df2 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls2, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-6, 8)) +
+  scale_y_continuous(limits = c(-4, 12)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg2
+
+
+gg3 <- mnk_nat_indiv %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls3, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-6, 8)) +
+  scale_y_continuous(limits = c(-4, 12)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg3
+
+# Color strip labels by range per visual
+g1 <- ggplot_gtable(ggplot_build(gg1))
+stripr <- which(grepl('strip-t', g1$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g1$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g1$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g2 <- ggplot_gtable(ggplot_build(gg2))
+stripr <- which(grepl('strip-t', g2$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g2$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g3 <- ggplot_gtable(ggplot_build(gg3))
+stripr <- which(grepl('strip-t', g3$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g3$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g3$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Native_IndivScale_01.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g1)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Native_IndivScale_02.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g2)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Native_IndivScale_03.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g3)
+dev.off()
+
+```
+
+Monks, invasive range individuals. Spectrograms for lexicons made below. UM7, UM16, UM10
+```{r echo = TRUE, echo = TRUE}
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("goldenrod2", "darkorange3", "gold4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24)
+
+mnk_inv_indiv <- mnk_spcc_indiv_tsne_df %>%
+  filter(range == "Invasive") %>%
+  filter(indiv %in% c("UM7", "UM16", "UM10")) %>%
+  dplyr::mutate(
+    spp = paste(spp, "Invasive", sep = " - "),
+    indiv = factor(indiv, levels = c("UM7", "UM16", "UM10"))
+  ) %>%
+  droplevels()
+
+# One individual added at a time
+tmp_df1 <- mnk_inv_indiv %>%
+  filter(indiv %in% c("UM7")) %>%
+  droplevels() 
+
+tmp_df2 <- mnk_inv_indiv %>%
+  filter(indiv %in% c("UM7", "UM16")) %>%
+  dplyr::mutate(
+    indiv = factor(indiv, levels = c("UM7", "UM16"))
+  ) %>%
+  droplevels() 
+
+# Convex hull polygons by species, range, site
+hulls1 <- plyr::ddply(tmp_df1, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls2 <- plyr::ddply(tmp_df2, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls3 <- plyr::ddply(mnk_inv_indiv, "indiv", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# One individual added at a time
+gg1 <- tmp_df1 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls1, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y", scales = "fixed") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-9, 5)) +
+  scale_y_continuous(limits = c(0, 11)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg1
+
+gg2 <- tmp_df2 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls2, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-9, 5)) +
+  scale_y_continuous(limits = c(0, 11)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg2
+
+
+gg3 <- mnk_inv_indiv %>%
+  droplevels() %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls3, aes(x = X, y = Y, fill = indiv, color = indiv), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = indiv, color = indiv, shape = indiv), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-9, 5)) +
+  scale_y_continuous(limits = c(0, 11)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg3
+
+# Color strip labels by range per visual
+g1 <- ggplot_gtable(ggplot_build(gg1))
+stripr <- which(grepl('strip-t', g1$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g1$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g1$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g2 <- ggplot_gtable(ggplot_build(gg2))
+stripr <- which(grepl('strip-t', g2$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g2$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g3 <- ggplot_gtable(ggplot_build(gg3))
+stripr <- which(grepl('strip-t', g3$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g3$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g3$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Invasive_IndivScale_01.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g1)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Invasive_IndivScale_02.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g2)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Invasive_IndivScale_03.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g3)
+dev.off()
+
+```
+
+
+Site scale, SPCC, 3 sites each per range. Will also need spectros for invasive range. 
+
+```{r echo = TRUE, eval = TRUE}
+
+tsne_mnk <- readRDS(file.path(path, "tsne_spcc_sites_mnk.RDS"))
+
+nat_sites <- c("INES-08_2017", "LENA_2017", "RIAC_2017", "SEMI_2017")
+
+inv_sites <- c("INTR_2019", "ELEM_2019", "SOCC_2019", "MART_2019")
+
+nat_sites
+inv_sites
+
+# Subset the site scale calls by these site-years
+sites_df <- site_scale_nf %>%
+  filter(social_scale == "Site") %>%
+  filter(site_year %in% c(nat_sites, inv_sites)) %>%
+  droplevels()
+glimpse(sites_df)
+
+# Get calls from the full dataset (no filtering) for these sites
+calls_tmp <- sites_df %>%
+  pull(sound.files) %>%
+  as.character()
+
+mnk_spcc_tsne_df <- data.frame(
+  spp = "Monk parakeet", X = tsne_mnk$Y[, 1], Y = tsne_mnk$Y[, 2], ids = sites_df %>%
+    pull(site_year) %>%
+    as.character(), 
+  sound.files = calls_tmp, range = sites_df %>%
+  pull(range) %>%
+    as.character()
+  ) %>%
+  dplyr::mutate(
+    spp_range = paste(spp, range, sep = " - "),
+    spp_range = factor(spp_range, levels = c("Monk parakeet - Native", "Monk parakeet - Invasive")),
+    # Remove year labels in IDs
+    ids = gsub("_2017|_2019", "", ids)
+  )
+
+glimpse(mnk_spcc_tsne_df)
+
+```
+
+Monk parakeets, native range. INES-08, LENA, RIAC
+```{r echo = TRUE, echo = TRUE}
+
+# Monk parakeets, native
+mnk_nat <- mnk_spcc_tsne_df %>%
+  filter(spp_range == "Monk parakeet - Native") %>%
+  filter(ids %in% c("INES-08", "LENA", "RIAC")) %>%
+  droplevels()
+glimpse(mnk_nat)
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("navy", "royalblue2", "turquoise"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24)
+
+# One individual added at a time
+tmp_df1 <- mnk_nat %>%
+  filter(ids %in% c("INES-08")) %>%
+  droplevels() 
+
+tmp_df2 <- mnk_nat %>%
+  filter(ids %in% c("INES-08", "LENA")) %>%
+  droplevels() 
+
+# Convex hull polygons by species, range, site
+hulls1 <- plyr::ddply(tmp_df1, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls2 <- plyr::ddply(tmp_df2, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls3 <- plyr::ddply(mnk_nat, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# One individual added at a time
+gg1 <- tmp_df1 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls1, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids, shape = ids), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y", scales = "fixed") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(5, 27)) +
+  scale_y_continuous(limits = c(-15, 4)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg1
+
+gg2 <- tmp_df2 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls2, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids, shape = ids), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(5, 27)) +
+  scale_y_continuous(limits = c(-15, 4)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg2
+
+
+gg3 <- mnk_nat %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls3, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids, shape = ids), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(5, 27)) +
+  scale_y_continuous(limits = c(-15, 4)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg3
+
+# Color strip labels by range per visual
+g1 <- ggplot_gtable(ggplot_build(gg1))
+stripr <- which(grepl('strip-t', g1$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g1$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g1$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g2 <- ggplot_gtable(ggplot_build(gg2))
+stripr <- which(grepl('strip-t', g2$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g2$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g3 <- ggplot_gtable(ggplot_build(gg3))
+stripr <- which(grepl('strip-t', g3$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("navy", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g3$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g3$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Native_SiteScale_01.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g1)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Native_SiteScale_02.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g2)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Native_SiteScale_03.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g3)
+dev.off()
+
+```
+
+Monk parakeets, site scale, invasive range....need spectros.
+```{r echo = TRUE, echo = TRUE}
+
+mnk_inv <- mnk_spcc_tsne_df %>%
+  filter(spp_range == "Monk parakeet - Invasive") %>%
+   filter(ids %in% c("ELEM", "INTR", "MART")) %>%
+  dplyr::mutate(
+    ids = factor(ids, levels = c("ELEM", "INTR", "MART"))
+  ) %>%
+  droplevels()
+glimpse(mnk_inv)
+
+unique(mnk_inv$ids)
+levels(mnk_inv$ids)
+
+# Colors by range, hues by individual or site
+cols <- scales::alpha(c("goldenrod2", "darkorange3", "gold4"), 0.65)
+
+# Shapes by individual or site
+shps <- c(21, 23, 24)
+
+# One individual added at a time
+tmp_df1 <- mnk_inv %>%
+  filter(ids %in% c("ELEM")) %>%
+  droplevels() 
+
+tmp_df2 <- mnk_inv %>%
+  filter(ids %in% c("ELEM", "INTR")) %>%
+  droplevels() 
+
+# Convex hull polygons by species, range, site
+hulls1 <- plyr::ddply(tmp_df1, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls2 <- plyr::ddply(tmp_df2, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+hulls3 <- plyr::ddply(mnk_inv, "ids", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# One individual added at a time
+gg1 <- tmp_df1 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls1, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids, shape = ids), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y", scales = "fixed") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-25, 24)) +
+  scale_y_continuous(limits = c(-20, 25)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg1
+
+gg2 <- tmp_df2 %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls2, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids, shape = ids), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-25, 24)) +
+  scale_y_continuous(limits = c(-20, 25)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg2
+
+
+gg3 <- mnk_inv %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls3, aes(x = X, y = Y, fill = ids, color = ids), alpha = 0.2, size = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = ids, color = ids, shape = ids), size = 2.5, stroke = 0.5) +
+  facet_grid(cols = vars(spp_range), switch = "y") +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "", nrow = 1, byrow = TRUE), shape = guide_legend(title = "", nrow = 1, byrow = TRUE), fill = guide_legend(title = "", nrow = 1, byrow = TRUE)) +
+  scale_x_continuous(limits = c(-25, 24)) +
+  scale_y_continuous(limits = c(-20, 25)) +
+  theme_bw() +
+  theme_AcousticSpace()
+
+gg3
+
+# Color strip labels by range per visual
+g1 <- ggplot_gtable(ggplot_build(gg1))
+stripr <- which(grepl('strip-t', g1$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g1$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g1$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g2 <- ggplot_gtable(ggplot_build(gg2))
+stripr <- which(grepl('strip-t', g2$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g2$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+g3 <- ggplot_gtable(ggplot_build(gg3))
+stripr <- which(grepl('strip-t', g3$layout$name)) # strip-l for left strips, strip-t for upper
+fills <- alpha("orange", 0.45)
+k <- 1
+for (i in stripr) {
+  j <- which(grepl('rect', g3$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g3$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  k <- k+1
+}
+dev.off()
+
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Invasive_SiteScale_01.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g1)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Invasive_SiteScale_02.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g2)
+dev.off()
+
+tiff(file.path(twt_path, "TwitterTO_SPCC_tSNE_Invasive_SiteScale_03.tiff"), units = "in", width = 5.10, height = 4.5, res = 300) 
+grid.draw(g3)
+dev.off()
+
+```
+
+
+# Spectrograms for Twitter TO lexicons, invasive range only
+
+I used the defense talk lexicons for native range social scales for Twitter Takeover visuals. here made spectrograms for invasive range individual and site scale. Individual scale calls for the 3 individuals from Austin 2019: UM7, UM16, UM9, and calls for sites ELEM, INTR, MART.  
+
+As for the lexicon I made for the defense, I added colored borders in LibreOffice after resizing spectrograms.
+```{echo = TRUE, eval = FALSE}
+
+nat_inv_est %>%
+  as_tibble() %>%
+  filter(social_scale == "Individual") %>%
+  filter(range == "Invasive" & invasive_city == "Austin") %>%
+  distinct(site, year, Bird_ID)
+
+indiv_calls <- nat_inv_est %>%
+  as_tibble() %>%
+  filter(social_scale == "Individual") %>%
+  filter(Bird_ID %in% c("INV-UM7", "INV-UM16", "INV-UM10")) %>%
+  droplevels() %>%
+  dplyr::select(sound.files, Bird_ID)
+
+head(indiv_calls)
+
+# Sound files by individual
+indiv_calls %>%
+  View()
+
+# Filter the full EST by these calls
+tmp_est <- nat_inv_est[grep(paste(paste("^", indiv_calls$sound.files, "$", sep = ""), collapse = "|"), nat_inv_est$sound.files), ]
+nrow(tmp_est)
+class(tmp_est)
+
+# Make spectrograms with axis labels, inner.mar helps cut out the axis titles
+specreator(tmp_est, flim = c(1, 8), ovlp = 90, mar = 0.01, res = 300, path = gpath, osci = FALSE, parallel = cores, line = FALSE, title.labels = NULL, axisX = FALSE, axisY = FALSE, wl = 378, inner.mar = c(0, 0, 0, 0))
+# inner.mar = c(2, 2, 0.5, 0) # if axis text not desired, note that the font size scales very poorly
+
+# Resize the image files to be used for the lexicon
+# In order per individual from top to bottom
+imgs <- c(
+  # UM7
+  "2019_08_06_ELEM_GSV1030_10.WAV",
+  "2019_08_06_ELEM_GSV1030_15.WAV",
+  "2019_08_06_ELEM_GSV1030_16.WAV",
+  "2019_08_06_ELEM_GSV1030_26.WAV",
+  # UM16
+  "2019_08_09_FIEL_GSV1088_8.WAV",
+  "2019_08_09_FIEL_GSV1088_9.WAV",
+  "2019_08_09_FIEL_GSV1088_10.WAV",
+  "2019_08_09_FIEL_GSV1088_11.WAV",
+  # UM10
+  "2019_08_08_INTR_1091_6.WAV",
+  "2019_08_08_INTR_1091_7.WAV",
+  "2019_08_08_INTR_1091_8.WAV",
+  "2019_08_08_INTR_1090_6.WAV"v
+  )
+
+# Resize images to 430 pixels wide by 285 pixels high, ignore aspect ratio
+# Leaves enough space for adding a colored border around each image file
+invisible(pblapply(1:length(imgs), function(i){
+  
+  img <- image_read(file.path(gpath, paste(imgs[i], "-1.jpeg", sep = "")))
+  image_write(image_scale(img, geometry = "435x300!"), path = file.path(gpath, paste(imgs[i], "sm.jpeg", sep = "_")))
+  
+}))
+
+# Site scale calls
+site_calls <- nat_inv_est %>%
+  as_tibble() %>%
+  filter(social_scale == "Site") %>%
+  filter(site_year %in% c("ELEM_2019", "INTR_2019", "MART_2019")) %>%
+  # Filter by highest quality
+  filter(Visual_quality_score == "H") %>%
+  droplevels() %>%
+  pull(sound.files)
+  
+head(site_calls)
+
+# Filter the full EST by these calls
+tmp_est <- nat_inv_est[grep(paste(paste("^", site_calls, "$", sep = ""), collapse = "|"), nat_inv_est$sound.files), ]
+nrow(tmp_est)
+class(tmp_est)
+
+# Make spectrograms with axis labels, inner.mar helps cut out the axis titles
+specreator(tmp_est, flim = c(1, 8), ovlp = 90, mar = 0.01, res = 300, path = gpath, osci = FALSE, parallel = cores, line = FALSE, title.labels = NULL, axisX = FALSE, axisY = FALSE, inner.mar = c(0, 0, 0, 0), wl = 378)
+
+imgs <- c(
+  "2019_08_06_ELEM_GSV1033_7.WAV",
+  "2019_08_06_ELEM_GSV1024_8.WAV",
+  "2019_08_06_ELEM_GSV1024_11.WAV",
+  "2019_08_06_ELEM_GSV1029_3.WAV",
+  "2019_08_08_INTR_1080_5.WAV",
+  "2019_08_08_INTR_1088_2.WAV",
+  "2019_08_08_INTR_1094_21.WAV",
+  "2019_08_08_INTR_1094_33.WAV",
+  "2019_08_10_MART_1142_1.WAV",
+  "2019_08_10_MART_1147_2.WAV",
+  "2019_08_10_MART_1161_6.WAV",
+  "2019_08_10_MART_1163_1.WAV"
+ )
+
+# Resize images to 430 pixels wide by 285 pixels high, ignore aspect ratio
+# Leaves enough space for adding a colored border around each image file
+invisible(pblapply(1:length(imgs), function(i){
+  
+  img <- image_read(file.path(gpath, paste(imgs[i], "-1.jpeg", sep = "")))
+  image_write(image_scale(img, geometry = "435x300!"), path = file.path(gpath, paste(imgs[i], "sm.jpeg", sep = "_")))
+  
+}))
+
+```
+
+Used the magick package to make a GIF after adding these acoustic space plots to lexicons
+```{r echo = TRUE, echo = TRUE}
+
+#################################
+# Native range, individual scale
+
+# List file names and read in
+imgs <- list.files(twt_path, pattern = "TwitterTO_Native_IndivScale_LexiconTraitSpace", full.names = TRUE)
+img_list <- lapply(imgs, image_read)
+
+# Join images and add the last image twice so that it stays on longer
+img_joined <- image_join(img_list, img_list[[length(img_list)]])
+
+# Animate at 1 frames per second
+img_animated <- image_animate(img_joined, fps = 1)
+
+# View animated image
+# img_animated
+
+# Save to disk
+image_write(image = img_animated,
+            path = file.path(twt_path, "NativeRange_IndivScale.gif"))
+
+
+#################################
+# Native range, site scale
+
+# List file names and read in
+imgs <- list.files(twt_path, pattern = "TwitterTO_Native_SiteScale_LexiconTraitSpace", full.names = TRUE)
+img_list <- lapply(imgs, image_read)
+
+# Join images and add the last image twice so that it stays on longer
+img_joined <- image_join(img_list, img_list[[length(img_list)]])
+
+# Animate at 1 frames per second
+img_animated <- image_animate(img_joined, fps = 1)
+
+# View animated image
+# img_animated
+
+# Save to disk
+image_write(image = img_animated,
+            path = file.path(twt_path, "NativeRange_SiteScale.gif"))
+
+#################################
+# Invasive range, individual scale
+
+# List file names and read in
+imgs <- list.files(twt_path, pattern = "TwitterTO_Invasive_IndivScale_LexiconTraitSpace", full.names = TRUE)
+img_list <- lapply(imgs, image_read)
+
+# Join images and add the last image twice so that it stays on longer
+img_joined <- image_join(img_list, img_list[[length(img_list)]])
+
+# Animate at 1 frames per second
+img_animated <- image_animate(img_joined, fps = 1)
+
+# View animated image
+# img_animated
+
+# Save to disk
+image_write(image = img_animated,
+            path = file.path(twt_path, "InvasiveRange_IndivScale.gif"))
+
+
+#################################
+# Invasive range, site scale
+
+# List file names and read in
+imgs <- list.files(twt_path, pattern = "TwitterTO_Invasive_SiteScale_LexiconTraitSpace", full.names = TRUE)
+img_list <- lapply(imgs, image_read)
+
+# Join images and add the last image twice so that it stays on longer
+img_joined <- image_join(img_list, img_list[[length(img_list)]])
+
+# Animate at 1 frames per second
+img_animated <- image_animate(img_joined, fps = 1)
+
+# View animated image
+# img_animated
+
+# Save to disk
+image_write(image = img_animated,
+            path = file.path(twt_path, "InvasiveRange_SiteScale.gif"))
+
+
+#################################
+# Conceptual visual, FM
+
+# List file names and read in
+imgs <- list.files(twt_path, pattern = "ConceptualVisual_FM", full.names = TRUE)
+imgs
+
+img_list <- lapply(imgs, image_read)
+
+# Join images and add the last image twice so that it stays on longer
+img_joined <- image_join(img_list, img_list[[length(img_list)]])
+
+# Animate at 1 frames per second
+img_animated <- image_animate(img_joined, fps = 1)
+
+# View animated image
+# img_animated
+
+# Save to disk
+image_write(image = img_animated,
+            path = file.path(twt_path, "ConceptualVisual_FM.gif"))
+
+
+#################################
+# RF acoustic space and FM visual
+
+# List file names and read in
+imgs <- list.files(twt_path, pattern = "RFKernelDensity_FreqMod", full.names = TRUE)
+imgs
+
+img_list <- lapply(imgs, image_read)
+
+# Join images and add the last image twice so that it stays on longer
+img_joined <- image_join(img_list, img_list[[length(img_list)]])
+
+# Animate at 1 frames per second
+img_animated <- image_animate(img_joined, fps = 1)
+
+# View animated image
+# img_animated
+
+# Save to disk
+image_write(image = img_animated,
+            path = file.path(twt_path, "RFKernelDensity_FreqMod.gif"))
+
+```
+
+Dynamic spectrograms, Marcelo's new package dynaSpec.
+```{r echo = TRUE, eval = TRUE}
+
+?scrolling_spectro
+
+wav_nm <- "/media/owner/MYIOPSITTA/R/Uruguay2017_MonkParakeet_CallAnalysis/Data/Site_Recordings/2017_07_28_ECIL-02_1181.WAV"
+
+wav <- readWave(wav_nm, from = 2.8, to = 4.5, units = "seconds")
+wav
+
+scrolling_spectro(wav, file.name = file.path(twt_path, "2017_07_28_ECIL-02_1181_scrollSpectro.mp4"), flim = c(1, 6), collevels = seq(-40, 0, 5), ovlp = 90, colbg = "black", pal = magma, lower.spectro = FALSE, grid = FALSE, axis.type = "none", loop = 1, buffer = 0)
+
+wav <- readWave(wav_nm, from = 2.8, to = 4.5, units = "seconds")
+wav
+
+scrolling_spectro(wav, file.name = file.path(twt_path, "2017_07_28_ECIL-02_1181_scrollSpectro_quarterSpeed.mp4"), flim = c(1, 6), collevels = seq(-40, 0, 5), ovlp = 90, colbg = "black", pal = magma, lower.spectro = FALSE, grid = FALSE, axis.type = "none", loop = 1, speed = 0.25, buffer = 0)
+
+```
+
+
+######################################
+
+Sampling maps for defense and other talks.
+
+Native and invasive range sampling. This code needs to be updated (see scalebar code below)
+```{r echo = TRUE, eval = FALSE}
+
+# Make western hemisphere vocal sampling map with state/country polygons filled in,
+
+n <- 12
+states <- map_data("state") %>%
+  filter(region %in% c("texas", "louisiana", "florida", "connecticut"))
+str(states)
+
+ury <- map_data("world") %>%
+  filter(region %in% c("Uruguay"))
+str(ury)
+
+world <- map_data("world")
+
+gg_wrld <- ggplot() +
+  geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "gray65") +
+  geom_polygon(data = states, aes(x = long, y = lat, group = group), fill = heat.colors(n)[5]) +
+  geom_polygon(data = ury, aes(x = long, y = lat, group = group), fill = topo.colors(n)[2]) +
+  xlab("Longitude (Decimal Degrees)") + ylab("Latitude (Decimal Degrees)") +
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14)) +
+  coord_cartesian(xlim = c(-170, -30))
+
+gg_wrld <- gg_wrld +
+  scalebar(x.min = -150, x.max = -100, y.min = -50, y.max = -20, dist = 1500, dd2km = TRUE, model = "WGS84", height = 0.15, st.size = 2.5, st.dist = 0.15)
+
+# gg_wrld
+
+buf <- 0.1
+symbol <- 1
+symbol <- sprintf("%02.f", symbol)
+symbol <- readPNG(paste0(system.file("symbols", package = "ggsn"), 
+                         "/", symbol, ".png"))
+symbol <- rasterGrob(symbol, interpolate = TRUE)
+gg_wrld <- gg_wrld + annotation_custom(grob = symbol, xmin = -114, xmax = -124, 
+                                       ymin = -30, ymax = -10)
+
+gg_wrld
+
+ggsave(file.path(gpath, "CulturalEvo_Map.jpeg"), units = "cm", width = 10, height = 14, dpi = 200) 
+
+
+```
+
+Native range sampling only.
+```{r echo = TRUE, eval = FALSE}
+
+n <- 12
+
+ury <- map_data("world") %>%
+  filter(region %in% c("Uruguay"))
+str(ury)
+
+world <- map_data("world")
+
+gg_wrld <- ggplot() +
+  geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "gray65") +
+  geom_polygon(data = ury, aes(x = long, y = lat, group = group), fill = "navy") +
+  xlab("Longitude (Decimal Degrees)") + ylab("Latitude (Decimal Degrees)") +
+  coord_cartesian(xlim = c(-90, -35), ylim = c(-50, 20)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14), 
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(size = 0.75),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) 
+
+# gg_wrld
+
+gg_wrld <- gg_wrld +
+  scalebar(x.min = -60, x.max = -40, y.min = -45, y.max = -20, dist = 500, model = "WGS84", height = 0.05, st.size = 2.5, st.dist = 0.05, transform = TRUE, dist_unit = "km", border.size = 0.15)
+
+gg_wrld
+
+buf <- 0.1
+symbol <- 1
+symbol <- sprintf("%02.f", symbol)
+symbol <- readPNG(paste0(system.file("symbols", package = "ggsn"), 
+                         "/", symbol, ".png"))
+symbol <- rasterGrob(symbol, interpolate = TRUE)
+gg_wrld <- gg_wrld + annotation_custom(grob = symbol, xmin = -50, xmax = -40, 
+                                       ymin = -40, ymax = -35)
+
+gg_wrld
+
+ggsave(file.path(gpath, "NativeRangeVocal_SamplingMap.jpeg"), units = "in", width = 3.5, height = 5, dpi = 200) 
+
+
+```
+
