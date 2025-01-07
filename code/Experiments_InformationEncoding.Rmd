@@ -45,7 +45,7 @@ invisible(lapply(1:length(X), function(x){
 invisible(lapply(X, library, character.only = TRUE))
 
 # Set cores for parallel processing
-cores <- parallel::detectCores() - 2
+cores <- parallel::detectCores() - 4
 
 ```
 
@@ -55,9 +55,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "" # Brittany's path
 
 ###################################################################################
@@ -105,7 +105,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -136,7 +137,7 @@ Iterate over each treatment a number of times so that we can calculate a 95% con
 #################### Social environment treatments #################### 
 
 # Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals)
-social_envts <- c("sparse", "intermediate", "dense")
+social_envts <- c("Sparse", "Intermediate", "Dense")
 n_groups <- c(2, 10, 20)
 n_individuals <- c(2, 10, 20)
 
@@ -149,7 +150,6 @@ n_calls <- 2
 
 #################### Information encoding treatments #################### 
 
-# TKTK need to update generate_strings to correctly generate strings with all group membership and all individual information
 # Ratios of group : individual information in a string
 # Here these ratios are written as proportions from 0 to 1, such that 0 indicates 0:1 (no group membership and all individual information), and 1 indicates 1:0 (all group membership information)
 ratios <- c(0, 0.2, 0.5, 0.8, 1)
@@ -198,10 +198,9 @@ iteratns <- 10
 
 # Testing one iteration of each loop
 z <- 1
-i <- 2
+i <- 1
 n <- 1
 x <- 1
-
 
 # Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
 
@@ -232,7 +231,7 @@ system.time(
           )
         )
         
-        glimpse(calls)
+        # glimpse(calls)
         
         ### Step 2: Convert the strings to Parsons code
         calls_parsons <- parsons_code(
@@ -247,9 +246,8 @@ system.time(
           mapping = list(A = "up", B = "down", C = "constant")
         )
         
-        glimpse(calls_parsons)
+        # glimpse(calls_parsons)
         
-        # TKTK add a bug issue: recursive indexing failed at level 2
         ### Step 3: Convert the Parsons code to frequency values
         calls_parsons_frequencies <- frequency_anchors(
           df = calls_parsons, 
@@ -263,38 +261,44 @@ system.time(
           section_transition = "continuous_trajectory"
         )
         
-        glimpse(calls_parsons_frequencies)
+        # glimpse(calls_parsons_frequencies)
         
-        ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with Ari's functions and the soundgen package
+        # ### Step 4: Select a single call per individual to reduce computational time
+        # calls_parsons_frequencies_filt <- calls_parsons_frequencies %>% 
+        #   group_by(Group, Individual) %>% 
+        #   dplyr::slice_sample(n = 1) %>% 
+        #   ungroup()
+        
+        # glimpse(calls_parsons_frequencies_filt)
+        
+        ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with paRsynth and the soundgen package
         
         synthetic_call_metadata <- write_audio(
           df = calls_parsons_frequencies, 
           save_path = data_path, 
-          sampling_rate = 150000, 
-          sylLen = 400,
+          sampling_rate = 44100,
+          sylLen = 200,
           prefix = paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_")
         )
         
-        glimpse(synthetic_call_metadata)
+        # glimpse(synthetic_call_metadata)
         
         # Information recovery pipeline with traditional bioacoustics tools
         
         ### Step 5: Generate a selection table for the warbleR package
         wavs <- list.files(
           path = data_path, 
-          pattern = paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_")
+          pattern = paste(paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_"), "_", sep = "")
         )
         
         cat(paste("Number of audio files = ", length(wavs), "\n"))
         
-        # w <- 1
+        # w <- 1 # testing
         
         sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
           
+          # Read in the given audio file
           tmp <- tuneR::readWave(file.path(data_path, wavs[w]))
-          
-          # An audio file
-          # tmp
           
           # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
           metadats_tmp <- synthetic_call_metadata %>%
@@ -318,8 +322,8 @@ system.time(
               sampling_rate = tmp@samp.rate,
               group_information = information[["group_information"]][i], 
               individual_information = information[["individual_information"]][i],
-              social_envt_treatment = social_envts[z],
-              information_encoding_treatment = ratios[i]
+              social_envt = social_envts[z],
+              information_encoding_ratio = ratios[i]
             )
             
           } else {
@@ -335,8 +339,8 @@ system.time(
               sampling_rate = tmp@samp.rate,
               group_information = NA, 
               individual_information = NA,
-              social_envt_treatment = NA,
-              information_encoding_treatment = NA
+              social_envt = NA,
+              information_encoding_ratio = NA
             )
             
           }
@@ -346,24 +350,16 @@ system.time(
         }))
         
         # See the selection table in warbleR format with all useful metadata for the synthetic experiment
-        glimpse(sel_tbl)
+        # glimpse(sel_tbl)
         
-        # Stinking sampling rate.....got variation in one run here with sampling rate of 150000 that had been working before. Need to troubleshoot soundgen::soundgen
-        # Still getting negative values even with a sampling rate of 200000, I think there must be negative values in the frequency anchors. Just checked, not seeing any
-        # I think this is a stochastic problem but really needs to be fixed
-        # What's happening is that the frequency anchors are all being created at the same time, and each vector of anchors is prety stochastic (and depends on the trajectory set by the very first few characters) which means that the global tail becomes very different across calls, when it's meant to be the same across calls. This is especially a problem for very long strings
-        # We need to update the behavior of the functions, we should be creating the frequency anchors SEPARATELY for each of the pieces (global head, group info_head, global_info_tail, individual info, and global tail). This overwrites the current Parsons code logic, which is not good. This should also address the SPCC negative values we're getting AND it should be a more logical basis for information encoding in the audio files for our information recovery pipeline
-        unique(sel_tbl$sampling_rate)
+        # All files should have the same sampling rate, otherwise the analyses below will fail
+        if(length(unique(sel_tbl$sampling_rate)) > 1){
+          stop("Variable sampling rates detected across synthetic audio files, and downstream analyses will fail")
+        }
         
         ### Step 6: Perform SPCC using a default window length and a general bandpass filter
         xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = data_path)
-        
-        str(xc_mat)
-        
-        # xc_mat[1:5, 1:5]
-        
-        # Need to troubleshoot this more...can't get negative values
-        xc_mat[xc_mat < 0]
+        # str(xc_mat)
         
         # Get the percentage of values that are negative
         neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
@@ -373,106 +369,148 @@ system.time(
           stop("Negative values are present in the spectrographic cross-correlation matrix")
         }
         
-        # Update the dimension names of the matrix
-        dimnames(xc_mat) <- list(wavs, wavs)
-        
-        cat(paste("Dimensions of SPCC matrix = ", dim(xc_mat)[1], dim(xc_mat)[2], "\n"))
-        
-        cat(paste("NA's in SPCC matrix?", any(is.na(xc_mat)), "\n"))
-        
-        ### Step 7: Perform MDS
-        
-        # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
-        dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
-        
-        # str(1 - xc_mat)
-        # str(dist_mat)
-        
-        # Reduce dimensionality of the SPCC matrix using multidimensional scaling (MDS)
-        # Using a 15 dimension solution to reduce stress of the final solution
-        iso_res <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
-        
-        # str(iso_res)
-        
-        # Make a data frame of the first two MDS dimensions and call metadata
-        mds_df <- data.frame(sound.files = dimnames(iso_res$points)[[1]]) %>%
-          dplyr::mutate(
-            X = iso_res$points[, 1],
-            Y = iso_res$points[, 2]
-          ) %>%
-          inner_join(
-            sel_tbl %>%
-              dplyr::select(sound.files, group_ID, individual_ID, call_ID),
-            by = c("sound.files")
-          )
-        
-        # glimpse(mds_df)
-        
-        cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
-        
-        cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
-        
-        cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
-        
-        ### Step 8: Remove .wav files to free up storage space
-        rem_files <- file.path(data_path, wavs)
-        invisible(file.remove(rem_files))
-        
-        ### Step 9: Perform clustering and Normalized Mutual Information (NMI) calculation
-        # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
-        
-        ### Group-level clustering and NMI calculation
-        
-        # Set the number of clusters to the number of unique groups
-        num_clusters <- length(unique(mds_df$group_ID))
-        
-        # Perform k-means clustering with this number of clusters
-        # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
-        kmeans_grp <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
-        
-        # str(kmeans_grp)
-        
-        cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
-        
-        # Compute NMI at the group-level
-        orig_classes <- mds_df$group_ID
-        nmi_grp <- NMI(orig_classes, kmeans_grp$cluster)
-        
-        # NMI(orig_classes, orig_classes)
-        
-        ### Individual-level clustering and NMI calculation
-        
-        # TKTK two levels of analytical specificity, specificity in recognition: One is individuals within a group (this is going to be complicated and may require nested NMI calculations within groups), the other is all individuals across groups
-        
-        # Set the number of clusters to the number of unique individuals across groups
-        num_clusters <- mds_df %>% 
-          distinct(group_ID, individual_ID) %>% 
-          nrow()
-        
-        # Perform k-means clustering with this number of clusters
-        # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
-        kmeans_ind <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
-        
-        cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind$cluster)), "\n"))
-        
-        # TKTK do we need to control for sample size across NMI analyses? Check Kershenbaum et al 2013 dolphin whistle paper as reference
-        
-        # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
-        orig_classes <- paste(mds_df$group_ID, mds_df$individual_ID, sep = "-")
-        nmi_ind <- NMI(orig_classes, kmeans_ind$cluster)
-        
-        ### Step 10: return NMI results
-        return(
-          data.frame(
+        # Continue with downstream analyses only if there are no 1's off of the diagonal, otherwise MDS will fail. Record NA values if there are 1's off of the diagonal (e.g. two calls of the same structure will present values of 1 as if the same call were compared to itself)
+        if(!any(xc_mat[lower.tri(xc_mat)] == 1)){
+          
+          # Update the dimension names of the matrix
+          dimnames(xc_mat) <- list(wavs, wavs)
+          
+          cat(paste("Dimensions of SPCC matrix = ", dim(xc_mat)[1], dim(xc_mat)[2], "\n"))
+          
+          cat(paste("NA's in SPCC matrix?", any(is.na(xc_mat)), "\n"))
+          
+          ### Step 7: Perform MDS
+          
+          # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
+          dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+          
+          # str(1 - xc_mat)
+          # str(dist_mat)
+          
+          # Reduce dimensionality of the SPCC matrix using multidimensional scaling (MDS). Use the floor of 1/3rd of the dimensions in the SPCC matrix rather than 2 dimensions in order to reduce the stress of the final solution
+          iso_res <- invisible(MASS::isoMDS(dist_mat, k = floor(dim(xc_mat)[1]/3) + 1, maxit = 1000, trace = FALSE))
+          
+          # str(iso_res)
+          
+          # Make a data frame of the first two MDS dimensions and call metadata
+          mds_df <- data.frame(sound.files = dimnames(iso_res$points)[[1]]) %>%
+            dplyr::mutate(
+              X = iso_res$points[, 1],
+              Y = iso_res$points[, 2]
+            ) %>%
+            inner_join(
+              sel_tbl %>%
+                dplyr::select(sound.files, group_ID, individual_ID, call_ID),
+              by = c("sound.files")
+            )
+          
+          # glimpse(mds_df)
+          
+          cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
+          
+          cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
+          
+          cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
+          
+          ### Step 8: Remove .wav files to free up storage space
+          rem_files <- file.path(data_path, wavs)
+          invisible(file.remove(rem_files))
+          
+          ### Step 9: Perform clustering and Normalized Mutual Information (NMI) calculation
+          # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
+          
+          ### Group-level clustering and NMI calculation
+          
+          # Set the number of clusters to the number of unique groups
+          num_clusters <- length(unique(mds_df$group_ID))
+          
+          # Perform k-means clustering with this number of clusters
+          # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
+          kmeans_grp <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
+          
+          # str(kmeans_grp)
+          
+          cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
+          
+          # Compute NMI at the group-level
+          orig_classes <- mds_df$group_ID
+          nmi_grp <- NMI(orig_classes, kmeans_grp$cluster)
+          
+          # NMI(orig_classes, orig_classes)
+          
+          # There two levels of specificity at the individual level. One is individuals is all individuals across groups (fine-grained), and the other is all individuals within a group, which will require nested NMI calculations within groups (coarse-grained)
+          
+          ### Fine-grained individual-level clustering and NMI calculation
+          
+          # Set the number of clusters to the number of unique individuals within each group
+          num_clusters <- mds_df %>% 
+            distinct(group_ID, individual_ID) %>% 
+            nrow()
+          
+          # Perform k-means clustering with this number of clusters
+          # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
+          kmeans_ind_fg <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
+          
+          cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind_fg$cluster)), "\n"))
+          
+          # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+          orig_classes <- paste(mds_df$group_ID, mds_df$individual_ID, sep = "-")
+          nmi_ind <- NMI(orig_classes, kmeans_ind_fg$cluster)
+          
+          ### Coarse-grained individual-level clustering and NMI calculation
+          
+          # Set the number of clusters to the number of unique individuals within each group
+          num_clusters <- mds_df %>% 
+            distinct(individual_ID) %>% 
+            nrow()
+          
+          # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation
+          # n <- 1 # testing
+          kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(n){
+            
+            tmp <- mds_df[grep(n, mds_df$group_ID), ]
+            
+            # Perform clustering using the MDS coordinates as input
+            res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+            
+            cat(paste("NA's in individual clustering?", any(is.na(res$cluster)), "\n"))
+            
+            # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+            orig_classes <- tmp$individual_ID
+            
+            return(NMI(orig_classes, res$cluster))
+            
+          }))
+          
+          nmi_ind_cg <- mean(kmeans_ind_cg)
+          
+          nmi_results <- data.frame(
             social_envt_treatment = social_envts[z],
             information_encoding_treatment = ratios[i],
             iteration = n,
             group_information = information[["group_information"]][i], 
             individual_information = information[["individual_information"]][i],
             NMI_group = nmi_grp,
-            NMI_individual = nmi_ind
+            NMI_individual_fine = nmi_ind,
+            NMI_individual_coarse = nmi_ind_cg
           )
-        )
+          
+        } else {
+          
+          nmi_results <- data.frame(
+            social_envt_treatment = social_envts[z],
+            information_encoding_treatment = ratios[i],
+            iteration = n,
+            group_information = information[["group_information"]][i], 
+            individual_information = information[["individual_information"]][i],
+            NMI_group = NA,
+            NMI_individual_fine = NA,
+            NMI_individual_coarse = NA
+          )
+        }
+        
+        ### Step 10: return NMI results
+        return(nmi_results)
         
       }))
       
@@ -486,132 +524,132 @@ system.time(
     
   }))
   
-  )
-  
-  # On the Mac Mini this process took about TKTK minutes
-  
+)
+
+# On the Mac Mini this process took about TKTK minutes
+
 ```
-  
-  How often do the NMI calculations go below 0 or above 1?
-    ```{r}
-  
-  nmi_files <- list.files(path = data_path, pattern = "nmi_")
-  nmi_files
-  
-  nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
-    
-    return(read.csv(file.path(data_path, nmi_files[n])))
-    
-  }))
-  
-  glimpse(nmi_res)
-  
-  # Two group-level calculations go below 1
-  nmi_res %>% 
-    dplyr::filter(
-      NMI_group < 0
-    )
-  
-  # No other values go below 0 or over 1
-  nmi_res %>% 
-    dplyr::filter(
-      NMI_group > 1
-    )
-  
-  nmi_res %>% 
-    dplyr::filter(
-      NMI_individual < 0
-    )
-  
-  
-  nmi_res %>% 
-    dplyr::filter(
-      NMI_individual > 1
-    )
-  
-```
-  
-  
-  # Plot NMI results....needs to be updated
-  
-  Generate plots of NMI values at the individual and group-level across the experimental call datasets. I added 95% CIs, but these don't make sense because they vary to go below 0 and above 1. I decided to use the interquartile range (the difference between the upper and lower quartiles) instead.
-  ```{r}
-  
-  nmi_files <- list.files(path = data_path, pattern = "nmi_")
-  nmi_files
-  
-  nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
+
+How often do the NMI calculations go below 0 or above 1?
+```{r}
+
+nmi_files <- list.files(path = data_path, pattern = "NMI_")
+nmi_files
+
+nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
   
   return(read.csv(file.path(data_path, nmi_files[n])))
   
-  }))
+}))
+
+glimpse(nmi_res)
+
+# Two group-level calculations go below 1
+nmi_res %>% 
+  dplyr::filter(
+    NMI_group < 0
+  )
+
+# No other values go below 0 or over 1
+nmi_res %>% 
+  dplyr::filter(
+    NMI_group > 1
+  )
+
+nmi_res %>% 
+  dplyr::filter(
+    NMI_individual < 0
+  )
+
+
+nmi_res %>% 
+  dplyr::filter(
+    NMI_individual > 1
+  )
+
+```
+
+
+# Plot NMI results....needs to be updated
+
+Generate plots of NMI values at the individual and group-level across the experimental call datasets. I added 95% CIs, but these don't make sense because they vary to go below 0 and above 1. I decided to use the interquartile range (the difference between the upper and lower quartiles) instead.
+```{r}
+
+nmi_files <- list.files(path = data_path, pattern = "nmi_")
+nmi_files
+
+nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
   
-  glimpse(nmi_res)
+  return(read.csv(file.path(data_path, nmi_files[n])))
   
-  # Calculate summary statistics (mean and interquartile range) across iterations
-  nmi_sum <- nmi_res %>%
+}))
+
+glimpse(nmi_res)
+
+# Calculate summary statistics (mean and interquartile range) across iterations
+nmi_sum <- nmi_res %>%
   # Pivot longer to add a column by social level
   pivot_longer(
-  cols = c("NMI_group", "NMI_individual"),
-  names_to = "type",
-  values_to = "NMI"
+    cols = c("NMI_group", "NMI_individual"),
+    names_to = "type",
+    values_to = "NMI"
   ) %>%
   dplyr::mutate(
-  social_level = type,
-  social_level = gsub("NMI_", "", social_level)
+    social_level = type,
+    social_level = gsub("NMI_", "", social_level)
   ) %>%
   dplyr::select(-c("type")) %>%
   dplyr::mutate(
-  social_level = gsub("g", "G", social_level),
-  social_level = gsub("ind", "Ind", social_level)
+    social_level = gsub("g", "G", social_level),
+    social_level = gsub("ind", "Ind", social_level)
   ) %>% 
   # Group NMI results by ratio and social_level in order to calculate means and quartiles
   group_by(exptl_ratio, social_level) %>%
   dplyr::reframe(
-  mean_nmi = round(mean(NMI), 3),
-  Q1 = quantile(NMI, 0.25), # first quartile
-  Q3 = quantile(NMI, 0.75) # third quartile
-  # ci_lower = round(Rmisc::CI(NMI, ci = 0.95)[["lower"]], 3),
-  # ci_upper = round(Rmisc::CI(NMI, ci = 0.95)[["upper"]], 3)
+    mean_nmi = round(mean(NMI), 3),
+    Q1 = quantile(NMI, 0.25), # first quartile
+    Q3 = quantile(NMI, 0.75) # third quartile
+    # ci_lower = round(Rmisc::CI(NMI, ci = 0.95)[["lower"]], 3),
+    # ci_upper = round(Rmisc::CI(NMI, ci = 0.95)[["upper"]], 3)
   )
-  
-  glimpse(nmi_sum)
-  
-  ```
-  
-  Create plots that represent call datasets at each social level (e.g. more group membership or individual identity information). Use a log-scale axis to spread out the x-axis more evenly.
-  
-  Plotting aesthetics shared across plots.
-  ```{r}
-  
-  # Encode the NMI calculations at the two social levels with different linetypes
-  ltys <- c("dashed", "dotted")
-  
-  ```
-  
-  More group membership information.
-  ```{r}
-  
-  # # Create custom underlined text labels for the original ratios for the group-specific call dataset
-  # parseLabel <- sprintf("underline(%s)",
-  #                       gsub(" ", "~", nmi_sum %>%
-  #                              dplyr::filter(
-  #                                exptl_ratio > 1
-  #                              ) %>%
-  #                              dplyr::filter(
-  #                                social_level == "Group"
-  #                              ) %>%
-  #                              dplyr::mutate(
-  #                                label = paste("Ratio: ", exptl_ratio, sep = "")
-  #                              ) %>%
-  #                              pull(label), fixed = TRUE))
-  # 
-  # length(parseLabel)
-  
-  # Plot the data
-  nmi_sum %>%
+
+glimpse(nmi_sum)
+
+```
+
+Create plots that represent call datasets at each social level (e.g. more group membership or individual identity information). Use a log-scale axis to spread out the x-axis more evenly.
+
+Plotting aesthetics shared across plots.
+```{r}
+
+# Encode the NMI calculations at the two social levels with different linetypes
+ltys <- c("dashed", "dotted")
+
+```
+
+More group membership information.
+```{r}
+
+# # Create custom underlined text labels for the original ratios for the group-specific call dataset
+# parseLabel <- sprintf("underline(%s)",
+#                       gsub(" ", "~", nmi_sum %>%
+#                              dplyr::filter(
+#                                exptl_ratio > 1
+#                              ) %>%
+#                              dplyr::filter(
+#                                social_level == "Group"
+#                              ) %>%
+#                              dplyr::mutate(
+#                                label = paste("Ratio: ", exptl_ratio, sep = "")
+#                              ) %>%
+#                              pull(label), fixed = TRUE))
+# 
+# length(parseLabel)
+
+# Plot the data
+nmi_sum %>%
   dplyr::filter(
-  exptl_ratio > 1
+    exptl_ratio > 1
   ) %>%
   ggplot(aes(x = log(exptl_ratio), y = mean_nmi)) +
   geom_line(aes(group = social_level, linetype = social_level), color = "black", linewidth = 1) +
@@ -637,42 +675,42 @@ system.time(
   ylim(c(0, 1)) +
   theme_bw() +
   theme(
-  legend.position = "top",
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
-  axis.title = element_text(size = 24),
-  axis.text = element_text(size = 20),
-  legend.title = element_text(size = 24),
-  legend.text = element_text(size = 22)
+    legend.position = "top",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 24),
+    axis.text = element_text(size = 20),
+    legend.title = element_text(size = 24),
+    legend.text = element_text(size = 22)
   )
-  
-  ggsave(file.path(figure_path, "NMI_Results_Group-SpecificDataset.png"), units = "in", width = 8.2, height = 6, dpi = 300)
-  
-  ```
-  
-  More individual identity information.
-  ```{r}
-  
-  # # Create custom underlined text labels for the original ratios for the group-specific call dataset
-  # parseLabel <- sprintf("underline(%s)",
-  #                       gsub(" ", "~", nmi_sum %>%
-  #                              dplyr::filter(
-  #                                exptl_ratio < 1
-  #                              ) %>%
-  #                              dplyr::filter(
-  #                                social_level == "Individual"
-  #                              ) %>% 
-  #                              dplyr::mutate(
-  #                                label = paste("Ratio: ", exptl_ratio, sep = "")
-  #                              ) %>% 
-  #                              pull(label), fixed = TRUE))
-  # 
-  # length(parseLabel)
-  
-  # Plot the data
-  nmi_sum %>%
+
+ggsave(file.path(figure_path, "NMI_Results_Group-SpecificDataset.png"), units = "in", width = 8.2, height = 6, dpi = 300)
+
+```
+
+More individual identity information.
+```{r}
+
+# # Create custom underlined text labels for the original ratios for the group-specific call dataset
+# parseLabel <- sprintf("underline(%s)",
+#                       gsub(" ", "~", nmi_sum %>%
+#                              dplyr::filter(
+#                                exptl_ratio < 1
+#                              ) %>%
+#                              dplyr::filter(
+#                                social_level == "Individual"
+#                              ) %>% 
+#                              dplyr::mutate(
+#                                label = paste("Ratio: ", exptl_ratio, sep = "")
+#                              ) %>% 
+#                              pull(label), fixed = TRUE))
+# 
+# length(parseLabel)
+
+# Plot the data
+nmi_sum %>%
   dplyr::filter(
-  exptl_ratio < 1
+    exptl_ratio < 1
   ) %>%
   ggplot(aes(x = log(exptl_ratio), y = mean_nmi)) +
   geom_line(aes(group = social_level, linetype = social_level), linewidth = 1) +
@@ -698,16 +736,15 @@ system.time(
   ylim(c(0, 1)) +
   theme_bw() +
   theme(
-  legend.position = "top",
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
-  axis.title = element_text(size = 24),
-  axis.text = element_text(size = 20),
-  legend.title = element_text(size = 24),
-  legend.text = element_text(size = 22)
+    legend.position = "top",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 24),
+    axis.text = element_text(size = 20),
+    legend.title = element_text(size = 24),
+    legend.text = element_text(size = 22)
   )
-  
-  ggsave(file.path(figure_path, "NMI_Results_IndividuallyDistinctiveDataset.png"), units = "in", width = 8.2, height = 6, dpi = 300)
-  
-  ```
-  
+
+ggsave(file.path(figure_path, "NMI_Results_IndividuallyDistinctiveDataset.png"), units = "in", width = 8.2, height = 6, dpi = 300)
+
+```
