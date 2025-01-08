@@ -55,9 +55,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
 # path <- "" # Brittany's path
 
 ###################################################################################
@@ -105,8 +105,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -132,6 +132,8 @@ Check out documentation for the paRsynth functions. These functions are written 
 How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use traditional bioacoustics tools and Normalized Mutual Information to decode information encoded at the group and individual levels.
 
 Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each NMI calculation. Update the loop so that a selection table is made and SPCC is performed each time a new call dataset is generated. Then save the selection table and SPCC matrix but remove audio files before initiating the subsequent iteration. The duration of the audio files impacts the computational time (files over 400 ms take a long time to generate). The number of calls that will be compared in SPCC also increases computational time, as well as the number of treatments and the number of iterations per treatment.
+
+TKTK things to fix: Remove the ratio label from the NMI spreadsheet names, and consider how to deal with all of the NA results from SPCC matrix issues (see results for Intermediate social envt).
 ```{r}
 
 #################### Social environment treatments #################### 
