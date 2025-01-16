@@ -55,9 +55,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "" # Brittany's path
 
 ###################################################################################
@@ -105,8 +105,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -189,20 +189,20 @@ information
 globals <- 40 # 20 characters for the global head, 20 for the global tail
 
 # Create variation within individuals, and this will be the same across strings
-random_variation <- 4
+random_variation <- 20
 
 # Initialize the total string length
 string_length <- (globals + encoding_length + random_variation)
-string_length # 164
+string_length # 180
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
 iteratns <- 10
 
 # Testing one iteration of each loop
-z <- 1
-i <- 1
-n <- 1
-x <- 1
+z <- 2 # social environments
+i <- 4 # information encoding treatments
+n <- 1 # replicates or iterations
+# x <- 1
 
 # Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
 
@@ -280,6 +280,7 @@ system.time(
           save_path = data_path, 
           sampling_rate = 44100,
           sylLen = 200,
+          temperature = 0.025,
           prefix = paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_")
         )
         
@@ -320,7 +321,7 @@ system.time(
               end = seewave::duration(tmp) + 0.1,
               group_ID = metadats_tmp[["Group"]],
               individual_ID = metadats_tmp[["Individual"]],
-              call_ID = metadats_tmp[["Call"]],
+              call_ID = metadats_tmp[["Call_ID"]],
               sampling_rate = tmp@samp.rate,
               group_information = information[["group_information"]][i], 
               individual_information = information[["individual_information"]][i],
@@ -364,7 +365,61 @@ system.time(
         # str(xc_mat)
         
         # Get the percentage of values that are negative
-        neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
+        neg_values <- length(xc_mat[xc_mat < 0])/(dim(xc_mat)[1] * dim(xc_mat)[2])
+        
+        neg_values
+        
+        # TKTK keep troubleshooting
+        
+        # No NAs 
+        which(is.na(xc_mat))
+        
+        # Any 1s off of the diagonal? None
+        which(xc_mat[lower.tri(xc_mat)] == 1)
+        
+        # But yes negative values, 50 of them
+        which(xc_mat < 0)
+        xc_mat[xc_mat < 0]
+        
+        # Which calls are leading to the negative SPCC values?
+        # These are calls compared among different groups
+        unlist(lapply(1:nrow(xc_mat), function(i){
+          lapply(1:ncol(xc_mat), function(j){
+            if(any(xc_mat[i, j] < 0)){
+              return(paste(dimnames(xc_mat)[[1]][i], dimnames(xc_mat)[[2]][j], sep = " - "))
+            }
+          })
+        }))
+        
+        # Create spectrograms to check out call structure
+        
+        warbleR::spectrograms(sel_tbl, wl = 512, flim = c(0, 40), wn = "hanning", pal = reverse.gray.colors.2,ovlp = 90, inner.mar = c(5, 4, 4, 2), outer.mar = c(0, 0, 0, 0), picsize = 1, res = 100, cexlab = 1, propwidth = FALSE, xl = 1, osci = FALSE, gr = FALSE, sc = FALSE, line = FALSE, mar = 0.05, it = "jpeg", parallel = 1, path = data_path, pb = TRUE, fast.spec = FALSE, by.song = NULL, sel.labels = NULL, title.labels = NULL, dest.path = figure_path, box = TRUE, axis = TRUE)
+        
+        # Rename the image files to remove the -1 appended after the extension
+        imgs <- list.files(figure_path)
+        # imgs
+        
+        new_nms <- gsub(".wav-1", "", imgs)
+        # new_nms
+        
+        invisible(file.rename(file.path(figure_path, imgs), file.path(figure_path, new_nms)))
+        
+        # "Intermediate_Ratio-0.8_Group9_Indiv8_Call1.wav-1 - Intermediate_Ratio-0.8_Group10_Indiv7_Call2.wav-1" 
+        # The first call in this comparison has very different duration. I confirmed this by looking at the spectrograms and also listening to the audio file
+        # Why do these large differences in duration arise???
+        # There are no NAs in the frequency anchors and the vector of anchors is the same length between calls
+        # Why is the audio file for "9-8-1" so much shorter?
+        # This could be due to the stochasticity that's currently turn on in soundgen. Nope, I just added the argument temperature = 0.025 to write_audio, so it was previously using the efault of 0 (no stochasticity in sound generation)
+        # Do we need to pass timestamps to soundgen along with frequency anchors?
+        synthetic_call_metadata %>% 
+          dplyr::mutate(
+            group_individual_call = paste(Group, Individual, Call_ID, sep = "-")
+          ) %>% 
+          dplyr::filter(
+            group_individual_call %in% c("9-8-1", "10-7-2")
+          ) %>% 
+          View()
+        
         
         # Return NA values in the final results structure if the percentage of negative values is > 0%
         if(neg_values > 0){
