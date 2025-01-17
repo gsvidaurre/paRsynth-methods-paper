@@ -196,10 +196,10 @@ string_length <- (globals + encoding_length + random_variation)
 string_length # 180
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
-iteratns <- 10
+iteratns <- 5
 
 # Testing one iteration of each loop
-z <- 2 # social environments
+z <- 3 # social environments
 i <- 4 # information encoding treatments
 n <- 1 # replicates or iterations
 # x <- 1
@@ -281,7 +281,9 @@ system.time(
           sampling_rate = 44100,
           sylLen = 200,
           temperature = 0.025,
-          prefix = paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_")
+          prefix = paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_"),
+          shortestEpoch = 600,
+          invalidArgAction = "ignore"
         )
         
         # glimpse(synthetic_call_metadata)
@@ -367,65 +369,6 @@ system.time(
         # Get the percentage of values that are negative
         neg_values <- length(xc_mat[xc_mat < 0])/(dim(xc_mat)[1] * dim(xc_mat)[2])
         
-        neg_values
-        
-        # TKTK keep troubleshooting
-        
-        # I think I found it:
-        # shortestEpoch	default is 300 ms, so this needs to be increased to account for strings with repeated frequency values
-# minimum duration of each epoch with unchanging subharmonics regime or formant locking, in ms
-        
-        # No NAs 
-        which(is.na(xc_mat))
-        
-        # Any 1s off of the diagonal? None
-        which(xc_mat[lower.tri(xc_mat)] == 1)
-        
-        # But yes negative values, 50 of them
-        which(xc_mat < 0)
-        xc_mat[xc_mat < 0]
-        
-        # Which calls are leading to the negative SPCC values?
-        # These are calls compared among different groups
-        unlist(lapply(1:nrow(xc_mat), function(i){
-          lapply(1:ncol(xc_mat), function(j){
-            if(any(xc_mat[i, j] < 0)){
-              return(paste(dimnames(xc_mat)[[1]][i], dimnames(xc_mat)[[2]][j], sep = " - "))
-            }
-          })
-        }))
-        
-        # Create spectrograms to check out call structure
-        
-        warbleR::spectrograms(sel_tbl, wl = 512, flim = c(0, 40), wn = "hanning", pal = reverse.gray.colors.2,ovlp = 90, inner.mar = c(5, 4, 4, 2), outer.mar = c(0, 0, 0, 0), picsize = 1, res = 100, cexlab = 1, propwidth = FALSE, xl = 1, osci = FALSE, gr = FALSE, sc = FALSE, line = FALSE, mar = 0.05, it = "jpeg", parallel = 1, path = data_path, pb = TRUE, fast.spec = FALSE, by.song = NULL, sel.labels = NULL, title.labels = NULL, dest.path = figure_path, box = TRUE, axis = TRUE)
-        
-        # Rename the image files to remove the -1 appended after the extension
-        imgs <- list.files(figure_path)
-        # imgs
-        
-        new_nms <- gsub(".wav-1", "", imgs)
-        # new_nms
-        
-        invisible(file.rename(file.path(figure_path, imgs), file.path(figure_path, new_nms)))
-        
-        # "Intermediate_Ratio-0.8_Group9_Indiv8_Call1.wav-1 - Intermediate_Ratio-0.8_Group10_Indiv7_Call2.wav-1" 
-        # The first call in this comparison has very different duration. I confirmed this by looking at the spectrograms and also listening to the audio file
-        # Same for "Intermediate_Ratio-0.8_Group10_Indiv1_Call1.wav-1 - Intermediate_Ratio-0.8_Group4_Indiv3_Call2.wav-1" 
-        # Why do these large differences in duration arise???
-        # There are no NAs in the frequency anchors and the vector of anchors is the same length between calls
-        # Why is the audio file for "9-8-1" so much shorter?
-        # This could be due to the stochasticity that's currently turn on in soundgen. Nope, I just added the argument temperature = 0.025 to write_audio, so it was previously using the efault of 0 (no stochasticity in sound generation)
-        # Do we need to pass timestamps to soundgen along with frequency anchors?
-        synthetic_call_metadata %>% 
-          dplyr::mutate(
-            group_individual_call = paste(Group, Individual, Call_ID, sep = "-")
-          ) %>% 
-          dplyr::filter(
-            group_individual_call %in% c("9-8-1", "10-7-2")
-          ) %>% 
-          View()
-        
-        
         # Return NA values in the final results structure if the percentage of negative values is > 0%
         if(neg_values > 0){
           
@@ -481,11 +424,11 @@ system.time(
             
             # glimpse(mds_df)
             
-            cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
+            # cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
             
-            cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
+            # cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
             
-            cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
+            # cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
             
             ### Step 8: Remove .wav files to free up storage space
             rem_files <- file.path(data_path, wavs)
@@ -505,7 +448,7 @@ system.time(
             
             # str(kmeans_grp)
             
-            cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
+            # cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
             
             # Compute NMI at the group-level
             orig_classes <- mds_df$group_ID
@@ -526,7 +469,7 @@ system.time(
             # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
             kmeans_ind_fg <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
             
-            cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind_fg$cluster)), "\n"))
+            # cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind_fg$cluster)), "\n"))
             
             # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
             orig_classes <- paste(mds_df$group_ID, mds_df$individual_ID, sep = "-")
@@ -548,7 +491,7 @@ system.time(
               # Perform clustering using the MDS coordinates as input
               res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
               
-              cat(paste("NA's in individual clustering?", any(is.na(res$cluster)), "\n"))
+              # cat(paste("NA's in individual clustering?", any(is.na(res$cluster)), "\n"))
               
               # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
               orig_classes <- tmp$individual_ID
@@ -608,6 +551,9 @@ system.time(
 # On the Mac Mini this process took about TKTK minutes
 
 ```
+
+# soundgen warnings: In validatePars(p, gp, permittedValues, invalidArgAction) : 
+# shortestEpoch should be between 50 and 500; override with caution
 
 How often do the NMI calculations go below 0 or above 1?
 ```{r}
