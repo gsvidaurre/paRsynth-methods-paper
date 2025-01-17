@@ -371,6 +371,10 @@ system.time(
         
         # TKTK keep troubleshooting
         
+        # I think I found it:
+        # shortestEpoch	default is 300 ms, so this needs to be increased to account for strings with repeated frequency values
+# minimum duration of each epoch with unchanging subharmonics regime or formant locking, in ms
+        
         # No NAs 
         which(is.na(xc_mat))
         
@@ -406,6 +410,7 @@ system.time(
         
         # "Intermediate_Ratio-0.8_Group9_Indiv8_Call1.wav-1 - Intermediate_Ratio-0.8_Group10_Indiv7_Call2.wav-1" 
         # The first call in this comparison has very different duration. I confirmed this by looking at the spectrograms and also listening to the audio file
+        # Same for "Intermediate_Ratio-0.8_Group10_Indiv1_Call1.wav-1 - Intermediate_Ratio-0.8_Group4_Indiv3_Call2.wav-1" 
         # Why do these large differences in duration arise???
         # There are no NAs in the frequency anchors and the vector of anchors is the same length between calls
         # Why is the audio file for "9-8-1" so much shorter?
