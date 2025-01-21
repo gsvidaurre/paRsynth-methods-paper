@@ -127,12 +127,7 @@ Check out documentation for the paRsynth functions. These functions are written 
 
 ```
 
-TKTK I'm still getting negative cross-correlation values, even after setting shortestEpoch to 600 and invalidArgAction to "ignore". Setting temperature to 0 won't help either (to remove random dirft in syllable length), because that was the default value when I first noticed these issues. Also changing write_audio such that frequency anchors are provided with timestamps likely won't help because the timestamps are relative to the syllable duration rather than used as exact timepoints by soundgen, and all I can find about syllable duration is that it is an "average" setting.
-
-It may be necessary to zero-pad the spectrograms if I can't figure out a way to standardize the audio file generation, which will require a lot of coding to generate a tool in R that will do this.
-
-I want to keep looking into a possible solution for making the duration of the synthetic audio files constant. What if I allowed the sampling rate to vary, and then I standardized sampling rate afterwards?
-
+In the code below, I handled negative SPCC values by setting these to the minimum observed non-zero SPCC value in the whole matrix. I handled values of 1 off of the diagonal by setting these to the maximum observed value less than 1 in the full matrix.
 
 TKTK need to add an edit distance analysis!! To the NMI, for "true" information recovery at the string step compared to the bioacoustics signal step
 
@@ -162,7 +157,8 @@ n_calls <- 2
 
 # Ratios of group : individual information in a string
 # Here these ratios are written as proportions from 0 to 1, such that 0 indicates 0:1 (no group membership and all individual information), and 1 indicates 1:0 (all group membership information)
-ratios <- c(0, 0.2, 0.4, 0.8, 1)
+# ratios <- c(0, 0.2, 0.4, 0.8, 1)
+ratios <- c(0.2, 0.4, 0.8) # fewer social conditions for preliminary results
 
 # The total length of the individual and group information together should be constant across strings
 encoding_length <- 30
@@ -197,18 +193,19 @@ information
 globals <- 12 # 6 characters for the global head, 6 for the global tail
 
 # Create variation within individuals, and this will be the same across strings
-random_variation <- 4
+random_variation <- 6
 
 # Initialize the total string length
 string_length <- (globals + encoding_length + random_variation)
 string_length # 46
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
-iteratns <- 5
+# iteratns <- 5
+iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
 z <- 3 # social environments
-i <- 4 # information encoding treatments
+i <- 1 # information encoding treatments
 n <- 1 # replicates or iterations
 # x <- 1
 
@@ -222,7 +219,7 @@ system.time(
     # Iterate over information encoding treatments
     lapply(1:length(ratios), function(i){
       
-      cat(paste("n_groups =", n_groups[z], ", n_individuals =", n_individuals[z], "\n", sep = " "))
+      cat(paste("social condition =", social_envts[z], "\n", sep = " "))
       cat(paste("ratio = ", ratios[i], "\n", sep = ""))
       
       # Iterating over the number of replicates per treatment combination
@@ -290,7 +287,7 @@ system.time(
           sylLen = 400,
           temperature = 0,
           prefix = paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_"),
-          invalidArgAction = "ignore" # TKTK does turning off the argument to ignore values that soundgen flags as an issue fix the varying duration problem, even if sampling rates are different. Nope, but I had tried it with temperature = 0.025, so trying with temperature = 0 now. Still getting negative SPCC values but fewer, and the range of durations is tighter than before
+          invalidArgAction = "ignore" # This argument fixes the variable sampling rates that soundgen assigns in the background
         )
         
         # glimpse(synthetic_call_metadata)
@@ -301,21 +298,6 @@ system.time(
         )
         
         cat(paste("Number of audio files = ", length(wavs), "\n"))
-        
-        
-        # TKTK I think this is leading to really strange clipping or something that sounds very very strange, but using 44100 in soundgen and setting the invalid argument to "ignore" fixes the problem
-        ### Step 5: Resample all .wav files to 44100 kHz and overwrite the original audio files
-        # TKTK I still get negative values even after allowing soundgen to vary the sampling rate (which makes the range of duration tighter), and then standardizing sampling rates
-        # invisible(lapply(1:length(wavs), function(w){
-        # 
-        #   tmp <- tuneR::readWave(file.path(data_path, wavs[w]))
-        # 
-        #   if(tmp@samp.rate != 44100){
-        #     rtmp <- seewave::resamp(tmp, g = 44100, output = "Wave")
-        #     tuneR::writeWave(rtmp, file.path(data_path, wavs[w]), extensible = TRUE)
-        #   }
-        # 
-        # }))
         
         # Information recovery pipeline with traditional bioacoustics tools
         
@@ -381,11 +363,8 @@ system.time(
         # See the selection table in warbleR format with all useful metadata for the synthetic experiment
         # glimpse(sel_tbl)
         
-        # The range of duration is MUCH tighter sometimes, but not always and sometimes I still see a lot of variation in duration
-        range(sel_tbl$duration)
-        
         # And there is now a single sampling rate, as expected
-        unique(sel_tbl$sampling_rate)
+        # unique(sel_tbl$sampling_rate)
         
         # All files should have the same sampling rate, otherwise the analyses below will fail
         if(length(unique(sel_tbl$sampling_rate)) > 1){
@@ -396,8 +375,8 @@ system.time(
         xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = data_path)
         # str(xc_mat)
         
-        # Get the proportion of values that are negative
-        neg_values <- (length(xc_mat[xc_mat < 0])/length(xc_mat))
+        # Get the percentage of values that are negative
+        neg_values <- ((length(xc_mat[xc_mat < 0])/length(xc_mat))) * 100
         
         # # With the current settings, there are very few call comparisons that have this issue
         # # Which call comparisons lead to the negative values?
@@ -420,16 +399,47 @@ system.time(
           
           xc_mat[xc_mat < 0] <- round(min(xc_mat[xc_mat > 0]), 8)
           
-          notes <- paste("A proportion of", round(neg_values, 8), "of all SPCC cells were negative and wre changed to the minimum positive SPCC value of", round(min(xc_mat[xc_mat > 0]), 8), sep = " ")
+          neg_notes <- paste(round(neg_values, 8), "% of all SPCC cells were negative and were changed to the minimum positive SPCC value of", round(min(xc_mat[xc_mat > 0]), 8), sep = " ")
           
         } else {
           
-          notes <- ""
+          neg_notes <- ""
           
         }
         
         # Continue with downstream analyses only if there are no 1's off of the diagonal, otherwise MDS will fail. Record NA values if there are 1's off of the diagonal (e.g. two calls of the same structure will present values of 1 as if the same call were compared to itself)
-        if(!any(xc_mat[lower.tri(xc_mat)] == 1)){
+        
+        # Make sure to calculate the true number of values in the symmetric matrix (multipy the number of unique values that are 1 by 2)
+        ones <- ((length(which(xc_mat[lower.tri(xc_mat)] == 1))*2)/length(xc_mat)) * 100
+        
+        # With the current settings, there are very few call comparisons that have this issue
+        # Which call comparisons lead to the values of 1 off of the diagonal?
+        unlist(lapply(1:nrow(xc_mat), function(i){
+          lapply(1:ncol(xc_mat), function(j){
+            
+            if(xc_mat[i, j] == 1 & (dimnames(xc_mat)[[1]][i] != dimnames(xc_mat)[[2]][j])){
+              return(paste(dimnames(xc_mat)[[1]][i], dimnames(xc_mat)[[2]][j], sep = " - "))
+            }
+            
+          })
+        }))
+        
+        
+        if(ones > 0){
+          
+          # Get the maximum similarity value after 1 in the matrix
+          sec_max_val <- max(xc_mat[lower.tri(xc_mat)][xc_mat[lower.tri(xc_mat)] != 1])
+          
+          # Then set the values of 1 off of the diagonal to the next highest similarity value in this matrix
+          xc_mat[lower.tri(xc_mat)][xc_mat[lower.tri(xc_mat)] == 1] <- round(sec_max_val, 8)
+          
+          one_notes <- paste(round(one_values, 8), "% of all SPCC cells were negative and were changed to the next maximum SPCC value of", round(sec_max_val, 8), sep = " ")
+          
+          else {
+            
+            one_notes <- ""
+            
+          }
           
           # Update the dimension names of the matrix
           dimnames(xc_mat) <- list(wavs, wavs)
@@ -555,19 +565,6 @@ system.time(
             notes = notes
           )
           
-        } else {
-          
-          nmi_results <- data.frame(
-            social_envt_treatment = social_envts[z],
-            information_encoding_treatment = ratios[i],
-            iteration = n,
-            group_information = information[["group_information"]][i], 
-            individual_information = information[["individual_information"]][i],
-            NMI_group = NA,
-            NMI_individual_fine = NA,
-            NMI_individual_coarse = NA,
-            notes = "SPCC matrix: values of 1 off of the diagonal"
-          )
         }
         
         # }
@@ -587,11 +584,14 @@ system.time(
   
 )
 
-# On the Mac Mini this process took about TKTK minutes
+# On the Mac Mini this process took ~ TKTK hours with 3 social conditions, 3 information encoding ratios, and 1 iteration of each treatement combination
+
+# On the Mac Mini this process took ~ 29 hours with 3 social conditions, 5 information encoding ratios, and 5 iterations of each treatement combination
+# 01d 04h 52m 56s
+# user    system   elapsed 
+# 40655.65  39141.46 103975.72 
 
 ```
-
-
 
 How often do the NMI calculations go below 0 or above 1?
 ```{r}
@@ -606,6 +606,12 @@ nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
 }))
 
 glimpse(nmi_res)
+
+View(nmi_res)
+
+```
+
+```{r}
 
 # Two group-level calculations go below 1
 nmi_res %>% 
