@@ -131,6 +131,102 @@ In the code below, I handled negative SPCC values by setting these to the minimu
 
 TKTK need to add an edit distance analysis!! To the NMI, for "true" information recovery at the string step compared to the bioacoustics signal step
 
+
+TKTK also add your own function to calculate NMI following Kershenbaum et al. 2013 in PLOS One.
+
+```{r}
+
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(seq(1, 5, 1), each = 2))
+X
+
+class_col_nm <- "classes"
+cluster_col_nm <- "clusters"
+
+i <- 1
+j <- 3
+
+nmi <- function(X, class_col_nm, cluster_col_nm){
+  
+  classes <- unique(X[[class_col_nm]])
+  clusters <- unique(X[[cluster_col_nm]])
+  
+  # n_i is the number of vocalizations from class (individual or group) i
+  # n_j is the number of vocalizations in cluster j
+  # n_ji is the number of vocalizations from individual i in cluster j
+  # N is the number of total vocalizations
+  
+  # sum over j and i [ n_ji * log( (N * n_ji) / (n_j * n_i) ) ] / sqrt( sum over j [ n_j * log( n_j / N )] * sum over i [ n_i * log( n_i / N ) ] )
+  
+  # Get the total number of vocalizations
+  N <- nrow(X)
+  
+  numerator <- sum(unlist(lapply(1:length(classes), function(i){
+    
+    lapply(1:length(clusters), function(j){
+      
+      # Get the number of vocalizations from class i
+      n_i <- X %>% 
+        dplyr::filter(!!sym(class_col_nm) == classes[i]) %>%
+        nrow(.)
+      
+      # Get the number of vocalizations from cluster j
+      n_j <- X %>% 
+        dplyr::filter(!!sym(cluster_col_nm) == clusters[j]) %>% 
+        nrow(.)
+      
+      # Get the number of vocalizations from class i that are in cluster j
+      n_ji <- X %>% 
+        dplyr::filter(!!sym(class_col_nm) == classes[i]) %>% 
+        dplyr::filter(!!sym(cluster_col_nm) == clusters[j]) %>% 
+        nrow(.)
+      
+      numerators <- n_ji * log( (N * n_ji) / (n_j * n_i) )
+      
+      # Set the calculation to 0 if the calculation above leads to an NaN value, which happens when n_ji is 0
+      if(is.na(numerators)) numerators <- 0
+      
+      return(numerators)
+      
+    })
+    
+  })))
+  
+  
+  # Calculate information in clusters and classes separately (each half of the denominator that goes into the square root expression)
+  sum_clusters <- sum(unlist(lapply(1:length(clusters), function(j){
+    
+    # Get the number of vocalizations from cluster j
+    n_j <- X %>% 
+      dplyr::filter(!!sym(cluster_col_nm) == clusters[j]) %>% 
+      nrow(.)
+    
+    return( n_j * log( n_j / N ) )
+    
+  })))
+  
+  sum_classes <- sum(unlist(lapply(1:length(classes), function(i){
+    
+    # Get the number of vocalizations from class i
+    n_i <- X %>% 
+      dplyr::filter(!!sym(class_col_nm) == classes[i]) %>% 
+      nrow(.)
+    
+    return( n_i * log( n_i / N ) )
+    
+  })))
+  
+  denominator <- sqrt( sum_clusters * sum_classes )
+  
+  return( numerator / denominator )  
+  
+}
+
+# TKTK I'm getting a value of 2 but I should be getting 1
+
+```
+
+
+
 # Synthetic experiments over varying social environment characteristics and information encoding rules
 
 How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use traditional bioacoustics tools and Normalized Mutual Information to decode information encoded at the group and individual levels.
@@ -484,7 +580,7 @@ system.time(
           )
         
         # glimpse(mds_df)
-
+        
         # cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
         
         # cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
