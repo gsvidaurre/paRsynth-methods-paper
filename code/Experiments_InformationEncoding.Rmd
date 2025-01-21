@@ -414,6 +414,9 @@ system.time(
         
         # With the current settings, there are very few call comparisons that have this issue
         # Which call comparisons lead to the values of 1 off of the diagonal?
+        # Here a value of 1 pops up for 2 calls of the very same individual, which makes sense
+        # [1] "Dense_Ratio-0.2_Group14_Indiv14_Call1.wav-1 - Dense_Ratio-0.2_Group14_Indiv14_Call2.wav-1"
+# [2] "Dense_Ratio-0.2_Group14_Indiv14_Call2.wav-1 - Dense_Ratio-0.2_Group14_Indiv14_Call1.wav-1"
         unlist(lapply(1:nrow(xc_mat), function(i){
           lapply(1:ncol(xc_mat), function(j){
             
