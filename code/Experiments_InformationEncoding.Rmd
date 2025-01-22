@@ -22,7 +22,7 @@ Load packages and set cores.
 rm(list = ls())
 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "mclust")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -55,9 +55,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "" # Brittany's path
 
 ###################################################################################
@@ -105,8 +105,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -131,68 +131,67 @@ In the code below, I handled negative SPCC values by setting these to the minimu
 
 TKTK need to add an edit distance analysis!! To the NMI, for "true" information recovery at the string step compared to the bioacoustics signal step
 
-
-TKTK also add your own function to calculate NMI following Kershenbaum et al. 2013 in PLOS One.
-
+Add a function to calculate NMI following Kershenbaum et al. 2013 in PLOS One. I've been getting strange results from aricode::NMI, and those results are also different from when I use the function below.
 ```{r}
 
-X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(seq(1, 5, 1), each = 2))
+# Testing
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(1, 10))
 X
 
-class_col_nm <- "classes"
-cluster_col_nm <- "clusters"
-
-i <- 1
-j <- 3
+# I'm getting a value above 1 here
+X = tmp_mds
+class_col_nm = "clusters"
+cluster_col_nm = "clusters"
 
 nmi <- function(X, class_col_nm, cluster_col_nm){
   
-  classes <- unique(X[[class_col_nm]])
-  clusters <- unique(X[[cluster_col_nm]])
+  # Get the total number of vocalizations
+  N <- nrow(X)
+  
+  # Find the unique combinations of classes and clusters
+  tmp <- X %>% 
+    distinct(!!sym(class_col_nm), !!sym(cluster_col_nm))
   
   # n_i is the number of vocalizations from class (individual or group) i
   # n_j is the number of vocalizations in cluster j
   # n_ji is the number of vocalizations from individual i in cluster j
   # N is the number of total vocalizations
   
-  # sum over j and i [ n_ji * log( (N * n_ji) / (n_j * n_i) ) ] / sqrt( sum over j [ n_j * log( n_j / N )] * sum over i [ n_i * log( n_i / N ) ] )
-  
-  # Get the total number of vocalizations
-  N <- nrow(X)
-  
-  numerator <- sum(unlist(lapply(1:length(classes), function(i){
+  numerator <- sum(unlist(lapply(1:nrow(tmp), function(z){
     
-    lapply(1:length(clusters), function(j){
-      
-      # Get the number of vocalizations from class i
-      n_i <- X %>% 
-        dplyr::filter(!!sym(class_col_nm) == classes[i]) %>%
-        nrow(.)
-      
-      # Get the number of vocalizations from cluster j
-      n_j <- X %>% 
-        dplyr::filter(!!sym(cluster_col_nm) == clusters[j]) %>% 
-        nrow(.)
-      
-      # Get the number of vocalizations from class i that are in cluster j
-      n_ji <- X %>% 
-        dplyr::filter(!!sym(class_col_nm) == classes[i]) %>% 
-        dplyr::filter(!!sym(cluster_col_nm) == clusters[j]) %>% 
-        nrow(.)
-      
-      numerators <- n_ji * log( (N * n_ji) / (n_j * n_i) )
-      
-      # Set the calculation to 0 if the calculation above leads to an NaN value, which happens when n_ji is 0
-      if(is.na(numerators)) numerators <- 0
-      
-      return(numerators)
-      
-    })
+    class <- tmp[[class_col_nm]][z]
+    cluster <- tmp[[cluster_col_nm]][z]
+    
+    # Get the number of vocalizations from the current class
+    n_i <- X %>% 
+      dplyr::filter(!!sym(class_col_nm) == class) %>%
+      nrow(.)
+    
+    # Get the number of vocalizations from the current cluster
+    n_j <- X %>% 
+      dplyr::filter(!!sym(cluster_col_nm) == cluster) %>% 
+      nrow(.)
+    
+    # Get the number of vocalizations from class i that are in cluster j
+    n_ji <- X %>% 
+      dplyr::filter(!!sym(class_col_nm) == class) %>% 
+      dplyr::filter(!!sym(cluster_col_nm) == cluster) %>% 
+      nrow(.)
+    
+    numerators <- n_ji * log( ((N * n_ji) / (n_j * n_i) ))
+    
+    # Set the calculation to 0 if the calculation above leads to an NaN value, which happens when n_ji is 0
+    if(is.na(numerators)) numerators <- 0
+    
+    return(numerators)
     
   })))
   
   
   # Calculate information in clusters and classes separately (each half of the denominator that goes into the square root expression)
+  classes <- unique(X[[class_col_nm]])
+  clusters <- unique(X[[cluster_col_nm]])
+  
   sum_clusters <- sum(unlist(lapply(1:length(clusters), function(j){
     
     # Get the number of vocalizations from cluster j
@@ -204,6 +203,7 @@ nmi <- function(X, class_col_nm, cluster_col_nm){
     
   })))
   
+  # i <- 2
   sum_classes <- sum(unlist(lapply(1:length(classes), function(i){
     
     # Get the number of vocalizations from class i
@@ -215,16 +215,60 @@ nmi <- function(X, class_col_nm, cluster_col_nm){
     
   })))
   
-  denominator <- sqrt( sum_clusters * sum_classes )
+  # denominator <- sqrt( sum_clusters * sum_classes )
+  if(numerator == 0 | (sqrt( sum_clusters * sum_classes )) == 0){
+    
+    nmi <- 0
+    
+  } else {
+    
+    nmi <- numerator / sqrt( sum_clusters * sum_classes )
+    
+  }
   
-  return( numerator / denominator )  
+  return( nmi )  
   
 }
 
-# TKTK I'm getting a value of 2 but I should be getting 1
+# Testing: NMI should be 1, looks good
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(seq(1, 5, 1), each = 2))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# Testing: NMI should be also be 1, looks good
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rev(rep(seq(1, 5, 1), each = 2)))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# Testing: NMI should be 0, looks good
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(1, 10))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# Testing: NMI should be closer to 1 when the number of clusters is close to the number of classes, even if the clusters were randomly assigned and classes are split between clusters.
+X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:256, 512, replace = TRUE))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# I get different NMI results using the aricode package
+aricode::NMI(X$classes, X$clusters, variant = "sqrt") # this is the variant that should be the same as my function above
+aricode::NMI(X$classes, X$clusters, variant = "max")
+
+# Testing: NMI should be closer to 0 when the number of clusters is not close to the number of classes, and when the clusters were randomly assigned
+X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:10, 512, replace = TRUE))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# I get different NMI results using the aricode package
+aricode::NMI(X$classes, X$clusters, variant = "sqrt") # this is the variant that should be the same as my function above
+aricode::NMI(X$classes, X$clusters, variant = "max")
 
 ```
-
 
 
 # Synthetic experiments over varying social environment characteristics and information encoding rules
@@ -300,9 +344,9 @@ string_length # 46
 iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
-# z <- 3 # social environments
-# i <- 1 # information encoding treatments
-# n <- 1 # replicates or iterations
+z <- 1 # social environments
+i <- 1 # information encoding treatments
+n <- 1 # replicates or iterations
 
 # Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
 
@@ -473,22 +517,6 @@ system.time(
         # Get the percentage of values that are negative
         neg_values <- ((length(xc_mat[xc_mat < 0])/length(xc_mat))) * 100
         
-        # # With the current settings, there are very few call comparisons that have this issue
-        # # Which call comparisons lead to the negative values?
-        # unlist(lapply(1:nrow(xc_mat), function(i){
-        #   lapply(1:ncol(xc_mat), function(j){
-        #     
-        #     if(xc_mat[i, j] < 0){
-        #       return(paste(dimnames(xc_mat)[[1]][i], dimnames(xc_mat)[[2]][j], sep = " - "))
-        #     }
-        #     
-        #   })
-        # }))
-        
-        # These two particular call structures are very different from one another, but the durations are not very different. So I think what's happening is a structural issue, and we could set the negative values to a very low non-negative number, or even change the sign of the negative values if they are very low. If we do this, we should track how many values we changed in each iteration 
-        # "Dense_Ratio-0.8_Group16_Indiv8_Call2.wav-1 - Dense_Ratio-0.8_Group12_Indiv5_Call2.wav-1" 
-        # xc_mat[xc_mat < 0]
-        
         # Set all negative values to the minimum positive value in the SPCC matrix to represent the fact that these calls are very structurally different from one another
         if(neg_values > 0){
           
@@ -505,24 +533,8 @@ system.time(
         
         # Continue with downstream analyses only if there are no 1's off of the diagonal, otherwise MDS will fail. Record NA values if there are 1's off of the diagonal (e.g. two calls of the same structure will present values of 1 as if the same call were compared to itself)
         
-        # Make sure to calculate the true number of values in the symmetric matrix (multipy the number of unique values that are 1 by 2)
+        # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
         ones <- ((length(which(xc_mat[lower.tri(xc_mat)] == 1))*2)/length(xc_mat)) * 100
-        
-        # With the current settings, there are very few call comparisons that have this issue
-        # Which call comparisons lead to the values of 1 off of the diagonal?
-        # Here a value of 1 pops up for 2 calls of the very same individual, which makes sense
-        # [1] "Dense_Ratio-0.2_Group14_Indiv14_Call1.wav-1 - Dense_Ratio-0.2_Group14_Indiv14_Call2.wav-1"
-        # [2] "Dense_Ratio-0.2_Group14_Indiv14_Call2.wav-1 - Dense_Ratio-0.2_Group14_Indiv14_Call1.wav-1"
-        # unlist(lapply(1:nrow(xc_mat), function(i){
-        #   lapply(1:ncol(xc_mat), function(j){
-        #     
-        #     if(xc_mat[i, j] == 1 & (dimnames(xc_mat)[[1]][i] != dimnames(xc_mat)[[2]][j])){
-        #       return(paste(dimnames(xc_mat)[[1]][i], dimnames(xc_mat)[[2]][j], sep = " - "))
-        #     }
-        #     
-        #   })
-        # }))
-        # 
         
         if(ones > 0){
           
@@ -581,12 +593,6 @@ system.time(
         
         # glimpse(mds_df)
         
-        # cat(paste("Dimensions of MDS results = ", dim(mds_df)[1], dim(mds_df)[2], "\n"))
-        
-        # cat(paste("NA's in MDS X dimension?", any(is.na(mds_df$X)), "\n"))
-        
-        # cat(paste("NA's in MDS Y dimension?", any(is.na(mds_df$Y)), "\n"))
-        
         ### Step 8: Remove .wav files to free up storage space
         rem_files <- file.path(data_path, wavs)
         invisible(file.remove(rem_files))
@@ -602,52 +608,21 @@ system.time(
         # Perform k-means clustering with this number of clusters
         # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
         kmeans_grp <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
-        
         # str(kmeans_grp)
         
-        # cat(paste("NA's in group clustering?", any(is.na(kmeans_grp$cluster)), "\n"))
-        
         # Compute NMI at the group-level
-        orig_classes <- mds_df$group_ID
-        nmi_grp <- NMI(orig_classes, kmeans_grp$cluster)
+        tmp_mds <- mds_df %>% 
+          dplyr::mutate(
+            clusters = kmeans_grp$cluster
+          )
+
+        nmi_grp <- nmi(X = tmp_mds, class_col_nm = "group_ID", cluster_col_nm = "clusters")
         
-        # NMI should be 1 when comparing the same vector to itself, looks good
-        # NMI(orig_classes, orig_classes)
+        # NMI should be 1 when comparing the same vector to itself, looks good EXCEPT for the second line which yields a value above 1...
+        # nmi(X = tmp_mds, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
+        # nmi(X = tmp_mds, class_col_nm = "clusters", cluster_col_nm = "clusters")
         
-        NMI(orig_classes, orig_classes[sample(1:length(orig_classes), length(orig_classes), replace = FALSE)]) # group-level random chance is around 0.1
-        
-        # There two levels of specificity at the individual level. One is individuals is all unique individuals across groups (fine-grained), and the other is all individuals within a group, which will require nested NMI calculations within groups (coarse-grained)
-        
-        ### Fine-grained individual-level clustering and NMI calculation
-        
-        # Set the number of clusters to the number of unique individuals across all groups
-        num_clusters <- mds_df %>% 
-          distinct(paste(group_ID, individual_ID)) %>% 
-          nrow()
-        
-        # num_clusters
-        
-        # Perform k-means clustering with this number of clusters
-        # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
-        kmeans_ind_fg <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
-        
-        # cat(paste("NA's in individual clustering?", any(is.na(kmeans_ind_fg$cluster)), "\n"))
-        
-        # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
-        orig_classes <- as.integer(factor(paste(mds_df$group_ID, mds_df$individual_ID, sep = "-")))
-        # head(orig_classes)
-        # length(unique(orig_classes)) == num_clusters # looks good
-        
-        nmi_ind_fg <- NMI(orig_classes, kmeans_ind_fg$cluster)
-        # nmi_ind_fg
-        
-        # TKTK what is the random chance level for NMI? Below it seems that when sorting the orig_classes vector randomly, I get NMI values vvery similar to the values I'm getting above for classifying back to unique individuals in a fine-grained way
-        # Add this information to the results somehow? Fine-grined individual-level random chance is around 0.875
-        NMI(orig_classes, orig_classes)
-        NMI(orig_classes, orig_classes[sample(1:length(orig_classes), length(orig_classes), replace = FALSE)])
-        
-        
-        ### Coarse-grained individual-level clustering and NMI calculation
+        ### Individual-level clustering and NMI calculation
         
         # Set the number of clusters to the number of unique individuals within each group
         num_clusters <- mds_df %>% 
@@ -672,10 +647,7 @@ system.time(
           # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
           orig_classes <- tmp$individual_ID
           
-          # TKTK Coarse-grained individual level random chance is around 0.75
-          NMI(orig_classes, orig_classes[sample(1:length(orig_classes), length(orig_classes), replace = FALSE)])
-          
-          return(NMI(orig_classes, res$cluster))
+          return(nmi(orig_classes, res$cluster))
           
         }))
         
@@ -686,7 +658,6 @@ system.time(
           group_information = information[["group_information"]][i], 
           individual_information = information[["individual_information"]][i],
           NMI_group = nmi_grp,
-          NMI_individual_fine = nmi_ind_fg,
           NMI_individual_coarse_mean = mean(kmeans_ind_cg),
           NMI_individual_coarse_min = min(kmeans_ind_cg),
           NMI_individual_coarse_max = max(kmeans_ind_cg),
@@ -860,9 +831,9 @@ nmi_sum %>%
   #     ) %>% 
   #     dplyr::mutate(
   #       label = parseLabel
-#     ),
-#   aes(x = log(exptl_ratio), y = 1.07, label = parseLabel), hjust = 0.5, parse = TRUE, size = 3.5) +
-scale_linetype_manual(values = ltys) +
+  #     ),
+  #   aes(x = log(exptl_ratio), y = 1.07, label = parseLabel), hjust = 0.5, parse = TRUE, size = 3.5) +
+  scale_linetype_manual(values = ltys) +
   xlab("Log ratio of group to individual information") +
   ylab("Normalized Mutual Information") +
   guides(linetype = guide_legend(title = "Social level", override.aes = list(linewidth = 1))) +
@@ -921,9 +892,9 @@ nmi_sum %>%
   #     ) %>% 
   #     dplyr::mutate(
   #       label = parseLabel
-#     ),
-#   aes(x = log(exptl_ratio), y = 1.05, label = parseLabel), hjust = 0.45, parse = TRUE, size = 3) +
-scale_linetype_manual(values = ltys) +
+  #     ),
+  #   aes(x = log(exptl_ratio), y = 1.05, label = parseLabel), hjust = 0.45, parse = TRUE, size = 3) +
+  scale_linetype_manual(values = ltys) +
   xlab("Log ratio of group to individual information") +
   ylab("Normalized Mutual Information") +
   guides(linetype = guide_legend(title = "Social level", override.aes = list(linewidth = 1))) +
