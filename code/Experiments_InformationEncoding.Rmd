@@ -22,7 +22,7 @@ Load packages and set cores.
 rm(list = ls())
 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "mclust")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -186,20 +186,22 @@ nmi <- function(X, class_col_nm, cluster_col_nm){
   sum_clusters <- sum(unlist(lapply(1:length(clusters), function(j){
     
     # Get the number of vocalizations from cluster j
+    tmp_cluster <- clusters[j] # passing clusters[j] directly to the conditional statement sometimes fails
     n_j <- X %>% 
-      dplyr::filter(!!sym(cluster_col_nm) == clusters[j]) %>% 
+      dplyr::filter(!!sym(cluster_col_nm) == tmp_cluster) %>% 
       nrow(.)
     
     return( n_j * log( n_j / N ) )
     
   })))
   
-  # i <- 2
   sum_classes <- sum(unlist(lapply(1:length(classes), function(i){
     
     # Get the number of vocalizations from class i
+    tmp_class <- classes[i]
+    
     n_i <- X %>% 
-      dplyr::filter(!!sym(class_col_nm) == classes[i]) %>% 
+      dplyr::filter(!!sym(class_col_nm) == tmp_class) %>% 
       nrow(.)
     
     return( n_i * log( n_i / N ) )
@@ -261,9 +263,8 @@ X
 
 nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
 
-# I get different NMI results using the aricode package
-aricode::NMI(X$classes, X$clusters, variant = "sqrt") # this is the variant that should be the same as my function above
-aricode::NMI(X$classes, X$clusters, variant = "max")
+# I get the same NMI result using the aricode package
+aricode::NMI(X$classes, X$clusters, variant = "sqrt")
 
 ```
 
@@ -465,6 +466,7 @@ system.time(
               group_ID = metadats_tmp[["Group"]],
               individual_ID = metadats_tmp[["Individual"]],
               call_ID = metadats_tmp[["Call_ID"]],
+              call_string = metadats_tmp[["Call"]], 
               sampling_rate = tmp@samp.rate,
               group_information = information[["group_information"]][i], 
               individual_information = information[["individual_information"]][i],
@@ -483,6 +485,7 @@ system.time(
               group_ID = NA,
               individual_ID = NA,
               call_ID = NA,
+              call_string = NA,
               sampling_rate = tmp@samp.rate,
               group_information = NA, 
               individual_information = NA,
@@ -537,7 +540,7 @@ system.time(
           
           # Get the maximum similarity value after 1 in the matrix
           max_vals <- xc_mat[lower.tri(xc_mat)]
-    
+          
           # This line would sometimes fail when using a value 1 in the conditional statement
           sec_max_val <- max(max_vals[max_vals < 0.9999999])
           
@@ -561,30 +564,70 @@ system.time(
         rem_files <- file.path(data_path, wavs)
         invisible(file.remove(rem_files))
         
-        ### Step 7: Perform MDS
+        ### Step 8: Calculate the edit distance amongst all strings
+        
+        # For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
+        edit_dists <- unlist(lapply(1:nrow(xc_mat), function(i){
+          lapply(1:ncol(xc_mat), function(j){
+            
+            return(
+              stringdist(
+                a = sel_tbl %>% 
+                  dplyr::filter(
+                    sound.files == dimnames(xc_mat)[[1]][i]
+                  ) %>% 
+                  pull(call_string),
+                b = sel_tbl %>% 
+                  dplyr::filter(
+                    sound.files == dimnames(xc_mat)[[2]][j]
+                  ) %>% 
+                  pull(call_string),
+                method = "lv"
+              )
+            )
+            
+          })
+        }))
+        
+        edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
+        
+        # These dimension names are helpful to check specific loop iterations above
+        # dimnames(edit_dist_mat) <- list(dimnames(xc_mat)[[1]], dimnames(xc_mat)[[2]])
+        
+        # Checking, looks good
+        # edit_dist_mat[1:5, 1:5]
+        
+        
+        ### Step 9: Perform MDS on SPCC and edit distance matrices
         
         # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
-        dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+        spcc_dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
         
         # str(1 - xc_mat)
-        # str(dist_mat)
+        # str(spcc_dist_mat)
         
-        # Reduce dimensionality of the SPCC matrix using multidimensional scaling (MDS). Use the a different number dimensions in the SPCC matrix per treatment combination in order to reduce the stress of the final solution
+        # Convert the edit distance matrix to a dist object for isoMDS
+        edit_dist_mat <- stats::as.dist(edit_mat, diag = TRUE, upper = TRUE)
+        
+        # Reduce dimensionality of the SPCC and edit matrices using multidimensional scaling (MDS). Use the a different number of total MDS dimensions per treatment combination in order to reduce the stress of the final solution
         if(social_envts[z] == "Sparse"){
           k <- 2
         } else {
           k <- 10
         }
         
-        iso_res <- invisible(MASS::isoMDS(dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # Perform MDS to obtain SPCC feature space
+        iso_spcc <- invisible(MASS::isoMDS(spcc_dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # str(iso_spcc)
         
-        # str(iso_res)
+        iso_edit <- invisible(MASS::isoMDS(spcc_dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # str(iso_edit)
         
-        # Make a data frame of the first two MDS dimensions and call metadata
-        mds_df <- data.frame(sound.files = dimnames(iso_res$points)[[1]]) %>%
+        # Make a data frame of the first two SPCC MDS dimensions and call metadata
+        mds_spcc <- data.frame(sound.files = dimnames(iso_spcc$points)[[1]]) %>%
           dplyr::mutate(
-            X = iso_res$points[, 1],
-            Y = iso_res$points[, 2]
+            X = iso_spcc$points[, 1],
+            Y = iso_spcc$points[, 2]
           ) %>%
           inner_join(
             sel_tbl %>%
@@ -592,32 +635,62 @@ system.time(
             by = c("sound.files")
           )
         
-        # glimpse(mds_df)
+        # glimpse(mds_spcc)
         
-        ### Step 8: Perform clustering and Normalized Mutual Information (NMI) calculation
+        # Make a data frame of the first two edit distance MDS dimensions and call metadata
+        mds_edit <- data.frame(sound.files = dimnames(iso_edit$points)[[1]]) %>%
+          dplyr::mutate(
+            X = iso_edit$points[, 1],
+            Y = iso_edit$points[, 2]
+          ) %>%
+          inner_join(
+            sel_tbl %>%
+              dplyr::select(sound.files, group_ID, individual_ID, call_ID),
+            by = c("sound.files")
+          )
+        
+        # glimpse(mds_edit)
+        
+        ### Step 10: Perform clustering and Normalized Mutual Information (NMI) calculation
         # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
         
-        ### Group-level clustering and NMI calculation
+        ### Group-level clustering and NMI calculations
         
         # Set the number of clusters to the number of unique groups
         num_clusters <- length(unique(mds_df$group_ID))
         
-        # Perform k-means clustering with this number of clusters
+        # Perform k-means clustering with this number of clusters on the SPCC and edit distance feature spaces
         # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
-        kmeans_grp <- kmeans(mds_df[, grep("X|Y", names(mds_df))], centers = num_clusters)
-        # str(kmeans_grp)
+        spcc_kmeans_grp <- kmeans(mds_spcc[, grep("X|Y", names(mds_spcc))], centers = num_clusters)
+        # str(spcc_kmeans_grp)
         
-        # Compute NMI at the group-level
-        tmp_mds <- mds_df %>% 
+        # Compute NMI at the group-level with k-means clustering on SPCC MDS features
+        tmp_mds_spcc <- mds_spcc %>% 
           dplyr::mutate(
-            clusters = kmeans_grp$cluster
+            clusters = spcc_kmeans_grp$cluster
           )
         
-        nmi_grp <- nmi(X = tmp_mds, class_col_nm = "group_ID", cluster_col_nm = "clusters")
+        spcc_nmi_grp <- nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "clusters")
         
-        # NMI should be 1 when comparing the same vector to itself
-        # nmi(X = tmp_mds, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
-        # nmi(X = tmp_mds, class_col_nm = "clusters", cluster_col_nm = "clusters")
+        # Compute NMI at the group-level with k-means clustering on edit distance MDS features
+        edit_kmeans_grp <- kmeans(mds_edit[, grep("X|Y", names(mds_edit))], centers = num_clusters)
+        # str(edit_kmeans_grp)
+        
+        # Compute NMI at the group-level with k-means clustering on SPCC MDS features
+        tmp_mds_edit <- mds_edit %>% 
+          dplyr::mutate(
+            clusters = edit_kmeans_grp$cluster
+          )
+        
+        edit_nmi_grp <- nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "clusters")
+        
+        # NMI should be 1 when comparing the same vector to itself, looks good
+        nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
+        nmi(X = tmp_mds_spcc, class_col_nm = "clusters", cluster_col_nm = "clusters")
+        nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
+        nmi(X = tmp_mds_edit, class_col_nm = "clusters", cluster_col_nm = "clusters")
+        
+        # TKTK CONTINUE
         
         ### Individual-level clustering and NMI calculation
         
@@ -666,12 +739,12 @@ system.time(
         
         # nmi_results
         
-        ### Step 9: return NMI results
+        ### Step 11: return NMI results
         return(nmi_results)
         
       }))
       
-      ### Step 10: Write out the NMI results for the given treatment combination across iterations
+      ### Step 12: Write out the NMI results for the given treatment combination across iterations
       nmi_res_tmp %>% 
         write.csv(file.path(data_path, paste("NMI_results_", paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
       
