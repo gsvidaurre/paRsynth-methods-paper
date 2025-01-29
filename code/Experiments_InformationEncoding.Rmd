@@ -9,6 +9,8 @@ Purpose: The following code was designed to test the behavior of functions writt
 
 The NMI calculations will allow us to address how much information about group membership versus individual identity is contained in patterns of acoustic variation across call datasets generated to emphasize either individual identity or group membership. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the NMI for the individual-level should be high but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about individuals' group membership. Given that all calls contain individual identity and group membership information, we should also see some interesting patterns at intermediate ratios of the string allocated to individual identity versus group membership.
 
+TKTK consider dropping comparisons and running parallel analyses
+
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
@@ -105,8 +107,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -253,9 +255,7 @@ X
 
 nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
 
-# I get different NMI results using the aricode package
 aricode::NMI(X$classes, X$clusters, variant = "sqrt") # this is the variant that should be the same as my function above
-aricode::NMI(X$classes, X$clusters, variant = "max")
 
 # Testing: NMI should be closer to 0 when the number of clusters is not close to the number of classes, and when the clusters were randomly assigned
 X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:10, 512, replace = TRUE))
@@ -268,6 +268,7 @@ aricode::NMI(X$classes, X$clusters, variant = "sqrt")
 
 ```
 
+TKTK talk to Vanessa about this behavior of NMI while interpreting results!
 
 # Synthetic experiments over varying social environment characteristics and information encoding rules
 
@@ -785,7 +786,7 @@ nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
 
 glimpse(nmi_res)
 
-# View(nmi_res)
+View(nmi_res)
 
 # Checking that there are no NMI values above 1, looks good
 any(nmi_res$NMI_group > 1)
