@@ -24,7 +24,7 @@ Load packages and set cores.
 rm(list = ls())
 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "pblapply")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -59,8 +59,8 @@ Initialize working directories for data and figures.
 # Initialize a base path (we may need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
-# path <- "" # Brittany's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -774,7 +774,6 @@ system.time(
 
 Checking the NMI results.
 ```{r}
-
 nmi_files <- list.files(path = data_path, pattern = "NMI_")
 nmi_files
 
