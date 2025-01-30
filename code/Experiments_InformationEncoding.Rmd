@@ -792,3 +792,24 @@ any(nmi_res$NMI_group > 1)
 any(nmi_res$NMI_individual_max > 1)
 
 ```
+
+Making NMI plots (Brittany edition)
+TKTK need to make prettier with colors, export in a better way
+```{r}
+install.packages('ggpubr')
+library(ggpubr)
+
+NMI_Group_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_group, color = social_envt_treatment)) +
+  geom_point() + 
+  geom_smooth()
+
+NMI_Individ_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_individual_mean, color = social_envt_treatment)) +
+  geom_point() + 
+  geom_smooth()
+  
+ggpubr::ggarrange(NMI_Group_plot, NMI_Individ_plot,
+                  labels = "AUTO", 
+                  common.legend = TRUE, 
+                  legend = "bottom")
+```
+
