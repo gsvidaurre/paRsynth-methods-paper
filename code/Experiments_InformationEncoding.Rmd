@@ -794,6 +794,7 @@ any(nmi_res$NMI_individual_max > 1)
 ```
 
 Making NMI plots (Brittany edition)
+TKTK instead of geom_smooth, use geom_ribbon where you can specific upper and lower bounds for CI?
 TKTK need to make prettier with colors, export in a better way
 ```{r}
 install.packages('ggpubr')
@@ -811,5 +812,7 @@ ggpubr::ggarrange(NMI_Group_plot, NMI_Individ_plot,
                   labels = "AUTO", 
                   common.legend = TRUE, 
                   legend = "bottom")
+ 
+
 ```
 
