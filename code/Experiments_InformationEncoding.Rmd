@@ -795,6 +795,7 @@ any(nmi_res$NMI_individual_max > 1)
 
 Making NMI plots (Brittany edition)
 TKTK instead of geom_smooth, use geom_ribbon where you can specific upper and lower bounds for CI?
+  Jan 31, tried geom_ribbon with individual min and max value, looks weird. Not sure what is going on. 
 TKTK need to make prettier with colors, export in a better way
 ```{r}
 install.packages('ggpubr')
@@ -804,10 +805,11 @@ NMI_Group_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NM
   geom_point() + 
   geom_smooth()
 
-NMI_Individ_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_individual_mean, color = social_envt_treatment)) +
-  geom_point() + 
-  geom_smooth()
-  
+NMI_Individ_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_individual_mean, color = social_envt_treatment, shape = social_envt_treatment)) +
+  geom_ribbon(aes(ymin = NMI_individual_min, ymax = NMI_individual_max, fill = social_envt_treatment), color = NA, alpha = .25) +  
+  geom_point()
+
+
 ggpubr::ggarrange(NMI_Group_plot, NMI_Individ_plot,
                   labels = "AUTO", 
                   common.legend = TRUE, 
