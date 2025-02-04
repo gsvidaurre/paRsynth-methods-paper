@@ -24,7 +24,7 @@ Load packages and set cores.
 rm(list = ls())
 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "pblapply")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -57,10 +57,10 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -281,29 +281,47 @@ Iterate over each treatment a number of times so that we can calculate a 95% con
 
 # Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals)
 social_envts <- c("Sparse", "Intermediate", "Dense")
-n_groups <- c(2, 4, 8)
-n_individuals <- c(2, 4, 8)
+n_groups <- c(2, 10, 20) # TKTK consider even higher numbers for the Intermediate and Dense social conditions on the super computer
+n_individuals <- c(10, 50, 100)
+
+# Supercomputer?
+# n_groups <- c(2, 50, 500)
+# n_individuals <- c(10, 50, 100)
 
 # Keep the number of calls per individual constant across iterations
-n_calls <- 2
+# n_calls <- 2
 
 # Check the total number of call comparisons in the largest social environment treatment, which will need to run 5 times (one per information encoding treatment)
-# Here the total number of calls is 512
-(max(n_groups) * max(n_individuals) ) * n_calls
-
+# Here the total number of calls is 800...will be slow
+# TKTK update the code to select only a single call per individual, which will help computational efficiency
+# TKTK run on the supercomputer
+# (max(n_groups) * max(n_individuals) ) * n_calls
+(max(n_groups) * max(n_individuals) )
 
 #################### Information encoding treatments #################### 
 
 # Ratios of group : individual information in a string
 # Here these ratios are written as proportions from 0 to 1, such that 0 indicates 0:1 (no group membership and all individual information), and 1 indicates 1:0 (all group membership information)
-ratios <- c(0, 0.2, 0.4, 0.8, 1)
+ratios <- c(0, 0.2, 0.4, 0.8, 1) # TKTK change this to fewer ratios and also get integer values for information at each level
 # ratios <- c(0.2, 0.4, 0.8) # fewer social conditions for preliminary results
+individual_information <- c(10, 8, 4, 2, 0)
+group_information <- c(0, 2, 6, 8, 10)
+ratios <- group_information / individual_information
+
+ratios
+
 
 # The total length of the individual and group information together should be constant across strings
-encoding_length <- 30
+# encoding_length <- 6 # TKTK consider changing this to be able to max out the number of unique individual or group-level signatures
+
+# Number of symbols that we are using in Parsons code
+symbols <- 3
+
+# TKTK update the way in which string length is fixed here. Let string length vary so that the global information remains the same, and the overall encoding length can change a little bit
 
 # Check the string lengths that will be assigned to group and individual information across the ratios above
-information <- data.table::rbindlist(lapply(1:length(ratios), function(i){
+# i <- 1
+information <- data.table::rbindlist(pblapply(1:length(ratios), function(i){
   
   if(ratios[i] < 1){
     
@@ -317,16 +335,46 @@ information <- data.table::rbindlist(lapply(1:length(ratios), function(i){
   
   individual_information <- encoding_length - group_information
   
-  return(
-    data.frame(
-      group_information = group_information,
-      individual_information = individual_information
-    )
+  tmp <- data.frame(
+    group_information = group_information,
+    individual_information = individual_information,
+    unique_group_signatures = (symbols ^ group_information),
+    unique_individual_signatures = (symbols ^ individual_information)
   )
+  
+  return(tmp)
   
 }))
 
-information
+# TKTK add in a step to create this data frame per social condition, which serves as predictions
+# View(information)
+
+information %>% 
+  dplyr::mutate(
+    social_condition = "Sparse",
+    observed_groups = 2,
+    observed_individuals = 10
+  ) %>% 
+  bind_rows(
+    information %>% 
+      dplyr::mutate(
+        social_condition = "Intermediate",
+        observed_groups = 10,
+        observed_individuals = 50
+      )
+  ) %>% 
+  bind_rows(
+    information %>% 
+      dplyr::mutate(
+        social_condition = "Dense",
+        observed_groups = 20,
+        observed_individuals = 100
+      )
+  ) %>% 
+  View()
+
+# TKTK can we add a way of computing exactly how many unique individual and group-level signatures we created? NMI gets us there indirectly, but is there a direct way in which we can compute this from k-means clustering?
+
 
 # The length of the global header and tail should be the same across strings
 globals <- 12 # 6 characters for the global head, 6 for the global tail
@@ -339,7 +387,7 @@ string_length <- (globals + encoding_length + random_variation)
 string_length # 46
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
-iteratns <- 3
+iteratns <- 3 # Update TKTK number of iterations, 5-10
 # iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
@@ -795,7 +843,7 @@ any(nmi_res$NMI_individual_max > 1)
 
 Making NMI plots (Brittany edition)
 TKTK instead of geom_smooth, use geom_ribbon where you can specific upper and lower bounds for CI?
-  Jan 31, tried geom_ribbon with individual min and max value, looks weird. Not sure what is going on. 
+Jan 31, tried geom_ribbon with individual min and max value, looks weird. Not sure what is going on. 
 TKTK need to make prettier with colors, export in a better way
 ```{r}
 install.packages('ggpubr')
@@ -814,7 +862,7 @@ ggpubr::ggarrange(NMI_Group_plot, NMI_Individ_plot,
                   labels = "AUTO", 
                   common.legend = TRUE, 
                   legend = "bottom")
- 
+
 
 ```
 
