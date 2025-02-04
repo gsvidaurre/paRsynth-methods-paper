@@ -268,7 +268,7 @@ aricode::NMI(X$classes, X$clusters, variant = "sqrt")
 
 ```
 
-TKTK talk to Vanessa about this behavior of NMI while interpreting results!
+TKTK talk to Vanessa about this behavior of NMI (high values even when cluster labels are randomly assigned) while interpreting results!
 
 # Synthetic experiments over varying social environment characteristics and information encoding rules
 
@@ -277,74 +277,53 @@ How well can we recover the information that was originally encoded over two soc
 Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each NMI calculation. Update the loop so that a selection table is made and SPCC is performed each time a new call dataset is generated. Then save the selection table and SPCC matrix but remove audio files before initiating the subsequent iteration. The duration of the audio files impacts the computational time (files over 400 ms take a long time to generate). The number of calls that will be compared in SPCC also increases computational time, as well as the number of treatments and the number of iterations per treatment.
 ```{r}
 
-#################### Social environment treatments #################### 
+#################### Information encoding and social environment treatments #################### 
 
-# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals)
+# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals) that follow predictions for how many unique vocal signatures can be created at each social level from an information theory perspective
+
+# The number of unique signatures that can be created at either social level can be calculated as the number of symbols used to encode information (we use 3 letters for 1-base Parsons code with three possible directions, so this will always be three) to the power of the number of positions that can be modified to encode information. For the latter, we will use 0, 2, 4, 6 characters over which information will be encoded in each social level (although in reverse order for one social level) to facilitate encoding both types of information in synthetic vocal signals, as well as two information encoding treatments that contain information at one social level only. These numbers also facilitate using an even number of characters for information encoding that is required by the current version of the paRsynth package.
+
+# These are the number of unique signatures we should expect at either social level given the number of unique symbols and string positions for information encoding
+# For instance, when devoting 2 positions to individual information, there are 9 possible unique signatures at that social level. But when the number of positions devoted to individual information encoding rises to 4, this opens up 81 total unique individual signatures
+sapply(c(0, 2, 4, 6), function(x){ 3^x })
+
+individual_information <- c(0, 2, 4, 6)
+group_information <- rev(individual_information)
+
+# Choose a sparse social condition in which we expect to have highly distinguishable group and individual signatures even with small amounts of information encoding
+# Then choose an intermediate social condition that will require more positions devoted to information encoding to generate sufficiently distinguishable signatures at each social level as the number of individuals increases
+# Finally choose dense social conditions that max out the number of unique signatures possible with lower amounts of information encoding. In other words, as there are more groups or individuals within groups, more positions within a string need to be devoted to group and individual information encoding in order to ensure that each group or indivdual is more likely to have a unique signature. At small amounts of information encoding, the number of posssible unique signatures will be fully maxed out when there are many groups and individuals within groups
 social_envts <- c("Sparse", "Intermediate", "Dense")
-n_groups <- c(2, 10, 20) # TKTK consider even higher numbers for the Intermediate and Dense social conditions on the super computer
-n_individuals <- c(10, 50, 100)
-
-# Supercomputer?
-# n_groups <- c(2, 50, 500)
-# n_individuals <- c(10, 50, 100)
+n_groups <- c(2, 10, 20)
+n_individuals <- c(2, 10, 20)
 
 # Keep the number of calls per individual constant across iterations
-# n_calls <- 2
+# Here we used a single call per individual to increase computational efficiency
+n_calls <- 1
 
 # Check the total number of call comparisons in the largest social environment treatment, which will need to run 5 times (one per information encoding treatment)
-# Here the total number of calls is 800...will be slow
-# TKTK update the code to select only a single call per individual, which will help computational efficiency
-# TKTK run on the supercomputer
-# (max(n_groups) * max(n_individuals) ) * n_calls
-(max(n_groups) * max(n_individuals) )
-
-#################### Information encoding treatments #################### 
-
-# Ratios of group : individual information in a string
-# Here these ratios are written as proportions from 0 to 1, such that 0 indicates 0:1 (no group membership and all individual information), and 1 indicates 1:0 (all group membership information)
-ratios <- c(0, 0.2, 0.4, 0.8, 1) # TKTK change this to fewer ratios and also get integer values for information at each level
-# ratios <- c(0.2, 0.4, 0.8) # fewer social conditions for preliminary results
-individual_information <- c(10, 8, 4, 2, 0)
-group_information <- c(0, 2, 6, 8, 10)
-ratios <- group_information / individual_information
-
-ratios
-
-
-# The total length of the individual and group information together should be constant across strings
-# encoding_length <- 6 # TKTK consider changing this to be able to max out the number of unique individual or group-level signatures
+# Here the total number of calls that will compared in any one iteration is 400, which is high but not a concern in terms of computational efficiency
+(max(n_groups) * max(n_individuals) ) * n_calls
 
 # Number of symbols that we are using in Parsons code
 symbols <- 3
 
-# TKTK update the way in which string length is fixed here. Let string length vary so that the global information remains the same, and the overall encoding length can change a little bit
-
-# Check the string lengths that will be assigned to group and individual information across the ratios above
+# Create a data frame that combines information about the expected number of TKTK
 # i <- 1
-information <- data.table::rbindlist(pblapply(1:length(ratios), function(i){
-  
-  if(ratios[i] < 1){
-    
-    group_information <- ratios[i] * encoding_length
-    
-  } else {
-    
-    group_information <- encoding_length / ratios[i]
-    
-  }
-  
-  individual_information <- encoding_length - group_information
+information <- data.table::rbindlist(pblapply(1:length(individual_information), function(i){
   
   tmp <- data.frame(
-    group_information = group_information,
-    individual_information = individual_information,
-    unique_group_signatures = (symbols ^ group_information),
-    unique_individual_signatures = (symbols ^ individual_information)
+    group_information = group_information[i],
+    individual_information = individual_information[i],
+    unique_group_signatures = (symbols ^ group_information[i]),
+    unique_individual_signatures = (symbols ^ individual_information[i])
   )
   
   return(tmp)
   
 }))
+
+information
 
 # TKTK add in a step to create this data frame per social condition, which serves as predictions
 # View(information)
