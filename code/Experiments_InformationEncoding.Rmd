@@ -9,6 +9,8 @@ Purpose: The following code was designed to test the behavior of functions writt
 
 The NMI calculations will allow us to address how much information about group membership versus individual identity is contained in patterns of acoustic variation across call datasets generated to emphasize either individual identity or group membership. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the NMI for the individual-level should be high but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about individuals' group membership. Given that all calls contain individual identity and group membership information, we should also see some interesting patterns at intermediate ratios of the string allocated to individual identity versus group membership.
 
+TKTK consider dropping comparisons and running parallel analyses
+
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
@@ -55,10 +57,10 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
-# path <- "" # Brittany's path
+# path <- "~/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -105,8 +107,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -253,9 +255,7 @@ X
 
 nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
 
-# I get different NMI results using the aricode package
 aricode::NMI(X$classes, X$clusters, variant = "sqrt") # this is the variant that should be the same as my function above
-aricode::NMI(X$classes, X$clusters, variant = "max")
 
 # Testing: NMI should be closer to 0 when the number of clusters is not close to the number of classes, and when the clusters were randomly assigned
 X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:10, 512, replace = TRUE))
@@ -268,6 +268,7 @@ aricode::NMI(X$classes, X$clusters, variant = "sqrt")
 
 ```
 
+TKTK talk to Vanessa about this behavior of NMI (high values even when cluster labels are randomly assigned) while interpreting results!
 
 # Synthetic experiments over varying social environment characteristics and information encoding rules
 
@@ -276,56 +277,83 @@ How well can we recover the information that was originally encoded over two soc
 Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each NMI calculation. Update the loop so that a selection table is made and SPCC is performed each time a new call dataset is generated. Then save the selection table and SPCC matrix but remove audio files before initiating the subsequent iteration. The duration of the audio files impacts the computational time (files over 400 ms take a long time to generate). The number of calls that will be compared in SPCC also increases computational time, as well as the number of treatments and the number of iterations per treatment.
 ```{r}
 
-#################### Social environment treatments #################### 
+#################### Information encoding and social environment treatments #################### 
 
-# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals)
+# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals) that follow predictions for how many unique vocal signatures can be created at each social level from an information theory perspective
+
+# The number of unique signatures that can be created at either social level can be calculated as the number of symbols used to encode information (we use 3 letters for 1-base Parsons code with three possible directions, so this will always be three) to the power of the number of positions that can be modified to encode information. For the latter, we will use 0, 2, 4, 6 characters over which information will be encoded in each social level (although in reverse order for one social level) to facilitate encoding both types of information in synthetic vocal signals, as well as two information encoding treatments that contain information at one social level only. These numbers also facilitate using an even number of characters for information encoding that is required by the current version of the paRsynth package.
+
+# These are the number of unique signatures we should expect at either social level given the number of unique symbols and string positions for information encoding
+# For instance, when devoting 2 positions to individual information, there are 9 possible unique signatures at that social level. But when the number of positions devoted to individual information encoding rises to 4, this opens up 81 total unique individual signatures
+sapply(c(0, 2, 4, 6), function(x){ 3^x })
+
+individual_information <- c(0, 2, 4, 6)
+group_information <- rev(individual_information)
+
+# Choose a sparse social condition in which we expect to have highly distinguishable group and individual signatures even with small amounts of information encoding
+# Then choose an intermediate social condition that will require more positions devoted to information encoding to generate sufficiently distinguishable signatures at each social level as the number of individuals increases
+# Finally choose dense social conditions that max out the number of unique signatures possible with lower amounts of information encoding. In other words, as there are more groups or individuals within groups, more positions within a string need to be devoted to group and individual information encoding in order to ensure that each group or indivdual is more likely to have a unique signature. At small amounts of information encoding, the number of posssible unique signatures will be fully maxed out when there are many groups and individuals within groups
 social_envts <- c("Sparse", "Intermediate", "Dense")
-n_groups <- c(2, 4, 8)
-n_individuals <- c(2, 4, 8)
+n_groups <- c(2, 10, 20)
+n_individuals <- c(2, 10, 20)
 
 # Keep the number of calls per individual constant across iterations
-n_calls <- 2
+# Here we used a single call per individual to increase computational efficiency
+n_calls <- 1
 
 # Check the total number of call comparisons in the largest social environment treatment, which will need to run 5 times (one per information encoding treatment)
-# Here the total number of calls is 512
+# Here the total number of calls that will compared in any one iteration is 400, which is high but not a concern in terms of computational efficiency
 (max(n_groups) * max(n_individuals) ) * n_calls
 
+# Number of symbols that we are using in Parsons code
+symbols <- 3
 
-#################### Information encoding treatments #################### 
-
-# Ratios of group : individual information in a string
-# Here these ratios are written as proportions from 0 to 1, such that 0 indicates 0:1 (no group membership and all individual information), and 1 indicates 1:0 (all group membership information)
-ratios <- c(0, 0.2, 0.4, 0.8, 1)
-# ratios <- c(0.2, 0.4, 0.8) # fewer social conditions for preliminary results
-
-# The total length of the individual and group information together should be constant across strings
-encoding_length <- 30
-
-# Check the string lengths that will be assigned to group and individual information across the ratios above
-information <- data.table::rbindlist(lapply(1:length(ratios), function(i){
+# Create a data frame that combines information about the expected number of TKTK
+# i <- 1
+information <- data.table::rbindlist(pblapply(1:length(individual_information), function(i){
   
-  if(ratios[i] < 1){
-    
-    group_information <- ratios[i] * encoding_length
-    
-  } else {
-    
-    group_information <- encoding_length / ratios[i]
-    
-  }
-  
-  individual_information <- encoding_length - group_information
-  
-  return(
-    data.frame(
-      group_information = group_information,
-      individual_information = individual_information
-    )
+  tmp <- data.frame(
+    group_information = group_information[i],
+    individual_information = individual_information[i],
+    unique_group_signatures = (symbols ^ group_information[i]),
+    unique_individual_signatures = (symbols ^ individual_information[i])
   )
+  
+  return(tmp)
   
 }))
 
 information
+
+# TKTK add in a step to create this data frame per social condition, which serves as predictions
+# View(information)
+
+information %>% 
+  dplyr::mutate(
+    social_condition = "Sparse",
+    observed_groups = 2,
+    observed_individuals = 10
+  ) %>% 
+  bind_rows(
+    information %>% 
+      dplyr::mutate(
+        social_condition = "Intermediate",
+        observed_groups = 10,
+        observed_individuals = 50
+      )
+  ) %>% 
+  bind_rows(
+    information %>% 
+      dplyr::mutate(
+        social_condition = "Dense",
+        observed_groups = 20,
+        observed_individuals = 100
+      )
+  ) %>% 
+  View()
+
+# TKTK can we add a way of computing exactly how many unique individual and group-level signatures we created? NMI gets us there indirectly, but is there a direct way in which we can compute this from k-means clustering?
+
 
 # The length of the global header and tail should be the same across strings
 globals <- 12 # 6 characters for the global head, 6 for the global tail
@@ -338,7 +366,7 @@ string_length <- (globals + encoding_length + random_variation)
 string_length # 46
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
-iteratns <- 3
+iteratns <- 3 # Update TKTK number of iterations, 5-10
 # iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
@@ -773,7 +801,6 @@ system.time(
 
 Checking the NMI results.
 ```{r}
-
 nmi_files <- list.files(path = data_path, pattern = "NMI_")
 nmi_files
 
@@ -785,10 +812,36 @@ nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
 
 glimpse(nmi_res)
 
-# View(nmi_res)
+View(nmi_res)
 
 # Checking that there are no NMI values above 1, looks good
 any(nmi_res$NMI_group > 1)
 any(nmi_res$NMI_individual_max > 1)
 
 ```
+
+Making NMI plots (Brittany edition)
+TKTK instead of geom_smooth, use geom_ribbon where you can specific upper and lower bounds for CI?
+Jan 31, tried geom_ribbon with individual min and max value, looks weird. Not sure what is going on. 
+TKTK need to make prettier with colors, export in a better way
+```{r}
+install.packages('ggpubr')
+library(ggpubr)
+
+NMI_Group_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_group, color = social_envt_treatment)) +
+  geom_point() + 
+  geom_smooth()
+
+NMI_Individ_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_individual_mean, color = social_envt_treatment, shape = social_envt_treatment)) +
+  geom_ribbon(aes(ymin = NMI_individual_min, ymax = NMI_individual_max, fill = social_envt_treatment), color = NA, alpha = .25) +  
+  geom_point()
+
+
+ggpubr::ggarrange(NMI_Group_plot, NMI_Individ_plot,
+                  labels = "AUTO", 
+                  common.legend = TRUE, 
+                  legend = "bottom")
+
+
+```
+
