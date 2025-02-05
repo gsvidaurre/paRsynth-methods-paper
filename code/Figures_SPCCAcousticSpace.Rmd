@@ -39,6 +39,9 @@ invisible(lapply(1:length(X), function(x){
 # Add paRsynth to the list of packages to load
 # X <- c(X, "paRsynth")
 
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
 ```
 
 Initialize working directories for data on your local machine.
