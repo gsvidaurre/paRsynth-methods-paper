@@ -57,9 +57,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
@@ -107,8 +107,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -290,88 +290,75 @@ sapply(c(0, 2, 4, 6), function(x){ 3^x })
 individual_information <- c(0, 2, 4, 6)
 group_information <- rev(individual_information)
 
+individual_information
+group_information
+
 # Choose a sparse social condition in which we expect to have highly distinguishable group and individual signatures even with small amounts of information encoding
 # Then choose an intermediate social condition that will require more positions devoted to information encoding to generate sufficiently distinguishable signatures at each social level as the number of individuals increases
-# Finally choose dense social conditions that max out the number of unique signatures possible with lower amounts of information encoding. In other words, as there are more groups or individuals within groups, more positions within a string need to be devoted to group and individual information encoding in order to ensure that each group or indivdual is more likely to have a unique signature. At small amounts of information encoding, the number of posssible unique signatures will be fully maxed out when there are many groups and individuals within groups
+# Finally choose dense social conditions that max out the number of unique signatures possible with lower amounts of information encoding. In other words, as there are more groups or individuals within groups, more positions within a string need to be devoted to group and individual information encoding in order to ensure that each group or individual is more likely to have a unique signature. At small amounts of information encoding, the number of possible unique signatures will be fully maxed out when there are many groups and individuals within groups
 social_envts <- c("Sparse", "Intermediate", "Dense")
-n_groups <- c(2, 10, 20)
-n_individuals <- c(2, 10, 20)
+n_groups <- c(2, 6, 10)
+n_individuals <- c(2, 6, 10)
 
 # Keep the number of calls per individual constant across iterations
-# Here we used a single call per individual to increase computational efficiency
-n_calls <- 1
+# Using a single call per individual would increase computational efficiency, but we need more than 1 call per individual in order to calculate individual-level NMI
+n_calls <- 2
 
 # Check the total number of call comparisons in the largest social environment treatment, which will need to run 5 times (one per information encoding treatment)
-# Here the total number of calls that will compared in any one iteration is 400, which is high but not a concern in terms of computational efficiency
+# Here the total number of calls that will compared in any one iteration is 200, which is not a concern in terms of computational efficiency
 (max(n_groups) * max(n_individuals) ) * n_calls
+
+# All call comparisons for each social condition treatment
+(n_groups * n_individuals) * n_calls
 
 # Number of symbols that we are using in Parsons code
 symbols <- 3
 
-# Create a data frame that combines information about the expected number of TKTK
+# Create a data frame that combines information about the total possible number of unique signatures at each social level with the different social conditions
 # i <- 1
-information <- data.table::rbindlist(pblapply(1:length(individual_information), function(i){
+information <- data.table::rbindlist(pblapply(1:length(social_envts), function(j){
   
-  tmp <- data.frame(
-    group_information = group_information[i],
-    individual_information = individual_information[i],
-    unique_group_signatures = (symbols ^ group_information[i]),
-    unique_individual_signatures = (symbols ^ individual_information[i])
-  )
+  tmp2 <- data.table::rbindlist(lapply(1:length(individual_information), function(i){
+    
+    tmp <- data.frame(
+      social_envt = social_envts[j],
+      group_information = group_information[i],
+      individual_information = individual_information[i],
+      # These values represent how much of the total social information encoding length is taken up by information encoding at either social level. When this value is 1, all 6 characters are used to encode group information. When this value is less than 0.5, more characters are devoted to individual information encoding. When this value is 0, all characters are used for individual information encoding. These two columns can be used as the x-axis in figures below (and maybe we can have one x-axis on the bottom, one on the top)
+      group_information_proportion = group_information[i] / max(group_information),
+      individual_information_proportion = individual_information[i] / max(individual_information),
+      possible_unique_group_signatures = (symbols ^ group_information[i]),
+      possible_unique_individual_signatures = (symbols ^ individual_information[i])
+    )
+    
+    return(tmp)
+    
+  }))
   
-  return(tmp)
+  return(tmp2)
   
 }))
 
-information
-
-# TKTK add in a step to create this data frame per social condition, which serves as predictions
 # View(information)
 
-information %>% 
-  dplyr::mutate(
-    social_condition = "Sparse",
-    observed_groups = 2,
-    observed_individuals = 10
-  ) %>% 
-  bind_rows(
-    information %>% 
-      dplyr::mutate(
-        social_condition = "Intermediate",
-        observed_groups = 10,
-        observed_individuals = 50
-      )
-  ) %>% 
-  bind_rows(
-    information %>% 
-      dplyr::mutate(
-        social_condition = "Dense",
-        observed_groups = 20,
-        observed_individuals = 100
-      )
-  ) %>% 
-  View()
-
-# TKTK can we add a way of computing exactly how many unique individual and group-level signatures we created? NMI gets us there indirectly, but is there a direct way in which we can compute this from k-means clustering?
-
-
+# Then set other parameters for creating synthetic vocal identity signals
 # The length of the global header and tail should be the same across strings
 globals <- 12 # 6 characters for the global head, 6 for the global tail
 
-# Create variation within individuals, and this will be the same across strings
-random_variation <- 6
+# Create variation within individuals, and this will be the same across strings created for the same individual
+random_variation <- 2
 
 # Initialize the total string length
-string_length <- (globals + encoding_length + random_variation)
-string_length # 46
+string_length <- (globals + max(group_information) + random_variation)
+string_length # 20
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
-iteratns <- 3 # Update TKTK number of iterations, 5-10
-# iteratns <- 1 # fewer iterations for preliminary results
+# iteratns <- 8
+iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
 # z <- 3 # social environments
-# i <- 5 # information encoding treatments
+# i <- 1 # information encoding treatments
 # n <- 1 # replicates or iterations
 
 # Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
@@ -382,32 +369,104 @@ system.time(
   invisible(pblapply(1:length(social_envts), function(z){
     
     # Iterate over information encoding treatments
-    lapply(1:length(ratios), function(i){
+    lapply(1:length(group_information), function(i){
       
       cat(paste("social condition =", social_envts[z], "\n", sep = " "))
-      cat(paste("ratio = ", ratios[i], "\n", sep = ""))
+      cat(paste("group_information = ", group_information[i], "\n", sep = ""))
+      cat(paste("individual_information = ", individual_information[i], "\n", sep = ""))
       
       # Iterating over the number of replicates per treatment combination
       nmi_res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
         
-        ### Step 1: Generate the string for each call
+        ### Step 1: Generate strings that represent calls
         calls <- suppressMessages(
           generate_strings(
             n_groups = n_groups[z], 
             n_individuals = n_individuals[z], 
-            n_calls = n_calls, 
+            # Generate more calls than what we need to ensure that we use n_calls with different strings per individual (see below)
+            n_calls = n_calls * 5, 
             string_length = string_length, 
-            group_information = information[["group_information"]][i], 
-            individual_information = information[["individual_information"]][i],
+            group_information = group_information[i], 
+            individual_information = individual_information[i],
             random_variation = random_variation
           )
         )
         
         # glimpse(calls)
         
+        
+        ### Step 2: Calculate the edit distance among strings generated for each unique individual, and retain only the number of calls per individual set by n_calls that have an edit distance > 0 (such that calls for the same individual are not the exact same string)
+        
+        # Iterate over each individual to compare the edit distance amongst their calls, and return only n_calls with edit distance > 0
+        unique_indivs <- unique(paste(calls$Group, calls$Individual, sep = "-"))
+        # unique_indivs
+        
+        # Testing
+        # m <- 2
+        # p <- 1
+        # q <- 2
+        # Note that this solution will not generalize well whenever n_calls is greater than 2
+        calls_filt <- data.table::rbindlist(lapply(1:length(unique_indivs), function(m){
+          
+          tmp_indiv <- unique_indivs[m]
+          # tmp_indiv
+          
+          tmp <- calls %>% 
+            dplyr::filter(paste(Group, Individual, sep = "-") == tmp_indiv)
+          
+          
+          call_comps <- data.table::rbindlist(lapply(1:ncol(tmp), function(p){
+            
+            res <- data.table::rbindlist(lapply(1:ncol(tmp), function(q){
+              
+              edit_dist <- stringdist(
+                a = tmp %>% 
+                  slice(p) %>% 
+                  pull(Call),
+                b = tmp %>% 
+                  slice(q) %>% 
+                  pull(Call),
+                method = "lv"
+              )
+              
+              if(edit_dist > 0){
+                return(
+                  data.frame(
+                    individual = tmp_indiv,
+                    call_ID_1 = tmp %>% 
+                      slice(p) %>% 
+                      pull(Call_ID),
+                    call_ID_2 = tmp %>% 
+                      slice(q) %>% 
+                      pull(Call_ID)
+                  )
+                )
+              }
+              
+            }))
+            
+            return(res)
+            
+          }))
+          
+          # call_comps
+          
+          # Then randomly select a single comparison representing 2 calls or strings with an edit distance > 0
+          retain_calls <- call_comps[sample(1:nrow(call_comps), size = n_calls/2), ]
+          
+          # Use this output to filter the calls data frame for the given individual to return only the calls we will use in downstream analyses
+          return(
+            tmp %>% 
+              dplyr::filter(Call_ID == retain_calls$call_ID_1 | Call_ID == retain_calls$call_ID_2)
+          )
+        
+        }))
+        
+        # glimpse(calls_filt)
+        
         ### Step 2: Convert the strings to Parsons code
         calls_parsons <- parsons_code(
-          df = calls, 
+          df = calls_filt, 
           string_col = "Call",
           global_head_col = "Global_head",
           group_head_col = "Group_head", 
@@ -435,14 +494,6 @@ system.time(
         
         # glimpse(calls_parsons_frequencies)
         
-        # ### Step 4: Select a single call per individual to reduce computational time
-        # calls_parsons_frequencies_filt <- calls_parsons_frequencies %>% 
-        #   group_by(Group, Individual) %>% 
-        #   dplyr::slice_sample(n = 1) %>% 
-        #   ungroup()
-        
-        # glimpse(calls_parsons_frequencies_filt)
-        
         ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with paRsynth and the soundgen package
         
         synthetic_call_metadata <- write_audio(
@@ -451,7 +502,7 @@ system.time(
           sampling_rate = 44100,
           sylLen = 400,
           temperature = 0,
-          prefix = paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_"),
+          prefix = paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"),
           invalidArgAction = "ignore" # This argument fixes the variable sampling rates that soundgen assigns in the background
         )
         
@@ -459,12 +510,13 @@ system.time(
         
         wavs <- list.files(
           path = data_path, 
-          pattern = paste(paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_"), "_", sep = "")
+          pattern = paste(paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), "_", sep = "")
         )
         
         cat(paste("Number of audio files = ", length(wavs), "\n"))
         
-        # Information recovery pipeline with traditional bioacoustics tools
+        
+        ###### Information recovery pipeline with traditional bioacoustics tools
         
         ### Step 5: Generate a selection table for the warbleR package
         # w <- 1 # testing
@@ -496,10 +548,11 @@ system.time(
               call_ID = metadats_tmp[["Call_ID"]],
               call_string = metadats_tmp[["Call"]], 
               sampling_rate = tmp@samp.rate,
-              group_information = information[["group_information"]][i], 
-              individual_information = information[["individual_information"]][i],
+              group_information = group_information[i], 
+              individual_information = individual_information[i],
               social_envt = social_envts[z],
-              information_encoding_ratio = ratios[i]
+              possible_unique_group_signatures = (symbols ^ group_information[i]),
+              possible_unique_individual_signatures = (symbols ^ individual_information[i])
             )
             
           } else {
@@ -518,7 +571,8 @@ system.time(
               group_information = NA, 
               individual_information = NA,
               social_envt = NA,
-              information_encoding_ratio = NA
+              possible_unique_group_signatures = NA,
+              possible_unique_individual_signatures = NA
             )
             
           }
@@ -569,7 +623,7 @@ system.time(
           # Get the maximum similarity value after 1 in the matrix
           max_vals <- xc_mat[lower.tri(xc_mat)]
           
-          # This line would sometimes fail when using a value 1 in the conditional statement
+          # Use a value just under one to catch floating point numbers that are visually represented as 1
           sec_max_val <- max(max_vals[max_vals < 0.9999999])
           
           # Initialize a record of what was changed to save to the final results
@@ -595,19 +649,19 @@ system.time(
         ### Step 8: Calculate the edit distance amongst all strings
         
         # For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
-        edit_dists <- unlist(lapply(1:nrow(xc_mat), function(i){
-          lapply(1:ncol(xc_mat), function(j){
+        edit_dists <- unlist(lapply(1:nrow(xc_mat), function(m){
+          lapply(1:ncol(xc_mat), function(p){
             
             return(
               stringdist(
                 a = sel_tbl %>% 
                   dplyr::filter(
-                    sound.files == dimnames(xc_mat)[[1]][i]
+                    sound.files == dimnames(xc_mat)[[1]][m]
                   ) %>% 
                   pull(call_string),
                 b = sel_tbl %>% 
                   dplyr::filter(
-                    sound.files == dimnames(xc_mat)[[2]][j]
+                    sound.files == dimnames(xc_mat)[[2]][p]
                   ) %>% 
                   pull(call_string),
                 method = "lv"
@@ -619,12 +673,36 @@ system.time(
         
         edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
         
-        # These dimension names are helpful to check specific loop iterations above
-        # dimnames(edit_dist_mat) <- list(dimnames(xc_mat)[[1]], dimnames(xc_mat)[[2]])
+        # There is an earlier check built in above to avoid edit distance values of 0 for calls compared within an individual. But as the number of groups and individuals increases, the likelihood of generating the same call strings across individuals or groups increases, so the code below replaces edit distance values of 0 off of the diagonal with the minimum edit distance value in the matrix
+
+        # Check if there are values of 0 off of the diagonal in the edit distance matrix, which will happen by chance when the exact same strings are generated within an individual (even with the random variation)
+        # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
+        zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
+
+        if(zeroes > 0){
+
+          # Get the minimum non-zero similarity value in the matrix
+          min_vals <- edit_mat[lower.tri(edit_mat)]
+
+          sec_min_val <- min(min_vals[min_vals > 0])
+
+          # Initialize a record of what was changed to save to the final results
+          zero_notes <- paste(round(zeroes, 8), "% of all edit distance cells or", length(which(edit_mat[lower.tri(edit_mat)] == 0)), "unique comparisons were had an original edit distance value of 0 and were changed to the next minimum edit distance value of", round(sec_min_val, 8), sep = " ")
+
+          # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to the next highest similarity value in this matrix
+          edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
+          edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
+
+        } else {
+
+          zero_notes <- ""
+
+        }
         
-        # Checking, looks good
-        # edit_dist_mat[1:5, 1:5]
+        # These dimension names are helpful below
+        dimnames(edit_mat) <- list(dimnames(xc_mat)[[1]], dimnames(xc_mat)[[2]])
         
+        # str(edit_mat)
         
         ### Step 9: Perform MDS on SPCC and edit distance matrices
         
@@ -635,7 +713,10 @@ system.time(
         # str(spcc_dist_mat)
         
         # Convert the edit distance matrix to a dist object for isoMDS
+        # Do not subtract the edit distance values from 1 because these are already distances and also are not proximity values
         edit_dist_mat <- stats::as.dist(edit_mat, diag = TRUE, upper = TRUE)
+        
+        # str(edit_dist_mat)
         
         # Reduce dimensionality of the SPCC and edit matrices using multidimensional scaling (MDS). Use the a different number of total MDS dimensions per treatment combination in order to reduce the stress of the final solution
         if(social_envts[z] == "Sparse"){
@@ -648,7 +729,8 @@ system.time(
         iso_spcc <- invisible(MASS::isoMDS(spcc_dist_mat, k = k, maxit = 1000, trace = FALSE))
         # str(iso_spcc)
         
-        iso_edit <- invisible(MASS::isoMDS(spcc_dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # Perform MDS to obtain edit distance feature space
+        iso_edit <- invisible(MASS::isoMDS(edit_dist_mat, k = k, maxit = 1000, trace = FALSE))
         # str(iso_edit)
         
         # Make a data frame of the first two SPCC MDS dimensions and call metadata
@@ -679,13 +761,14 @@ system.time(
         
         # glimpse(mds_edit)
         
-        ### Step 10: Perform clustering and Normalized Mutual Information (NMI) calculation
+        ### Step 10: Perform clustering and Normalized Mutual Information (NMI) calculations
         # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
         
         ### Group-level clustering and NMI calculations
         
         # Set the number of clusters to the number of unique groups
-        num_clusters <- length(unique(mds_df$group_ID))
+        num_clusters <- length(unique(mds_spcc$group_ID))
+        # num_clusters
         
         # Perform k-means clustering with this number of clusters on the SPCC and edit distance feature spaces
         # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
@@ -704,7 +787,7 @@ system.time(
         edit_kmeans_grp <- kmeans(mds_edit[, grep("X|Y", names(mds_edit))], centers = num_clusters)
         # str(edit_kmeans_grp)
         
-        # Compute NMI at the group-level with k-means clustering on SPCC MDS features
+        # Compute NMI at the group-level with k-means clustering on edit distance MDS features
         tmp_mds_edit <- mds_edit %>% 
           dplyr::mutate(
             clusters = edit_kmeans_grp$cluster
@@ -713,29 +796,30 @@ system.time(
         edit_nmi_grp <- nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "clusters")
         
         # NMI should be 1 when comparing the same vector to itself, looks good
-        nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
-        nmi(X = tmp_mds_spcc, class_col_nm = "clusters", cluster_col_nm = "clusters")
-        nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
-        nmi(X = tmp_mds_edit, class_col_nm = "clusters", cluster_col_nm = "clusters")
+        # nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
+        # nmi(X = tmp_mds_spcc, class_col_nm = "clusters", cluster_col_nm = "clusters")
+        # nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
+        # nmi(X = tmp_mds_edit, class_col_nm = "clusters", cluster_col_nm = "clusters")
         
-        # TKTK CONTINUE
         
         ### Individual-level clustering and NMI calculation
         
         # Set the number of clusters to the number of unique individuals within each group
-        num_clusters <- mds_df %>% 
+        num_clusters <- mds_spcc %>% 
           distinct(individual_ID) %>% 
           nrow()
         
-        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation
-        # n <- 2 # testing
-        kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(n){
+        # num_clusters
+        
+        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation. Use SPCC MDS features here
+        # n <- 1 # testing
+        spcc_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
           
-          tmp <- mds_df[mds_df$group_ID == n, ]
+          tmp <- mds_spcc[mds_spcc$group_ID == m, ]
           
           # Checking, looks good
-          unique(tmp$group_ID)
-          all(tmp$group_ID == n)
+          # unique(tmp$group_ID)
+          # all(tmp$group_ID == m)
           
           # Perform clustering using the MDS coordinates as input
           res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
@@ -752,16 +836,48 @@ system.time(
           
         }))
         
+        
+        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation. Use edit distance MDS features here
+        # n <- 2 # testing
+        edit_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
+          
+          tmp <- mds_edit[mds_edit$group_ID == m, ]
+          
+          # Checking, looks good
+          # unique(tmp$group_ID)
+          # all(tmp$group_ID == m)
+          
+          # Perform clustering using the MDS coordinates as input
+          res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+          
+          tmp_mds <- tmp %>% 
+            dplyr::mutate(
+              clusters = res$cluster
+            )
+          
+          # glimpse(tmp_mds)
+          
+          # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+          return(nmi(X = tmp_mds, class_col_nm = "individual_ID", cluster_col_nm = "clusters"))
+          
+        }))
+        
+        # edit_kmeans_ind_cg
+        
+        
         nmi_results <- data.frame(
           social_envt_treatment = social_envts[z],
-          information_encoding_treatment = ratios[i],
+          group_information = group_information[i], 
+          individual_information = individual_information[i],
           iteration = n,
-          group_information = information[["group_information"]][i], 
-          individual_information = information[["individual_information"]][i],
-          NMI_group = nmi_grp,
-          NMI_individual_mean = mean(kmeans_ind_cg),
-          NMI_individual_min = min(kmeans_ind_cg),
-          NMI_individual_max = max(kmeans_ind_cg),
+          group_information_proportion = group_information[i] / max(group_information),
+          individual_information_proportion = individual_information[i] / max(individual_information),
+          possible_unique_group_signatures = (symbols ^ group_information[i]),
+          possible_unique_individual_signatures = (symbols ^ individual_information[i]),
+          NMI_SPCC_group = spcc_nmi_grp,
+          NMI_edit_group = edit_nmi_grp,
+          NMI_SPCC_individual_mean = mean(spcc_kmeans_ind_cg),
+          NMI_edit_individual_mean = mean(edit_kmeans_ind_cg),
           notes = paste(neg_notes, one_notes, sep = "; ")
         )
         
@@ -774,7 +890,7 @@ system.time(
       
       ### Step 12: Write out the NMI results for the given treatment combination across iterations
       nmi_res_tmp %>% 
-        write.csv(file.path(data_path, paste("NMI_results_", paste(social_envts[z], paste("Ratio", ratios[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
+        write.csv(file.path(data_path, paste("NMI_results_", paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
       
     })
     
@@ -782,20 +898,7 @@ system.time(
   
 )
 
-# On my laptop 3 social conditions and 5 information treatments with 1 iteration took about 8 minutes. I decreased the number of social groups and individuals per group in the Intermediate and Dense conditions
-# user  system elapsed 
-# 491.132 275.017 262.716 
-
-# On my laptop 3 social conditions and 5 information treatments with 3 iterations took about 32 minutes. I decreased the number of social groups and individuals per group in the Intermediate and Dense conditions
-# user   system  elapsed 
-# 1955.841 1064.957 1022.187
-
-# On the Mac Mini this process took ~ 14 minutes with 3 social conditions, 3 information encoding ratios, and 1 iteration of each treatement combination
-
-# On the Mac Mini this process took ~ 29 hours with 3 social conditions, 5 information encoding ratios, and 5 iterations of each treatement combination
-# 01d 04h 52m 56s
-# user    system   elapsed 
-# 40655.65  39141.46 103975.72 
+# On my laptop 3 social conditions and 4 information treatments with 1 iteration took about TKTK minutes. 
 
 ```
 
