@@ -57,9 +57,9 @@ Initialize working directories for data and figures.
 ###################### MANULLY UPDATE EVERY TIME ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
@@ -107,8 +107,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ```{r}
 
 # Brittany's path should include "GitHub/paRsynth"
-# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -296,9 +296,9 @@ group_information
 # Choose a sparse social condition in which we expect to have highly distinguishable group and individual signatures even with small amounts of information encoding
 # Then choose an intermediate social condition that will require more positions devoted to information encoding to generate sufficiently distinguishable signatures at each social level as the number of individuals increases
 # Finally choose dense social conditions that max out the number of unique signatures possible with lower amounts of information encoding. In other words, as there are more groups or individuals within groups, more positions within a string need to be devoted to group and individual information encoding in order to ensure that each group or individual is more likely to have a unique signature. At small amounts of information encoding, the number of possible unique signatures will be fully maxed out when there are many groups and individuals within groups
-social_envts <- c("Sparse", "Intermediate", "Dense")
-n_groups <- c(2, 6, 10)
-n_individuals <- c(2, 6, 10)
+social_envts <- c("Sparse", "Intermediate", "Crowded", "Dense")
+n_groups <- c(2, 6, 10, 20)
+n_individuals <- c(2, 6, 10, 20)
 
 # Keep the number of calls per individual constant across iterations
 # Using a single call per individual would increase computational efficiency, but we need more than 1 call per individual in order to calculate individual-level NMI
@@ -353,8 +353,8 @@ string_length <- (globals + max(group_information) + random_variation)
 string_length # 20
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
-# iteratns <- 8
-iteratns <- 1 # fewer iterations for preliminary results
+iteratns <- 8
+# iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
 # z <- 3 # social environments
@@ -500,7 +500,7 @@ system.time(
           df = calls_parsons_frequencies, 
           save_path = data_path, 
           sampling_rate = 44100,
-          sylLen = 400,
+          sylLen = 200,
           temperature = 0,
           prefix = paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"),
           invalidArgAction = "ignore" # This argument fixes the variable sampling rates that soundgen assigns in the background
@@ -898,7 +898,9 @@ system.time(
   
 )
 
-# On my laptop 3 social conditions and 4 information treatments with 1 iteration took about TKTK minutes. 
+# On my laptop 3 social conditions and 4 information treatments with 1 iteration took about 11 minutes. 
+
+# Started a run of 4 social conditions, 4 information encoding treatments with 8 iterations each at 8:05 on 06 Feb 2025. The largest number of calls that will be compared in any one iteration will be 800 for the Dense social condition.
 
 ```
 
