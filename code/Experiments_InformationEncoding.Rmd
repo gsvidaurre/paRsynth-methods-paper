@@ -9,7 +9,7 @@ Purpose: The following code was designed to test the behavior of functions writt
 
 The NMI calculations will allow us to address how much information about group membership versus individual identity is contained in patterns of acoustic variation across call datasets generated to emphasize either individual identity or group membership. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the NMI for the individual-level should be high but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about individuals' group membership. Given that all calls contain individual identity and group membership information, we should also see some interesting patterns at intermediate ratios of the string allocated to individual identity versus group membership.
 
-TKTK consider dropping comparisons and running parallel analyses
+TKTK consider adding a setp to calculate K-L divergence between the edit distance (converted to proximity) and SPCC, but wait until talking to vanessa on 11 Feb
 
 ```{r setup, include = FALSE}
 
