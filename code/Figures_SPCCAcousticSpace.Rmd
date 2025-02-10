@@ -50,7 +50,8 @@ Initialize working directories for data on your local machine.
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
+path <- "/Users/summe/OneDrive/Desktop/" #Summer's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -365,7 +366,9 @@ mds_df_grp %>%
   scale_color_manual(values = cols) +
   scale_fill_manual(values = cols) +
   xlab("") + ylab("") + 
-  guides(color = "none", shape = "none", fill = "none") +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = guide_legend(title = "Group", override.aes = list(size = 3), order = 1)) +
+  # Uncomment this line to turn off the legend
+  # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
@@ -379,13 +382,19 @@ mds_df_grp %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3)
+    plot.margin = margin(0, 3, -3, -3),
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "lines")
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+# This is the image size that will be written without a legend
+# ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
+# This is the image size that will be written to create alegend for the composite figure created in other software
+ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
+?theme
 # Panel B: Convex hull polygons per individual
 
 # Regenerate the convex hull polygons by a different social level
