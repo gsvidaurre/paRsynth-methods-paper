@@ -900,12 +900,15 @@ system.time(
 
 # On my laptop 3 social conditions and 4 information treatments with 1 iteration took about 11 minutes. 
 
-# Started a run of 4 social conditions, 4 information encoding treatments with 8 iterations each at 8:05 on 06 Feb 2025. The largest number of calls that will be compared in any one iteration will be 800 for the Dense social condition.
+# Started a run of 4 social conditions, 4 information encoding treatments with 8 iterations each at 8:05 on 06 Feb 2025. The largest number of calls that will be compared in any one iteration will be 800 for the Dense social condition. This took about 24 hours
+# user    system   elapsed 
+# 48267.892  7674.145 85967.278
 
 ```
 
 Checking the NMI results.
 ```{r}
+
 nmi_files <- list.files(path = data_path, pattern = "NMI_")
 nmi_files
 
@@ -917,7 +920,7 @@ nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
 
 glimpse(nmi_res)
 
-View(nmi_res)
+# View(nmi_res)
 
 # Checking that there are no NMI values above 1, looks good
 any(nmi_res$NMI_group > 1)
