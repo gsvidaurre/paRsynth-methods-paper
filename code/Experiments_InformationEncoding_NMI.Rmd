@@ -1,0 +1,952 @@
+---
+title: "Information Encoding Experiments"
+author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
+output: html_document
+date: "2024-07-08"
+---
+
+Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions written by Ari generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the normalized mutual information (NMI) calculated between the original classes at both the individual and group levels compared to cluster labels obtained from k-means clustering on multidimensional scaling variables generated from a spectrographic cross-correlation (SPCC) matrix. 
+
+The NMI calculations will allow us to address how much information about group membership versus individual identity is contained in patterns of acoustic variation across call datasets generated to emphasize either individual identity or group membership. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the NMI for the individual-level should be high but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about individuals' group membership. Given that all calls contain individual identity and group membership information, we should also see some interesting patterns at intermediate ratios of the string allocated to individual identity versus group membership.
+
+TKTK consider dropping comparisons and running parallel analyses
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+
+```
+
+Load packages and set cores.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Initialize packages for data processing and analysis
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist")
+
+# Install packages if they're not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
+# TKTK once we start using the package again in package format, we need to add paRsynth:: before eeach function
+# Install the paRsynth package from GitHub if you haven't installed it already
+# devtools::install_github("gsvidaurre/paRsynth")
+
+# Add paRsynth to the list of packages to load
+# X <- c(X, "paRsynth")
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+# Set cores for parallel processing
+cores <- parallel::detectCores() - 4
+
+```
+
+Initialize working directories for data and figures.
+```{r}
+
+###################### MANULLY UPDATE EVERY TIME ##################################
+
+# Initialize a base path (we may need a separate base path per user)
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/home/gsvidaurre/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
+
+###################################################################################
+
+```
+
+```{r}
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_synthetic_experiments"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+data_dir <- "data"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+data_path <- file.path(path, analysis_dir, data_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(data_path)){ 
+  dir.create(data_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+figure_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figure_path <- file.path(path, analysis_dir, figure_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figure_path)){ 
+  dir.create(figure_path)
+}
+
+```
+
+Source the paRsynth functions directly from the GitHub repository. 
+```{r}
+
+# Brittany's path should include "GitHub/paRsynth"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+
+# Get all of the R files for each function in this directory
+function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
+function_files
+
+# Iterate over these files to load each function, and silence the output
+invisible(sapply(X = function_files, FUN = source))
+
+```
+
+Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used. TKTK this will only work when paRsynth is installed as a package 
+```{r eval = FALSE}
+
+# ?paRsynth::generate_strings
+# ?paRsynth::parsons_code
+# ?paRsynth::frequency_anchors
+# ?paRsynth::write_audio
+
+```
+
+In the code below, I handled negative SPCC values by setting these to the minimum observed non-zero SPCC value in the whole matrix. I handled values of 1 off of the diagonal by setting these to the maximum observed value less than 1 in the full matrix.
+
+TKTK need to add an edit distance analysis!! To the NMI, for "true" information recovery at the string step compared to the bioacoustics signal step
+
+Add a function to calculate NMI following Kershenbaum et al. 2013 in PLOS One. I've been getting strange results from aricode::NMI, and those results are also different from when I use the function below.
+```{r}
+
+nmi <- function(X, class_col_nm, cluster_col_nm){
+  
+  # Get the total number of vocalizations
+  N <- nrow(X)
+  
+  # Find the unique combinations of classes and clusters
+  tmp <- X %>% 
+    distinct(!!sym(class_col_nm), !!sym(cluster_col_nm))
+  
+  # n_i is the number of vocalizations from class (individual or group) i
+  # n_j is the number of vocalizations in cluster j
+  # n_ji is the number of vocalizations from individual i in cluster j
+  # N is the number of total vocalizations
+  
+  numerator <- sum(unlist(lapply(1:nrow(tmp), function(z){
+    
+    class <- tmp[[class_col_nm]][z]
+    cluster <- tmp[[cluster_col_nm]][z]
+    
+    # Get the number of vocalizations from the current class
+    n_i <- X %>% 
+      dplyr::filter(!!sym(class_col_nm) == class) %>%
+      nrow(.)
+    
+    # Get the number of vocalizations from the current cluster
+    n_j <- X %>% 
+      dplyr::filter(!!sym(cluster_col_nm) == cluster) %>% 
+      nrow(.)
+    
+    # Get the number of vocalizations from class i that are in cluster j
+    n_ji <- X %>% 
+      dplyr::filter(!!sym(class_col_nm) == class) %>% 
+      dplyr::filter(!!sym(cluster_col_nm) == cluster) %>% 
+      nrow(.)
+    
+    numerators <- n_ji * log( ((N * n_ji) / (n_j * n_i) ))
+    
+    # Set the calculation to 0 if the calculation above leads to an NaN value, which happens when n_ji is 0
+    if(is.na(numerators)) numerators <- 0
+    
+    return(numerators)
+    
+  })))
+  
+  
+  # Calculate information in clusters and classes separately (each half of the denominator that goes into the square root expression)
+  classes <- unique(X[[class_col_nm]])
+  clusters <- unique(X[[cluster_col_nm]])
+  
+  sum_clusters <- sum(unlist(lapply(1:length(clusters), function(j){
+    
+    # Get the number of vocalizations from cluster j
+    tmp_cluster <- clusters[j] # passing clusters[j] directly to the conditional statement sometimes fails
+    n_j <- X %>% 
+      dplyr::filter(!!sym(cluster_col_nm) == tmp_cluster) %>% 
+      nrow(.)
+    
+    return( n_j * log( n_j / N ) )
+    
+  })))
+  
+  sum_classes <- sum(unlist(lapply(1:length(classes), function(i){
+    
+    # Get the number of vocalizations from class i
+    tmp_class <- classes[i]
+    
+    n_i <- X %>% 
+      dplyr::filter(!!sym(class_col_nm) == tmp_class) %>% 
+      nrow(.)
+    
+    return( n_i * log( n_i / N ) )
+    
+  })))
+  
+  # denominator <- sqrt( sum_clusters * sum_classes )
+  if(numerator == 0 | (sqrt( sum_clusters * sum_classes )) == 0){
+    
+    nmi <- 0
+    
+  } else {
+    
+    nmi <- numerator / sqrt( sum_clusters * sum_classes )
+    
+  }
+  
+  return( nmi )  
+  
+}
+
+
+```
+
+Testing the NMI function above.
+```{r}
+
+# Testing: NMI should be 1, looks good
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(seq(1, 5, 1), each = 2))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# Testing: NMI should be also be 1, looks good
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rev(rep(seq(1, 5, 1), each = 2)))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# Testing: NMI should be 0, looks good
+X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(1, 10))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# Testing: NMI should be closer to 1 when the number of clusters is close to the number of classes, even if the clusters were randomly assigned and classes are split between clusters.
+X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:256, 512, replace = TRUE))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+aricode::NMI(X$classes, X$clusters, variant = "sqrt") # this is the variant that should be the same as my function above
+
+# Testing: NMI should be closer to 0 when the number of clusters is not close to the number of classes, and when the clusters were randomly assigned
+X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:10, 512, replace = TRUE))
+X
+
+nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
+
+# I get the same NMI result using the aricode package
+aricode::NMI(X$classes, X$clusters, variant = "sqrt")
+
+```
+
+TKTK talk to Vanessa about this behavior of NMI (high values even when cluster labels are randomly assigned) while interpreting results!
+
+# Synthetic experiments over varying social environment characteristics and information encoding rules
+
+How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use traditional bioacoustics tools and Normalized Mutual Information to decode information encoded at the group and individual levels.
+
+Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each NMI calculation. Update the loop so that a selection table is made and SPCC is performed each time a new call dataset is generated. Then save the selection table and SPCC matrix but remove audio files before initiating the subsequent iteration. The duration of the audio files impacts the computational time (files over 400 ms take a long time to generate). The number of calls that will be compared in SPCC also increases computational time, as well as the number of treatments and the number of iterations per treatment.
+```{r}
+
+#################### Information encoding and social environment treatments #################### 
+
+# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals) that follow predictions for how many unique vocal signatures can be created at each social level from an information theory perspective
+
+# The number of unique signatures that can be created at either social level can be calculated as the number of symbols used to encode information (we use 3 letters for 1-base Parsons code with three possible directions, so this will always be three) to the power of the number of positions that can be modified to encode information. For the latter, we will use 0, 2, 4, 6 characters over which information will be encoded in each social level (although in reverse order for one social level) to facilitate encoding both types of information in synthetic vocal signals, as well as two information encoding treatments that contain information at one social level only. These numbers also facilitate using an even number of characters for information encoding that is required by the current version of the paRsynth package.
+
+# These are the number of unique signatures we should expect at either social level given the number of unique symbols and string positions for information encoding
+# For instance, when devoting 2 positions to individual information, there are 9 possible unique signatures at that social level. But when the number of positions devoted to individual information encoding rises to 4, this opens up 81 total unique individual signatures
+sapply(c(0, 2, 4, 6), function(x){ 3^x })
+
+individual_information <- c(0, 2, 4, 6)
+group_information <- rev(individual_information)
+
+individual_information
+group_information
+
+# Choose a sparse social condition in which we expect to have highly distinguishable group and individual signatures even with small amounts of information encoding
+# Then choose an intermediate social condition that will require more positions devoted to information encoding to generate sufficiently distinguishable signatures at each social level as the number of individuals increases
+# Finally choose dense social conditions that max out the number of unique signatures possible with lower amounts of information encoding. In other words, as there are more groups or individuals within groups, more positions within a string need to be devoted to group and individual information encoding in order to ensure that each group or individual is more likely to have a unique signature. At small amounts of information encoding, the number of possible unique signatures will be fully maxed out when there are many groups and individuals within groups
+social_envts <- c("Sparse", "Intermediate", "Crowded", "Dense")
+n_groups <- c(2, 6, 10, 20)
+n_individuals <- c(2, 6, 10, 20)
+
+# Keep the number of calls per individual constant across iterations
+# Using a single call per individual would increase computational efficiency, but we need more than 1 call per individual in order to calculate individual-level NMI
+n_calls <- 2
+
+# Check the total number of call comparisons in the largest social environment treatment, which will need to run 5 times (one per information encoding treatment)
+# Here the total number of calls that will compared in any one iteration is 200, which is not a concern in terms of computational efficiency
+(max(n_groups) * max(n_individuals) ) * n_calls
+
+# All call comparisons for each social condition treatment
+(n_groups * n_individuals) * n_calls
+
+# Number of symbols that we are using in Parsons code
+symbols <- 3
+
+# Create a data frame that combines information about the total possible number of unique signatures at each social level with the different social conditions
+# i <- 1
+information <- data.table::rbindlist(pblapply(1:length(social_envts), function(j){
+  
+  tmp2 <- data.table::rbindlist(lapply(1:length(individual_information), function(i){
+    
+    tmp <- data.frame(
+      social_envt = social_envts[j],
+      group_information = group_information[i],
+      individual_information = individual_information[i],
+      # These values represent how much of the total social information encoding length is taken up by information encoding at either social level. When this value is 1, all 6 characters are used to encode group information. When this value is less than 0.5, more characters are devoted to individual information encoding. When this value is 0, all characters are used for individual information encoding. These two columns can be used as the x-axis in figures below (and maybe we can have one x-axis on the bottom, one on the top)
+      group_information_proportion = group_information[i] / max(group_information),
+      individual_information_proportion = individual_information[i] / max(individual_information),
+      possible_unique_group_signatures = (symbols ^ group_information[i]),
+      possible_unique_individual_signatures = (symbols ^ individual_information[i])
+    )
+    
+    return(tmp)
+    
+  }))
+  
+  return(tmp2)
+  
+}))
+
+View(information)
+
+# Then set other parameters for creating synthetic vocal identity signals
+# The length of the global header and tail should be the same across strings
+globals <- 12 # 6 characters for the global head, 6 for the global tail
+
+# Create variation within individuals, and this will be the same across strings created for the same individual
+random_variation <- 2
+
+# Initialize the total string length
+string_length <- (globals + max(group_information) + random_variation)
+string_length # 20
+
+# Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
+iteratns <- 8
+# iteratns <- 1 # fewer iterations for preliminary results
+
+# Testing one iteration of each loop
+# z <- 3 # social environments
+# i <- 1 # information encoding treatments
+# n <- 1 # replicates or iterations
+
+# Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
+
+system.time(
+  
+  # Iterate over social environment treatments
+  invisible(pblapply(1:length(social_envts), function(z){
+    
+    # Iterate over information encoding treatments
+    lapply(1:length(group_information), function(i){
+      
+      cat(paste("social condition =", social_envts[z], "\n", sep = " "))
+      cat(paste("group_information = ", group_information[i], "\n", sep = ""))
+      cat(paste("individual_information = ", individual_information[i], "\n", sep = ""))
+      
+      # Iterating over the number of replicates per treatment combination
+      nmi_res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
+        
+        ### Step 1: Generate strings that represent calls
+        calls <- suppressMessages(
+          generate_strings(
+            n_groups = n_groups[z], 
+            n_individuals = n_individuals[z], 
+            # Generate more calls than what we need to ensure that we use n_calls with different strings per individual (see below)
+            n_calls = n_calls * 5, 
+            string_length = string_length, 
+            group_information = group_information[i], 
+            individual_information = individual_information[i],
+            random_variation = random_variation
+          )
+        )
+        
+        # glimpse(calls)
+        
+        
+        ### Step 2: Calculate the edit distance among strings generated for each unique individual, and retain only the number of calls per individual set by n_calls that have an edit distance > 0 (such that calls for the same individual are not the exact same string)
+        
+        # Iterate over each individual to compare the edit distance amongst their calls, and return only n_calls with edit distance > 0
+        unique_indivs <- unique(paste(calls$Group, calls$Individual, sep = "-"))
+        # unique_indivs
+        
+        # Testing
+        # m <- 2
+        # p <- 1
+        # q <- 2
+        # Note that this solution will not generalize well whenever n_calls is greater than 2
+        calls_filt <- data.table::rbindlist(lapply(1:length(unique_indivs), function(m){
+          
+          tmp_indiv <- unique_indivs[m]
+          # tmp_indiv
+          
+          tmp <- calls %>% 
+            dplyr::filter(paste(Group, Individual, sep = "-") == tmp_indiv)
+          
+          
+          call_comps <- data.table::rbindlist(lapply(1:ncol(tmp), function(p){
+            
+            res <- data.table::rbindlist(lapply(1:ncol(tmp), function(q){
+              
+              edit_dist <- stringdist(
+                a = tmp %>% 
+                  slice(p) %>% 
+                  pull(Call),
+                b = tmp %>% 
+                  slice(q) %>% 
+                  pull(Call),
+                method = "lv"
+              )
+              
+              if(edit_dist > 0){
+                return(
+                  data.frame(
+                    individual = tmp_indiv,
+                    call_ID_1 = tmp %>% 
+                      slice(p) %>% 
+                      pull(Call_ID),
+                    call_ID_2 = tmp %>% 
+                      slice(q) %>% 
+                      pull(Call_ID)
+                  )
+                )
+              }
+              
+            }))
+            
+            return(res)
+            
+          }))
+          
+          # call_comps
+          
+          # Then randomly select a single comparison representing 2 calls or strings with an edit distance > 0
+          retain_calls <- call_comps[sample(1:nrow(call_comps), size = n_calls/2), ]
+          
+          # Use this output to filter the calls data frame for the given individual to return only the calls we will use in downstream analyses
+          return(
+            tmp %>% 
+              dplyr::filter(Call_ID == retain_calls$call_ID_1 | Call_ID == retain_calls$call_ID_2)
+          )
+        
+        }))
+        
+        # glimpse(calls_filt)
+        
+        ### Step 2: Convert the strings to Parsons code
+        calls_parsons <- parsons_code(
+          df = calls_filt, 
+          string_col = "Call",
+          global_head_col = "Global_head",
+          group_head_col = "Group_head", 
+          individual_middle_col = "Individual_middle", 
+          group_tail_col = "Group_tail", 
+          global_tail_col = "Global_tail",
+          random_variation_col = "Random_variation",
+          mapping = list(A = "up", B = "down", C = "constant")
+        )
+        
+        # glimpse(calls_parsons)
+        
+        ### Step 3: Convert the Parsons code to frequency values
+        calls_parsons_frequencies <- frequency_anchors(
+          df = calls_parsons, 
+          parsons_col = "Call_Parsons_Code", 
+          group_id_col = "Group", 
+          individual_id_col = "Individual", 
+          call_id_col = "Call_ID", 
+          call_string_col = "Call",
+          starting_frequency = 4000, 
+          frequency_shift = 1000, 
+          section_transition = "continuous_trajectory"
+        )
+        
+        # glimpse(calls_parsons_frequencies)
+        
+        ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with paRsynth and the soundgen package
+        
+        synthetic_call_metadata <- write_audio(
+          df = calls_parsons_frequencies, 
+          save_path = data_path, 
+          sampling_rate = 44100,
+          sylLen = 200,
+          temperature = 0,
+          prefix = paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"),
+          invalidArgAction = "ignore" # This argument fixes the variable sampling rates that soundgen assigns in the background
+        )
+        
+        # glimpse(synthetic_call_metadata)
+        
+        wavs <- list.files(
+          path = data_path, 
+          pattern = paste(paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), "_", sep = "")
+        )
+        
+        cat(paste("Number of audio files = ", length(wavs), "\n"))
+        
+        
+        ###### Information recovery pipeline with traditional bioacoustics tools
+        
+        ### Step 5: Generate a selection table for the warbleR package
+        # w <- 1 # testing
+        
+        sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
+          
+          # Read in the given audio file
+          tmp <- tuneR::readWave(file.path(data_path, wavs[w]))
+          
+          # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
+          metadats_tmp <- synthetic_call_metadata %>%
+            dplyr::filter(grepl(wavs[w], audio_file_name))
+          
+          # glimpse(metadats_tmp)
+          
+          # Create a row for the selection table in warbleR format if the audio file exists and metadata for that file also exists
+          if(nrow(metadats_tmp) > 0){
+            
+            # Use 0.1s as a margin to indicate where the vocalization starts and ends in the audio file
+            # soundgen::soundgen() adds 100ms of silence before and after the synthetic vocalization by default 
+            res <- data.frame(
+              sound.files = wavs[w], 
+              selec = 1,
+              start = 0.1, 
+              end = seewave::duration(tmp) - 0.1,
+              duration = seewave::duration(tmp),
+              group_ID = metadats_tmp[["Group"]],
+              individual_ID = metadats_tmp[["Individual"]],
+              call_ID = metadats_tmp[["Call_ID"]],
+              call_string = metadats_tmp[["Call"]], 
+              sampling_rate = tmp@samp.rate,
+              group_information = group_information[i], 
+              individual_information = individual_information[i],
+              social_envt = social_envts[z],
+              possible_unique_group_signatures = (symbols ^ group_information[i]),
+              possible_unique_individual_signatures = (symbols ^ individual_information[i])
+            )
+            
+          } else {
+            
+            res <- data.frame(
+              sound.files = wavs[w], 
+              selec = 1, 
+              start = 0.1, 
+              end = seewave::duration(tmp) - 0.1,
+              duration = seewave::duration(tmp),
+              group_ID = NA,
+              individual_ID = NA,
+              call_ID = NA,
+              call_string = NA,
+              sampling_rate = tmp@samp.rate,
+              group_information = NA, 
+              individual_information = NA,
+              social_envt = NA,
+              possible_unique_group_signatures = NA,
+              possible_unique_individual_signatures = NA
+            )
+            
+          }
+          
+          return(res)
+          
+        }))
+        
+        # See the selection table in warbleR format with all useful metadata for the synthetic experiment
+        # glimpse(sel_tbl)
+        
+        # And there is now a single sampling rate, as expected
+        # unique(sel_tbl$sampling_rate)
+        
+        # All files should have the same sampling rate, otherwise the analyses below will fail
+        if(length(unique(sel_tbl$sampling_rate)) > 1){
+          stop("Variable sampling rates detected across synthetic audio files, and downstream analyses will fail")
+        }
+        
+        ### Step 6: Perform SPCC using a default window length and a general bandpass filter
+        xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 10), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = data_path)
+        # str(xc_mat)
+        
+        # Get the percentage of values that are negative
+        neg_values <- ((length(xc_mat[xc_mat < 0])/length(xc_mat))) * 100
+        
+        # Set all negative values to the minimum positive value in the SPCC matrix to represent the fact that these calls are very structurally different from one another
+        if(neg_values > 0){
+          
+          # Initialize a record of what was changed to save to the final results
+          neg_notes <- paste(round(neg_values, 8), "% of all SPCC cells or", length(xc_mat[xc_mat < 0])/2,"unique comparisons were negative and were changed to the minimum positive SPCC value of", round(min(xc_mat[xc_mat > 0]), 8), sep = " ")
+          
+          xc_mat[xc_mat < 0] <- round(min(xc_mat[xc_mat > 0]), 8)
+          
+        } else {
+          
+          neg_notes <- ""
+          
+        }
+        
+        # Continue with downstream analyses only if there are no 1's off of the diagonal, otherwise MDS will fail. Record NA values if there are 1's off of the diagonal (e.g. two calls of the same structure will present values of 1 as if the same call were compared to itself)
+        
+        # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
+        ones <- ((length(which(xc_mat[lower.tri(xc_mat)] == 1))*2)/length(xc_mat)) * 100
+        
+        if(ones > 0){
+          
+          # Get the maximum similarity value after 1 in the matrix
+          max_vals <- xc_mat[lower.tri(xc_mat)]
+          
+          # Use a value just under one to catch floating point numbers that are visually represented as 1
+          sec_max_val <- max(max_vals[max_vals < 0.9999999])
+          
+          # Initialize a record of what was changed to save to the final results
+          one_notes <- paste(round(ones, 8), "% of all SPCC cells or", length(which(xc_mat[lower.tri(xc_mat)] == 1)), "unique comparisons were had an original SPCC value of 1 and were changed to the next maximum SPCC value of", round(sec_max_val, 8), sep = " ")
+          
+          # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to the next highest similarity value in this matrix
+          xc_mat[lower.tri(xc_mat)][xc_mat[lower.tri(xc_mat)] == 1] <- round(sec_max_val, 8)
+          xc_mat[upper.tri(xc_mat)][xc_mat[upper.tri(xc_mat)] == 1] <- round(sec_max_val, 8)
+          
+        } else {
+          
+          one_notes <- ""
+          
+        }
+        
+        # Update the dimension names of the matrix
+        dimnames(xc_mat) <- list(wavs, wavs)
+        
+        ### Step 7: Remove .wav files to free up storage space
+        rem_files <- file.path(data_path, wavs)
+        invisible(file.remove(rem_files))
+        
+        ### Step 8: Calculate the edit distance amongst all strings
+        
+        # For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
+        edit_dists <- unlist(lapply(1:nrow(xc_mat), function(m){
+          lapply(1:ncol(xc_mat), function(p){
+            
+            return(
+              stringdist(
+                a = sel_tbl %>% 
+                  dplyr::filter(
+                    sound.files == dimnames(xc_mat)[[1]][m]
+                  ) %>% 
+                  pull(call_string),
+                b = sel_tbl %>% 
+                  dplyr::filter(
+                    sound.files == dimnames(xc_mat)[[2]][p]
+                  ) %>% 
+                  pull(call_string),
+                method = "lv"
+              )
+            )
+            
+          })
+        }))
+        
+        edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
+        
+        # There is an earlier check built in above to avoid edit distance values of 0 for calls compared within an individual. But as the number of groups and individuals increases, the likelihood of generating the same call strings across individuals or groups increases, so the code below replaces edit distance values of 0 off of the diagonal with the minimum edit distance value in the matrix
+
+        # Check if there are values of 0 off of the diagonal in the edit distance matrix, which will happen by chance when the exact same strings are generated within an individual (even with the random variation)
+        # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
+        zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
+
+        if(zeroes > 0){
+
+          # Get the minimum non-zero similarity value in the matrix
+          min_vals <- edit_mat[lower.tri(edit_mat)]
+
+          sec_min_val <- min(min_vals[min_vals > 0])
+
+          # Initialize a record of what was changed to save to the final results
+          zero_notes <- paste(round(zeroes, 8), "% of all edit distance cells or", length(which(edit_mat[lower.tri(edit_mat)] == 0)), "unique comparisons were had an original edit distance value of 0 and were changed to the next minimum edit distance value of", round(sec_min_val, 8), sep = " ")
+
+          # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to the next highest similarity value in this matrix
+          edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
+          edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
+
+        } else {
+
+          zero_notes <- ""
+
+        }
+        
+        # These dimension names are helpful below
+        dimnames(edit_mat) <- list(dimnames(xc_mat)[[1]], dimnames(xc_mat)[[2]])
+        
+        # str(edit_mat)
+        
+        ### Step 9: Perform MDS on SPCC and edit distance matrices
+        
+        # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
+        spcc_dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+        
+        # str(1 - xc_mat)
+        # str(spcc_dist_mat)
+        
+        # Convert the edit distance matrix to a dist object for isoMDS
+        # Do not subtract the edit distance values from 1 because these are already distances and also are not proximity values
+        edit_dist_mat <- stats::as.dist(edit_mat, diag = TRUE, upper = TRUE)
+        
+        # str(edit_dist_mat)
+        
+        # Reduce dimensionality of the SPCC and edit matrices using multidimensional scaling (MDS). Use the a different number of total MDS dimensions per treatment combination in order to reduce the stress of the final solution
+        if(social_envts[z] == "Sparse"){
+          k <- 2
+        } else {
+          k <- 10
+        }
+        
+        # Perform MDS to obtain SPCC feature space
+        iso_spcc <- invisible(MASS::isoMDS(spcc_dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # str(iso_spcc)
+        
+        # Perform MDS to obtain edit distance feature space
+        iso_edit <- invisible(MASS::isoMDS(edit_dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # str(iso_edit)
+        
+        # Make a data frame of the first two SPCC MDS dimensions and call metadata
+        mds_spcc <- data.frame(sound.files = dimnames(iso_spcc$points)[[1]]) %>%
+          dplyr::mutate(
+            X = iso_spcc$points[, 1],
+            Y = iso_spcc$points[, 2]
+          ) %>%
+          inner_join(
+            sel_tbl %>%
+              dplyr::select(sound.files, group_ID, individual_ID, call_ID),
+            by = c("sound.files")
+          )
+        
+        # glimpse(mds_spcc)
+        
+        # Make a data frame of the first two edit distance MDS dimensions and call metadata
+        mds_edit <- data.frame(sound.files = dimnames(iso_edit$points)[[1]]) %>%
+          dplyr::mutate(
+            X = iso_edit$points[, 1],
+            Y = iso_edit$points[, 2]
+          ) %>%
+          inner_join(
+            sel_tbl %>%
+              dplyr::select(sound.files, group_ID, individual_ID, call_ID),
+            by = c("sound.files")
+          )
+        
+        # glimpse(mds_edit)
+        
+        ### Step 10: Perform clustering and Normalized Mutual Information (NMI) calculations
+        # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
+        
+        ### Group-level clustering and NMI calculations
+        
+        # Set the number of clusters to the number of unique groups
+        num_clusters <- length(unique(mds_spcc$group_ID))
+        # num_clusters
+        
+        # Perform k-means clustering with this number of clusters on the SPCC and edit distance feature spaces
+        # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
+        spcc_kmeans_grp <- kmeans(mds_spcc[, grep("X|Y", names(mds_spcc))], centers = num_clusters)
+        # str(spcc_kmeans_grp)
+        
+        # Compute NMI at the group-level with k-means clustering on SPCC MDS features
+        tmp_mds_spcc <- mds_spcc %>% 
+          dplyr::mutate(
+            clusters = spcc_kmeans_grp$cluster
+          )
+        
+        spcc_nmi_grp <- nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "clusters")
+        
+        # Compute NMI at the group-level with k-means clustering on edit distance MDS features
+        edit_kmeans_grp <- kmeans(mds_edit[, grep("X|Y", names(mds_edit))], centers = num_clusters)
+        # str(edit_kmeans_grp)
+        
+        # Compute NMI at the group-level with k-means clustering on edit distance MDS features
+        tmp_mds_edit <- mds_edit %>% 
+          dplyr::mutate(
+            clusters = edit_kmeans_grp$cluster
+          )
+        
+        edit_nmi_grp <- nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "clusters")
+        
+        # NMI should be 1 when comparing the same vector to itself, looks good
+        # nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
+        # nmi(X = tmp_mds_spcc, class_col_nm = "clusters", cluster_col_nm = "clusters")
+        # nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
+        # nmi(X = tmp_mds_edit, class_col_nm = "clusters", cluster_col_nm = "clusters")
+        
+        
+        ### Individual-level clustering and NMI calculation
+        
+        # Set the number of clusters to the number of unique individuals within each group
+        num_clusters <- mds_spcc %>% 
+          distinct(individual_ID) %>% 
+          nrow()
+        
+        # num_clusters
+        
+        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation. Use SPCC MDS features here
+        # n <- 1 # testing
+        spcc_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
+          
+          tmp <- mds_spcc[mds_spcc$group_ID == m, ]
+          
+          # Checking, looks good
+          # unique(tmp$group_ID)
+          # all(tmp$group_ID == m)
+          
+          # Perform clustering using the MDS coordinates as input
+          res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+          
+          tmp_mds <- tmp %>% 
+            dplyr::mutate(
+              clusters = res$cluster
+            )
+          
+          # glimpse(tmp_mds)
+          
+          # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+          return(nmi(X = tmp_mds, class_col_nm = "individual_ID", cluster_col_nm = "clusters"))
+          
+        }))
+        
+        
+        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation. Use edit distance MDS features here
+        # n <- 2 # testing
+        edit_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
+          
+          tmp <- mds_edit[mds_edit$group_ID == m, ]
+          
+          # Checking, looks good
+          # unique(tmp$group_ID)
+          # all(tmp$group_ID == m)
+          
+          # Perform clustering using the MDS coordinates as input
+          res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+          
+          tmp_mds <- tmp %>% 
+            dplyr::mutate(
+              clusters = res$cluster
+            )
+          
+          # glimpse(tmp_mds)
+          
+          # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+          return(nmi(X = tmp_mds, class_col_nm = "individual_ID", cluster_col_nm = "clusters"))
+          
+        }))
+        
+        # edit_kmeans_ind_cg
+        
+        
+        nmi_results <- data.frame(
+          social_envt_treatment = social_envts[z],
+          group_information = group_information[i], 
+          individual_information = individual_information[i],
+          iteration = n,
+          group_information_proportion = group_information[i] / max(group_information),
+          individual_information_proportion = individual_information[i] / max(individual_information),
+          possible_unique_group_signatures = (symbols ^ group_information[i]),
+          possible_unique_individual_signatures = (symbols ^ individual_information[i]),
+          NMI_SPCC_group = spcc_nmi_grp,
+          NMI_edit_group = edit_nmi_grp,
+          NMI_SPCC_individual_mean = mean(spcc_kmeans_ind_cg),
+          NMI_edit_individual_mean = mean(edit_kmeans_ind_cg),
+          notes = paste(neg_notes, one_notes, sep = "; ")
+        )
+        
+        # nmi_results
+        
+        ### Step 11: return NMI results
+        return(nmi_results)
+        
+      }))
+      
+      ### Step 12: Write out the NMI results for the given treatment combination across iterations
+      nmi_res_tmp %>% 
+        write.csv(file.path(data_path, paste("NMI_results_", paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
+      
+    })
+    
+  }))
+  
+)
+
+# On my laptop 3 social conditions and 4 information treatments with 1 iteration took about 11 minutes. 
+
+# Started a run of 4 social conditions, 4 information encoding treatments with 8 iterations each at 8:05 on 06 Feb 2025. The largest number of calls that will be compared in any one iteration will be 800 for the Dense social condition.
+
+```
+
+Checking the NMI results.
+```{r}
+nmi_files <- list.files(path = data_path, pattern = "NMI_")
+nmi_files
+
+nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
+  
+  return(read.csv(file.path(data_path, nmi_files[n])))
+  
+}), fill = TRUE)
+
+glimpse(nmi_res)
+
+View(nmi_res)
+
+# Checking that there are no NMI values above 1, looks good
+any(nmi_res$NMI_group > 1)
+any(nmi_res$NMI_individual_max > 1)
+
+```
+
+Making NMI plots (Brittany edition)
+TKTK instead of geom_smooth, use geom_ribbon where you can specific upper and lower bounds for CI?
+Jan 31, tried geom_ribbon with individual min and max value, looks weird. Not sure what is going on. 
+TKTK need to make prettier with colors, export in a better way
+```{r}
+install.packages('ggpubr')
+library(ggpubr)
+
+NMI_Group_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_group, color = social_envt_treatment)) +
+  geom_point() + 
+  geom_smooth()
+
+NMI_Individ_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_individual_mean, color = social_envt_treatment, shape = social_envt_treatment)) +
+  geom_ribbon(aes(ymin = NMI_individual_min, ymax = NMI_individual_max, fill = social_envt_treatment), color = NA, alpha = .25) +  
+  geom_point()
+
+
+ggpubr::ggarrange(NMI_Group_plot, NMI_Individ_plot,
+                  labels = "AUTO", 
+                  common.legend = TRUE, 
+                  legend = "bottom")
+
+
+```
+
