@@ -5,11 +5,21 @@ output: html_document
 date: "2024-07-08"
 ---
 
-Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions written by Ari generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the normalized mutual information (NMI) calculated between the original classes at both the individual and group levels compared to cluster labels obtained from k-means clustering on multidimensional scaling variables generated from a spectrographic cross-correlation (SPCC) matrix. 
+Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions written by Ari generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the percent recovery of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). 
 
-The NMI calculations will allow us to address how much information about group membership versus individual identity is contained in patterns of acoustic variation across call datasets generated to emphasize either individual identity or group membership. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the NMI for the individual-level should be high but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about individuals' group membership. Given that all calls contain individual identity and group membership information, we should also see some interesting patterns at intermediate ratios of the string allocated to individual identity versus group membership.
+Below we iterate over social conditions and group versus individual information encoding at two social levels in character strings that will influence the distinctiveness or uniqueness of the strings and the resulting synthetic vocalizations at either social level. 
 
-TKTK consider dropping comparisons and running parallel analyses
+The pipeline below will allow us to indirectly address or compare how much information about group membership versus individual identity is contained in patterns of acoustic variation across character strings and their corresponding synthetic vocalizations that represent vocal identity signals. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the percentage of original individual-level labels recovered by clustering should be high, but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about group membership.
+
+TKTK updates to work on here:
+
+- Outline the research question better in the narrative text above
+- Remove all NMI function calls and results
+- Replace k-means clustering with Gaussian mixture models
+- Set the total number of clusters higher than the original number of classes per social level to avoid limiting clustering to the true number of classes
+- Calculate the percent recovery of original labels at each social level (how many original labels were predicted correctly and how many were not?), for both the edit distance and SPCC analyses
+- Then calculate the effect size of either the difference or the correlation between percent recovery by the edit distance and the SPCC analyses
+- Consider removing the information theory angle in the narrative text below since we will address the information theory side directly in another paper 
 
 ```{r setup, include = FALSE}
 
@@ -106,6 +116,8 @@ if(!dir.exists(figure_path)){
 Source the paRsynth functions directly from the GitHub repository. 
 ```{r}
 
+###################### MANULLY UPDATE EVERY TIME ##################################
+
 # Brittany's path should include "GitHub/paRsynth"
 # repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
 repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
@@ -116,6 +128,8 @@ function_files
 
 # Iterate over these files to load each function, and silence the output
 invisible(sapply(X = function_files, FUN = source))
+
+###################################################################################
 
 ```
 
@@ -129,163 +143,18 @@ Check out documentation for the paRsynth functions. These functions are written 
 
 ```
 
-In the code below, I handled negative SPCC values by setting these to the minimum observed non-zero SPCC value in the whole matrix. I handled values of 1 off of the diagonal by setting these to the maximum observed value less than 1 in the full matrix.
-
-TKTK need to add an edit distance analysis!! To the NMI, for "true" information recovery at the string step compared to the bioacoustics signal step
-
-Add a function to calculate NMI following Kershenbaum et al. 2013 in PLOS One. I've been getting strange results from aricode::NMI, and those results are also different from when I use the function below.
-```{r}
-
-nmi <- function(X, class_col_nm, cluster_col_nm){
-  
-  # Get the total number of vocalizations
-  N <- nrow(X)
-  
-  # Find the unique combinations of classes and clusters
-  tmp <- X %>% 
-    distinct(!!sym(class_col_nm), !!sym(cluster_col_nm))
-  
-  # n_i is the number of vocalizations from class (individual or group) i
-  # n_j is the number of vocalizations in cluster j
-  # n_ji is the number of vocalizations from individual i in cluster j
-  # N is the number of total vocalizations
-  
-  numerator <- sum(unlist(lapply(1:nrow(tmp), function(z){
-    
-    class <- tmp[[class_col_nm]][z]
-    cluster <- tmp[[cluster_col_nm]][z]
-    
-    # Get the number of vocalizations from the current class
-    n_i <- X %>% 
-      dplyr::filter(!!sym(class_col_nm) == class) %>%
-      nrow(.)
-    
-    # Get the number of vocalizations from the current cluster
-    n_j <- X %>% 
-      dplyr::filter(!!sym(cluster_col_nm) == cluster) %>% 
-      nrow(.)
-    
-    # Get the number of vocalizations from class i that are in cluster j
-    n_ji <- X %>% 
-      dplyr::filter(!!sym(class_col_nm) == class) %>% 
-      dplyr::filter(!!sym(cluster_col_nm) == cluster) %>% 
-      nrow(.)
-    
-    numerators <- n_ji * log( ((N * n_ji) / (n_j * n_i) ))
-    
-    # Set the calculation to 0 if the calculation above leads to an NaN value, which happens when n_ji is 0
-    if(is.na(numerators)) numerators <- 0
-    
-    return(numerators)
-    
-  })))
-  
-  
-  # Calculate information in clusters and classes separately (each half of the denominator that goes into the square root expression)
-  classes <- unique(X[[class_col_nm]])
-  clusters <- unique(X[[cluster_col_nm]])
-  
-  sum_clusters <- sum(unlist(lapply(1:length(clusters), function(j){
-    
-    # Get the number of vocalizations from cluster j
-    tmp_cluster <- clusters[j] # passing clusters[j] directly to the conditional statement sometimes fails
-    n_j <- X %>% 
-      dplyr::filter(!!sym(cluster_col_nm) == tmp_cluster) %>% 
-      nrow(.)
-    
-    return( n_j * log( n_j / N ) )
-    
-  })))
-  
-  sum_classes <- sum(unlist(lapply(1:length(classes), function(i){
-    
-    # Get the number of vocalizations from class i
-    tmp_class <- classes[i]
-    
-    n_i <- X %>% 
-      dplyr::filter(!!sym(class_col_nm) == tmp_class) %>% 
-      nrow(.)
-    
-    return( n_i * log( n_i / N ) )
-    
-  })))
-  
-  # denominator <- sqrt( sum_clusters * sum_classes )
-  if(numerator == 0 | (sqrt( sum_clusters * sum_classes )) == 0){
-    
-    nmi <- 0
-    
-  } else {
-    
-    nmi <- numerator / sqrt( sum_clusters * sum_classes )
-    
-  }
-  
-  return( nmi )  
-  
-}
-
-
-```
-
-Testing the NMI function above.
-```{r}
-
-# Testing: NMI should be 1, looks good
-X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(seq(1, 5, 1), each = 2))
-X
-
-nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
-
-# Testing: NMI should be also be 1, looks good
-X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rev(rep(seq(1, 5, 1), each = 2)))
-X
-
-nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
-
-# Testing: NMI should be 0, looks good
-X <- data.frame(classes = rep(seq(1, 5, 1), each = 2), clusters = rep(1, 10))
-X
-
-nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
-
-# Testing: NMI should be closer to 1 when the number of clusters is close to the number of classes, even if the clusters were randomly assigned and classes are split between clusters.
-X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:256, 512, replace = TRUE))
-X
-
-nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
-
-aricode::NMI(X$classes, X$clusters, variant = "sqrt") # this is the variant that should be the same as my function above
-
-# Testing: NMI should be closer to 0 when the number of clusters is not close to the number of classes, and when the clusters were randomly assigned
-X <- data.frame(classes = rep(seq(1, 256, 1), each = 2), clusters = sample(1:10, 512, replace = TRUE))
-X
-
-nmi(X, class_col_nm = "classes", cluster_col_nm = "clusters")
-
-# I get the same NMI result using the aricode package
-aricode::NMI(X$classes, X$clusters, variant = "sqrt")
-
-```
-
-TKTK talk to Vanessa about this behavior of NMI (high values even when cluster labels are randomly assigned) while interpreting results!
+In the code below, I handled negative SPCC values by setting these to the minimum observed non-zero SPCC value in the whole matrix. I handled values of 1 off of the diagonal by setting these to the maximum observed value less than 1 in the full matrix. I used similar guidelines for values of 0 off of the diagonal for the edit distance.
 
 # Synthetic experiments over varying social environment characteristics and information encoding rules
 
-How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use traditional bioacoustics tools and Normalized Mutual Information to decode information encoded at the group and individual levels.
+How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use the percent recovery of original labels by clustering algorithms (performed on MDS feature spaces derived from the edit distance computed amongst strings and spectrographic cross-correlation computed amongst synthetic vocalizations) to ask how well we "recovered" information encoded at the group and individual levels.
 
-Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each NMI calculation. Update the loop so that a selection table is made and SPCC is performed each time a new call dataset is generated. Then save the selection table and SPCC matrix but remove audio files before initiating the subsequent iteration. The duration of the audio files impacts the computational time (files over 400 ms take a long time to generate). The number of calls that will be compared in SPCC also increases computational time, as well as the number of treatments and the number of iterations per treatment.
+Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each percent recovery calculations. In the looping structure below, a selection table is made and the edit distance and SPCC are performed each time a new call dataset is generated. Audio files are written to a directory associated with the project and removed before initiating the subsequent iteration. The duration of the audio files significantly impacts the computational time (files over 400 ms take a long time to generate). Also, long strings written to short duration audio files do not sound or look biologically relevant, so we are using a short string length below. The number of calls that will be compared by the edit distance and SPCC also increases computational time, as well as the number of treatments (social conditions, information encoding) and the number of iterations per treatment.
 ```{r}
 
 #################### Information encoding and social environment treatments #################### 
 
-# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 3 social environment treatments (few individuals, dozens of individuals, many individuals) that follow predictions for how many unique vocal signatures can be created at each social level from an information theory perspective
-
-# The number of unique signatures that can be created at either social level can be calculated as the number of symbols used to encode information (we use 3 letters for 1-base Parsons code with three possible directions, so this will always be three) to the power of the number of positions that can be modified to encode information. For the latter, we will use 0, 2, 4, 6 characters over which information will be encoded in each social level (although in reverse order for one social level) to facilitate encoding both types of information in synthetic vocal signals, as well as two information encoding treatments that contain information at one social level only. These numbers also facilitate using an even number of characters for information encoding that is required by the current version of the paRsynth package.
-
-# These are the number of unique signatures we should expect at either social level given the number of unique symbols and string positions for information encoding
-# For instance, when devoting 2 positions to individual information, there are 9 possible unique signatures at that social level. But when the number of positions devoted to individual information encoding rises to 4, this opens up 81 total unique individual signatures
-sapply(c(0, 2, 4, 6), function(x){ 3^x })
+# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create 4 social environment treatments (few individuals, intermediate numbers of individuals, dozens of individuals, many individuals) that follow predictions for how many unique vocal signatures can be created at each social level from an information theory perspective (which will be addressed directly in another project/paper).
 
 individual_information <- c(0, 2, 4, 6)
 group_information <- rev(individual_information)
@@ -294,14 +163,14 @@ individual_information
 group_information
 
 # Choose a sparse social condition in which we expect to have highly distinguishable group and individual signatures even with small amounts of information encoding
-# Then choose an intermediate social condition that will require more positions devoted to information encoding to generate sufficiently distinguishable signatures at each social level as the number of individuals increases
+# Then choose an intermediate social conditions that will require more positions devoted to information encoding to generate sufficiently distinguishable signatures at each social level as the number of individuals increases
 # Finally choose dense social conditions that max out the number of unique signatures possible with lower amounts of information encoding. In other words, as there are more groups or individuals within groups, more positions within a string need to be devoted to group and individual information encoding in order to ensure that each group or individual is more likely to have a unique signature. At small amounts of information encoding, the number of possible unique signatures will be fully maxed out when there are many groups and individuals within groups
 social_envts <- c("Sparse", "Intermediate", "Crowded", "Dense")
 n_groups <- c(2, 6, 10, 20)
 n_individuals <- c(2, 6, 10, 20)
 
 # Keep the number of calls per individual constant across iterations
-# Using a single call per individual would increase computational efficiency, but we need more than 1 call per individual in order to calculate individual-level NMI
+# Using a single call per individual would increase computational efficiency, but it is helpful to include within-individual variation in our downstream analyses of how well original information was "recovered"
 n_calls <- 2
 
 # Check the total number of call comparisons in the largest social environment treatment, which will need to run 5 times (one per information encoding treatment)
@@ -326,9 +195,7 @@ information <- data.table::rbindlist(pblapply(1:length(social_envts), function(j
       individual_information = individual_information[i],
       # These values represent how much of the total social information encoding length is taken up by information encoding at either social level. When this value is 1, all 6 characters are used to encode group information. When this value is less than 0.5, more characters are devoted to individual information encoding. When this value is 0, all characters are used for individual information encoding. These two columns can be used as the x-axis in figures below (and maybe we can have one x-axis on the bottom, one on the top)
       group_information_proportion = group_information[i] / max(group_information),
-      individual_information_proportion = individual_information[i] / max(individual_information),
-      possible_unique_group_signatures = (symbols ^ group_information[i]),
-      possible_unique_individual_signatures = (symbols ^ individual_information[i])
+      individual_information_proportion = individual_information[i] / max(individual_information)
     )
     
     return(tmp)
@@ -376,7 +243,7 @@ system.time(
       cat(paste("individual_information = ", individual_information[i], "\n", sep = ""))
       
       # Iterating over the number of replicates per treatment combination
-      nmi_res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
+      res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
         
         ### Step 1: Generate strings that represent calls
         calls <- suppressMessages(
@@ -761,21 +628,22 @@ system.time(
         
         # glimpse(mds_edit)
         
-        ### Step 10: Perform clustering and Normalized Mutual Information (NMI) calculations
-        # In order to compute NMI at two social levels (individual and group), we need to run clustering at these two levels
+        ### Step 10: Perform clustering and percent recovery calculations
+        # In order to calculate percent recovery at two social levels (individual and group), we need to run clustering at these two levels
         
-        ### Group-level clustering and NMI calculations
+        ### Group-level clustering and percent recovery calculations
         
         # Set the number of clusters to the number of unique groups
         num_clusters <- length(unique(mds_spcc$group_ID))
         # num_clusters
         
+        # TKTK change to GMMs
         # Perform k-means clustering with this number of clusters on the SPCC and edit distance feature spaces
         # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
         spcc_kmeans_grp <- kmeans(mds_spcc[, grep("X|Y", names(mds_spcc))], centers = num_clusters)
         # str(spcc_kmeans_grp)
         
-        # Compute NMI at the group-level with k-means clustering on SPCC MDS features
+        # Calculate percent recovery of original group-level labels with k-means clustering on SPCC MDS features
         tmp_mds_spcc <- mds_spcc %>% 
           dplyr::mutate(
             clusters = spcc_kmeans_grp$cluster
@@ -783,24 +651,16 @@ system.time(
         
         spcc_nmi_grp <- nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "clusters")
         
-        # Compute NMI at the group-level with k-means clustering on edit distance MDS features
+        # Calculate percent recovery of original group-level labels with k-means clustering on edit distance MDS features
         edit_kmeans_grp <- kmeans(mds_edit[, grep("X|Y", names(mds_edit))], centers = num_clusters)
         # str(edit_kmeans_grp)
         
-        # Compute NMI at the group-level with k-means clustering on edit distance MDS features
         tmp_mds_edit <- mds_edit %>% 
           dplyr::mutate(
             clusters = edit_kmeans_grp$cluster
           )
         
         edit_nmi_grp <- nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "clusters")
-        
-        # NMI should be 1 when comparing the same vector to itself, looks good
-        # nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
-        # nmi(X = tmp_mds_spcc, class_col_nm = "clusters", cluster_col_nm = "clusters")
-        # nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "group_ID")
-        # nmi(X = tmp_mds_edit, class_col_nm = "clusters", cluster_col_nm = "clusters")
-        
         
         ### Individual-level clustering and NMI calculation
         
@@ -811,7 +671,7 @@ system.time(
         
         # num_clusters
         
-        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation. Use SPCC MDS features here
+        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the percent recovery calculations. Use SPCC MDS features here
         # n <- 1 # testing
         spcc_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
           
@@ -831,13 +691,13 @@ system.time(
           
           # glimpse(tmp_mds)
           
-          # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+          # Calculate percent recovery of original individual-level labels, which means that the original classes are the group plus individual identity
           return(nmi(X = tmp_mds, class_col_nm = "individual_ID", cluster_col_nm = "clusters"))
           
         }))
         
         
-        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the NMI calculation. Use edit distance MDS features here
+        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the percent recovery calculation. Use edit distance MDS features here
         # n <- 2 # testing
         edit_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
           
@@ -857,7 +717,7 @@ system.time(
           
           # glimpse(tmp_mds)
           
-          # Compute NMI at the individual-level, which means that the original classes are the group plus individual identity
+          # Calculate percent recovery of original individual-level labels, which means that the original classes are the group plus individual identity
           return(nmi(X = tmp_mds, class_col_nm = "individual_ID", cluster_col_nm = "clusters"))
           
         }))
@@ -865,7 +725,7 @@ system.time(
         # edit_kmeans_ind_cg
         
         
-        nmi_results <- data.frame(
+        results <- data.frame(
           social_envt_treatment = social_envts[z],
           group_information = group_information[i], 
           individual_information = individual_information[i],
@@ -881,16 +741,16 @@ system.time(
           notes = paste(neg_notes, one_notes, sep = "; ")
         )
         
-        # nmi_results
+        # results
         
-        ### Step 11: return NMI results
-        return(nmi_results)
+        ### Step 11: return results
+        return(results)
         
       }))
       
-      ### Step 12: Write out the NMI results for the given treatment combination across iterations
-      nmi_res_tmp %>% 
-        write.csv(file.path(data_path, paste("NMI_results_", paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
+      ### Step 12: Write out the results for the given treatment combination across iterations
+      res_tmp %>% 
+        write.csv(file.path(data_path, paste("Percent_recovery_results_", paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
       
     })
     
@@ -904,24 +764,25 @@ system.time(
 
 ```
 
-Checking the NMI results.
+Checking the percent recovery results.
 ```{r}
-nmi_files <- list.files(path = data_path, pattern = "NMI_")
-nmi_files
 
-nmi_res <- data.table::rbindlist(pblapply(1:length(nmi_files), function(n){
+files <- list.files(path = data_path, pattern = "Percent_recovery_")
+files
+
+res <- data.table::rbindlist(pblapply(1:length(files), function(n){
   
-  return(read.csv(file.path(data_path, nmi_files[n])))
+  return(read.csv(file.path(data_path, files[n])))
   
 }), fill = TRUE)
 
-glimpse(nmi_res)
+glimpse(res)
 
-View(nmi_res)
+View(res)
 
-# Checking that there are no NMI values above 1, looks good
-any(nmi_res$NMI_group > 1)
-any(nmi_res$NMI_individual_max > 1)
+# Checking that there are no percent recovery values above 1
+any(res$group > 1)
+any(res$individual_max > 1)
 
 ```
 
