@@ -21,7 +21,7 @@ Load packages and set paths.
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR", "ggpubr", "paletteer")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -43,7 +43,8 @@ Initialize working directories for data on your local machine.
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -171,4 +172,68 @@ The image files were uploaded to a shared Google Drive folder that also contains
 
 # Step 4: Read the spectrogram image files back in for resizing and adding custom color borders.
 
-We need to decide whether we want a single figure or one per dataset, and then how many individuals and calls per individual to use per lexicon. Then we need to select the specific files that will be used and modified. 
+TKTK Brittany working here. Need to change to making two different lexicon figures:
+
+We need to decide whether we want a single figure or one per dataset, and then how many individuals and calls per individual to use per lexicon. 
+
+Here, have a seperate pipeline for generating figure-quality spectros (using ggspectro)
+Step 1: select which spectrograms to use (can use based spectros to make this choice)
+
+Step 2: generate new image files of spectros using ggspectro (line 150 in example code to ~200). These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
+
+Iterate loop over the 16 files selected, pull from selection table (in each iteration pull the name from the selection table). next step, read in the audio file for that call. Then run ggspectro code (189-198 in example code). 
+gg <- ggspectro(wave = WAV, f = WAV@samp.rate, ovlp = 90)+ 
+^^WAV here stands for the object i create when reading in audio file for selected call
+doublecheck axis limits and brteaks in those limits (for example file is closer to .8 (in limits specified))
+
+#Step 5 select spectrograms to use
+
+We need calls from two datasets: Group Dataset and Individual Dataset. For each dataset, we need vocalizations from two sample groups. We will sample from 2 individuals in those two groups, and samples 2 vocalizations per individual. In total, we need 8 vocalizations per dataset, 16 vocalizations total.
+
+I chose the following:
+
+Group dataset
+Group1: Individual 1 (calls 1 and 3), Individual 3 (calls 1 and 3)
+Group 2: Individual 4 (calls 1 and 2), Individual 6 (calls 1 and 2)
+
+Individual Information Dataset
+Group 4: Individual 6 (calls 2 and 4), Individual 10 (calls 1 and 3)
+Group 5: Individual 9 (calls 4 and 5), Individual 10 (calls 4 and 5)
+
+So, Group Data Set
+GroupMembership_Group1_Indiv1_Call1
+GroupMembership_Group1_Indiv1_Call3
+GroupMembership_Group1_Indiv3_Call1
+GroupMembership_Group1_Indiv3_Call3
+
+GroupMembership_Group2_Indiv4_Call1
+GroupMembership_Group2_Indiv4_Call2
+GroupMembership_Group2_Indiv6_Call1
+GroupMembership_Group2_Indiv6_Call2
+
+Individual Data Set
+IndividualIdentity_Group4_Indiv6_Call2
+IndividualIdentity_Group4_Indiv6_Call4
+IndividualIdentity_Group4_Indiv10_Call1
+IndividualIdentity_Group4_Indiv10_Call3
+
+IndividualIdentity_Group5_Indiv9_Call4
+IndividualIdentity_Group5_Indiv9_Call5
+IndividualIdentity_Group5_Indiv10_Call4
+IndividualIdentity_Group5_Indiv10_Call5
+
+```{r}
+
+#Add colored borders by dataset
+```
+
+#graph
+
+Color Palette should be paletteer ("nationalparkcolors::Arches")
+6 colors, hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF TKTK need to add this chunk to figure codes so that all figures use the same scheme
+```{r}
+my_col <- paletteer::paletteer_d("nationalparkcolors::Arches")
+print (my_col)
+```
+ 
+
