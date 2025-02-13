@@ -170,27 +170,11 @@ invisible(file.rename(file.path(images_path, imgs), file.path(images_path, new_n
 
 The image files were uploaded to a shared Google Drive folder that also contains the audio files.
 
-# Step 4: Read the spectrogram image files back in for resizing and adding custom color borders.
 
-TKTK Brittany working here. Need to change to making two different lexicon figures:
-
-We need to decide whether we want a single figure or one per dataset, and then how many individuals and calls per individual to use per lexicon. 
-
-Here, have a seperate pipeline for generating figure-quality spectros (using ggspectro)
-Step 1: select which spectrograms to use (can use based spectros to make this choice)
-
-Step 2: generate new image files of spectros using ggspectro (line 150 in example code to ~200). These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
-
-Iterate loop over the 16 files selected, pull from selection table (in each iteration pull the name from the selection table). next step, read in the audio file for that call. Then run ggspectro code (189-198 in example code). 
-gg <- ggspectro(wave = WAV, f = WAV@samp.rate, ovlp = 90)+ 
-^^WAV here stands for the object i create when reading in audio file for selected call
-doublecheck axis limits and brteaks in those limits (for example file is closer to .8 (in limits specified))
-
-#Step 5 select spectrograms to use
-
+# Step 4: Select Spectrograms to use.
 We need calls from two datasets: Group Dataset and Individual Dataset. For each dataset, we need vocalizations from two sample groups. We will sample from 2 individuals in those two groups, and samples 2 vocalizations per individual. In total, we need 8 vocalizations per dataset, 16 vocalizations total.
 
-I chose the following:
+I (Brittany) chose the following:
 
 Group dataset
 Group1: Individual 1 (calls 1 and 3), Individual 3 (calls 1 and 3)
@@ -222,18 +206,89 @@ IndividualIdentity_Group5_Indiv9_Call5
 IndividualIdentity_Group5_Indiv10_Call4
 IndividualIdentity_Group5_Indiv10_Call5
 
+
+#Step 5: Read the spectrogram image files back in for resizing to make publication quality
+
+TKTK Brittany working here. 
+
+Step 2: generate new image files of spectros using ggspectro (150 - 200 in the example code). These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
+
+Iterate loop over the 16 files selected, pull from selection table (in each iteration pull the name from the selection table). next step, read in the audio file for that call. Then run ggspectro code (189-198 in example code).
+
+gg <- ggspectro(wave = WAV, f = WAV@samp.rate, ovlp = 90)+ 
+^^WAV here stands for the object i create when reading in audio file for selected call
+doublecheck axis limits and brteaks in those limits (for example file is closer to .8 (in limits specified))
+
 ```{r}
 
-#Add colored borders by dataset
+## First make the spectrograms for the Group Information Lexicon 
+
+#generate new image files of spectros using ggspectro. These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
+#x label formatter
+s_formatter <- function(x){
+  # lab <- paste0(x, " s")
+  lab <- sprintf("%0.2f", x)
+}
+
+# y label formatter
+khz_formatter <- function(y){
+  lab <- paste0(y)
+  # lab <- paste0(y, " kHz")
+}
+
+#kept this loop the same from code Grace used previously, setting should transfer over to these spectros (thigs like font size ect)
+oscillo_theme_dark <- theme(
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.background = element_rect(fill = "transparent"),
+  panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
+  axis.line = element_line(size = 0.15),
+  legend.position = "none",
+  plot.background = element_rect(fill = "white"),
+  plot.margin = unit(c(0, 0, 0.1, 0.1), "lines"), # top, right, bottom, left
+  axis.title = element_blank(),
+  axis.text = element_text(size = 6.5, color = "black", vjust = 0),
+  axis.ticks = element_line(color = "black", size = 0.15)
+)
+
+gray_colors <- reverse.gray.colors.2(12)
+
+x11()
+
+# TKTK HELP, I can't figure out how to pull form the selection table or how to iterate this
+#Iterate loop over the 16 files selected, pull from selection table (in each iteration pull the name from the selection table). next step, read in the audio file for that call. Then run ggspectro code (189-198 in example code).
+
+# attributes(synthetic_call_metadata) #audio_file_name
+
+
+# The native range calls, x-axis limits up to 0.24 s
+invisible(pblapply(1:nrow(tmp_est_nat), function(w){
+  
+  gg <- ggspectro(wave = attr(tmp_est_nat, "wave.objects")[[w]], f = attr(tmp_est_nat, "wave.objects")[[w]]@samp.rate, ovlp = 90)+ 
+    scale_x_continuous(limits = c(0.04, 0.26), breaks = seq(from = 0.04, to = 0.24, by = 0.04), labels = s_formatter, expand = c(0, 0))+
+    scale_y_continuous(limits = c(0.5, 6.75), breaks = seq(from = 1, to = 6, by = 1), expand = c(0, 0), labels = khz_formatter, position = "left")+
+    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
+    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0)) +
+    oscillo_theme_dark
+  
+  print(gg)
+  
+  ggsave(file.path(gpath, paste(tmp_est_nat$sound.files[w], "-1.jpeg", sep = "")), dpi = 300, units = "px", width = 425, height = 300)
+  
+}))
 ```
 
-#graph
+#Step 6: Adding border to individuals and groups
 
 Color Palette should be paletteer ("nationalparkcolors::Arches")
 6 colors, hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF TKTK need to add this chunk to figure codes so that all figures use the same scheme
+
 ```{r}
-my_col <- paletteer::paletteer_d("nationalparkcolors::Arches")
-print (my_col)
+
+#my_col <- paletteer::paletteer_d("nationalparkcolors::Arches")
+#print (my_col)
+
 ```
  
 
