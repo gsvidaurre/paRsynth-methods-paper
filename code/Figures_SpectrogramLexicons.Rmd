@@ -6,7 +6,7 @@ date: "2024-11-20"
 
 Purpose: Here we generate spectrogram image files for two synthetic datasets of vocal identity signals with more group than individual information an vice versa. We use the `warbleR` package to generate spectrograms. These original spectrogram image files can be read back into R for further modification (e.g. resizing, adding color borders) prior to creating composite figures of lexicons in Inkscape.
 
-For this script to work, you will need to either run the script `Generate_SyntheticDatasets.Rmd` to create the synthetic vocal identity signals, or you will need to access files we have already created that are stored in a shared location. If you want to reproduce the same results, then we recommend using the files stored in a shared location.
+For this script to work, you will need to either run the script `Generate_SyntheticDatasets.Rmd` to create the synthetic vocal identity signals, OR you will need to access files we have already created that are stored in a shared location. If you want to reproduce the same results, then we recommend using the files stored in a shared location.
 
 ```{r setup, include = FALSE}
 
@@ -171,7 +171,7 @@ invisible(file.rename(file.path(images_path, imgs), file.path(images_path, new_n
 The image files were uploaded to a shared Google Drive folder that also contains the audio files.
 
 
-# Step 4: Select Spectrograms to use.
+# Step 4: Select Spectrograms to use, read them
 We need calls from two datasets: Group Dataset and Individual Dataset. For each dataset, we need vocalizations from two sample groups. We will sample from 2 individuals in those two groups, and samples 2 vocalizations per individual. In total, we need 8 vocalizations per dataset, 16 vocalizations total.
 
 I (Brittany) chose the following:
@@ -206,10 +206,11 @@ IndividualIdentity_Group5_Indiv9_Call5
 IndividualIdentity_Group5_Indiv10_Call4
 IndividualIdentity_Group5_Indiv10_Call5
 
-
 #Step 5: Read the spectrogram image files back in for resizing to make publication quality
 
-TKTK Brittany working here. 
+Before you read create this figure, you will need to manually make a folder in the audio folder called LexiconFigureFiles, then copy the selected files to that folder. After having done that, you can set the path to this folder and read in all these files, as below
+
+
 
 Step 2: generate new image files of spectros using ggspectro (150 - 200 in the example code). These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
 
@@ -220,6 +221,61 @@ gg <- ggspectro(wave = WAV, f = WAV@samp.rate, ovlp = 90)+
 doublecheck axis limits and brteaks in those limits (for example file is closer to .8 (in limits specified))
 
 ```{r}
+
+# First, read in audio files of selected calls, moved to the LexiconFigureFiles folder
+lexicon_path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset/audio/LexiconFigureFiles" #Brittany's path
+
+lexicon_wavs <- list.files(lexicon_path, pattern = ".wav$")
+
+
+  # manually double check that the files listed above are in lexicon_wavs, looks good
+# glimpse(lexicon_wavs)
+
+# Next, iterate over audio files to generate 1 high quality spectrogram and image file per vocalization 
+
+w <-1 # freeze loop in the first iteration
+
+# set color palette for spectrograms
+gray_colors <- reverse.gray.colors.2(12)
+
+lapply(X = 1:length(lexicon_wavs), FUN = function (w){
+  
+  # read in the audio file, return a wave object
+  temp_wav <- tuneR::readWave(file.path(lexicon_path, lexicon_wavs{w}))
+  #sstr(tmp_wav)
+  
+  # use ggspectro to generate a spectrogram
+  # TKTK need to mess with setting, the spectrograms look funky
+  gg <- ggspectro(wave = tmp_wav, f = tmp_wav@sample.rate, ovlp = 90) +
+    
+    # plot amplitude values or cells in the spectrogram
+    geom_raster(aes(fill = amplitude, hjust = 0, vjust = 0, interpolate = TRUE)) +
+    
+    # control the x-axis aesthetics
+    scale_x_continuous(limits = c(0.1, 0.8), breaks = seq(0.1, 0.8, 0.2), labels = seq(0.1, 0.8, 0.2)) +
+    
+     # Control the y-axis aesthetics
+    scale_y_continuous(limits = c(0, 16), breaks = seq(0, 16, 2), labels = seq(0, 16, 2)) +
+    
+    # We want spectrograms to be in grayscale
+    # Change the values of limits to change how colors are assigned across amplitude bins
+    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0))
+  
+})
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## First make the spectrograms for the Group Information Lexicon 
 
