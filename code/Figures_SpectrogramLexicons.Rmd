@@ -21,7 +21,7 @@ Load packages and set paths.
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR", "ggpubr", "paletteer")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR", "ggpubr", "paletteer", "magick")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -43,8 +43,8 @@ Initialize working directories for data on your local machine.
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "~/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -78,6 +78,21 @@ images_path <- file.path(path, analysis_dir, images_dir)
 if(!dir.exists(images_path)){ 
   dir.create(images_path)
 }
+
+# Specify a folder inside the analysis directory where images for figures will be written out/read in
+figures_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figures_path <- file.path(path, analysis_dir, figures_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figures_path)){ 
+  dir.create(figures_path)
+}
+
+# Create new lexicon path (created manually)
+lexicon_path <- file.path(audio_path, "LexiconFigureFiles")
+lexicon_path
 
 ```
 
@@ -223,30 +238,48 @@ doublecheck axis limits and brteaks in those limits (for example file is closer 
 ```{r}
 
 # First, read in audio files of selected calls, moved to the LexiconFigureFiles folder
-lexicon_path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset/audio/LexiconFigureFiles" #Brittany's path
 
 lexicon_wavs <- list.files(lexicon_path, pattern = ".wav$")
+lexicon_wavs
 
-
-  # manually double check that the files listed above are in lexicon_wavs, looks good
+# manually double check that the files listed above are in lexicon_wavs, looks good
 # glimpse(lexicon_wavs)
+
+
+# Generate new image files of spectros using ggspectro. These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
+
+# x label formatter function to control the number of decimal places for each axis text label
+s_formatter <- function(x){
+  # lab <- paste0(x, " s")
+  lab <- sprintf("%0.2f", x)
+}
+
+# y label formatter function to control the aesthetics of the frequency axis text
+khz_formatter <- function(y){
+  lab <- paste0(y)
+  # lab <- paste0(y, " kHz")
+}
+
+# Set color palette for spectrograms
+gray_colors <- reverse.gray.colors.2(12)
 
 # Next, iterate over audio files to generate 1 high quality spectrogram and image file per vocalization 
 
-w <-1 # freeze loop in the first iteration
+w <- 1 # freeze loop in the first iteration
 
-# set color palette for spectrograms
-gray_colors <- reverse.gray.colors.2(12)
-
-lapply(X = 1:length(lexicon_wavs), FUN = function (w){
+# invisible() silences messsages printed to the console
+invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
+  
+  # The current audio file, testing
+  lexicon_wavs[w]
   
   # read in the audio file, return a wave object
-  temp_wav <- tuneR::readWave(file.path(lexicon_path, lexicon_wavs{w}))
-  #sstr(tmp_wav)
+  tmp_wav <- tuneR::readWave(file.path(lexicon_path, lexicon_wavs[w]))
+  # str(tmp_wav)
   
   # use ggspectro to generate a spectrogram
   # TKTK need to mess with setting, the spectrograms look funky
-  gg <- ggspectro(wave = tmp_wav, f = tmp_wav@sample.rate, ovlp = 90) +
+  gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
     
     # plot amplitude values or cells in the spectrogram
     geom_raster(aes(fill = amplitude, hjust = 0, vjust = 0, interpolate = TRUE)) +
@@ -254,97 +287,161 @@ lapply(X = 1:length(lexicon_wavs), FUN = function (w){
     # control the x-axis aesthetics
     scale_x_continuous(limits = c(0.1, 0.8), breaks = seq(0.1, 0.8, 0.2), labels = seq(0.1, 0.8, 0.2)) +
     
-     # Control the y-axis aesthetics
+    # Control the y-axis aesthetics
     scale_y_continuous(limits = c(0, 16), breaks = seq(0, 16, 2), labels = seq(0, 16, 2)) +
     
     # We want spectrograms to be in grayscale
     # Change the values of limits to change how colors are assigned across amplitude bins
-    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0))
-  
-})
-})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## First make the spectrograms for the Group Information Lexicon 
-
-#generate new image files of spectros using ggspectro. These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
-#x label formatter
-s_formatter <- function(x){
-  # lab <- paste0(x, " s")
-  lab <- sprintf("%0.2f", x)
-}
-
-# y label formatter
-khz_formatter <- function(y){
-  lab <- paste0(y)
-  # lab <- paste0(y, " kHz")
-}
-
-#kept this loop the same from code Grace used previously, setting should transfer over to these spectros (thigs like font size ect)
-oscillo_theme_dark <- theme(
-  panel.grid.major.y = element_blank(),
-  panel.grid.major.x = element_blank(),
-  panel.grid.minor = element_blank(),
-  panel.background = element_rect(fill = "transparent"),
-  panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
-  axis.line = element_line(size = 0.15),
-  legend.position = "none",
-  plot.background = element_rect(fill = "white"),
-  plot.margin = unit(c(0, 0, 0.1, 0.1), "lines"), # top, right, bottom, left
-  axis.title = element_blank(),
-  axis.text = element_text(size = 6.5, color = "black", vjust = 0),
-  axis.ticks = element_line(color = "black", size = 0.15)
-)
-
-gray_colors <- reverse.gray.colors.2(12)
-
-x11()
-
-# TKTK HELP, I can't figure out how to pull form the selection table or how to iterate this
-#Iterate loop over the 16 files selected, pull from selection table (in each iteration pull the name from the selection table). next step, read in the audio file for that call. Then run ggspectro code (189-198 in example code).
-
-# attributes(synthetic_call_metadata) #audio_file_name
-
-
-# The native range calls, x-axis limits up to 0.24 s
-invisible(pblapply(1:nrow(tmp_est_nat), function(w){
-  
-  gg <- ggspectro(wave = attr(tmp_est_nat, "wave.objects")[[w]], f = attr(tmp_est_nat, "wave.objects")[[w]]@samp.rate, ovlp = 90)+ 
-    scale_x_continuous(limits = c(0.04, 0.26), breaks = seq(from = 0.04, to = 0.24, by = 0.04), labels = s_formatter, expand = c(0, 0))+
-    scale_y_continuous(limits = c(0.5, 6.75), breaks = seq(from = 1, to = 6, by = 1), expand = c(0, 0), labels = khz_formatter, position = "left")+
-    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
     scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-30, 0)) +
-    oscillo_theme_dark
+    
+    # Use the theme function above to modify the overall plot aesthetics
+    theme(
+      # Use element_blank() to remove grid lines
+      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent"),
+      panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
+      axis.line = element_line(linewidth = 0.15),
+      legend.position = "none",
+      plot.background = element_rect(fill = "white"),
+      # Control the white space around the figure in the resulting image file
+      plot.margin = unit(c(0, 0, 0.1, 0.1), "lines"), # top, right, bottom, left
+      # Turn off the axis titles, which should remove titles for all 3 axes, including amplitude and the amplitude scale bar
+      axis.title = element_blank(),
+      # Control the size of the x and y-axis text 
+      axis.text = element_text(size = 6.5, color = "black", vjust = 0),
+      # Control the size of the axis tick lines
+      axis.ticks = element_line(color = "black", linewidth = 0.15)
+    )
   
+  # When plots are created inside of an apply loop, you must save the plot as an abject and then explicitly print it so that the plot appears in the graphics device
   print(gg)
   
-  ggsave(file.path(gpath, paste(tmp_est_nat$sound.files[w], "-1.jpeg", sep = "")), dpi = 300, units = "px", width = 425, height = 300)
+  # Once the plot is generated in the graphics device, you can save as an an image file on your computer using ggsave()
+  # Substitute the ".wav" extension with the image file extension we will use, with gsub()
+  # gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
+  # The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
+  ggsave(filename = file.path(figures_path, gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w])), units = "in", width = 2, height = 2, dpi = 300)
   
 }))
+
 ```
 
-#Step 6: Adding border to individuals and groups
+#Step 6: Adding colored borders to spectrogram image files by individual and group
 
 Color Palette should be paletteer ("nationalparkcolors::Arches")
 6 colors, hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF TKTK need to add this chunk to figure codes so that all figures use the same scheme
 
+Add colors by group, and hues within colors indicate individual. The easiest way to create hues will be to use the same hex code for group, but change the transparency using scales::alpha().
+
+Perform the looping below once per dataset: Group information, then individual information.
 ```{r}
 
-#my_col <- paletteer::paletteer_d("nationalparkcolors::Arches")
-#print (my_col)
+# Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
+cols <- paletteer::paletteer_d("nationalparkcolors::Arches")
+cols
+
+# Generate a list of audio or image file names that will be used to add colored borders by group and individual within a group. This list has 4 vectors, 1 vector for each individual. We will need 2 group colors and 2 hues within each group color. We will append the pattern ".jpeg" for the file extension to the name of each vocalizaition in the loop below
+img_list <- list(
+  # Group 1, Individual 1
+  c(
+    "GroupMembership_Group1_Indiv1_Call1",
+    "GroupMembership_Group1_Indiv1_Call3"
+    ),
+  # Group 1, Individual 3
+  c(
+    "GroupMembership_Group1_Indiv3_Call1",
+    "GroupMembership_Group1_Indiv3_Call3"
+  ),
+  # Group 2, Individual 4
+  c(
+    "GroupMembership_Group2_Indiv4_Call1",
+    "GroupMembership_Group2_Indiv4_Call2"
+  ),
+  # Group 2, Individual 6
+  c(
+    "GroupMembership_Group2_Indiv6_Call1",
+    "GroupMembership_Group2_Indiv6_Call2"
+  )
+)
+
+# This is a list with 4 elements, each element is a vector of the names of 2 vocalizations for 1 individual in a given group
+str(img_list)
+
+# Square brackets allow you to index objects by a numeric value. But a single pair of square brackets applied to a list doesn't remove the list structur
+# img_list[1] # this is still a list!
+
+# You need to use two pairs of square brackets to extract a vector or another object from a list
+# img_list[[1]] # this is the vector that we want
+
+# To extract a single element from a vector inside of a list, you need to use both double and single brackets
+# This is the type of indexing that we're using below to pull the names of individual vocalizations from the list above
+# img_list[[1]][2] # This notation pulls the second element from the first vector in the list
+
+# We're using this list structure because colors correspond to individual information nested inside of group information. What that means is that we also need to specify colors in the same list structure, so we can map the names of vocalizations to the correct group color and individual level hue
+
+# TKTK consider changing the color used for 1 individual per group to be a darker hue of the same overall color outside of the palette chosen above, or something else.
+
+# Let's set Group 1 individuals to the first color (blue) or cols[1] and Group 2 individuals to the second color or cols[2]. Hues per individual within a group should be set using the scales::alpha() function. This vector of colors is a different object than the list above, here there is 1 color specified per individual
+cols_indivs <- c(
+  
+  # Group 1, Individual 1
+  scales::alpha(cols[1], alpha = 1),
+  
+  # Group 1, Individual 3
+  scales::alpha(cols[1], alpha = 0.25),
+  
+  # Group 2, Individual 4
+  scales::alpha(cols[2], alpha = 1),
+  
+  # Group 2, Individual 6
+  scales::alpha(cols[2], alpha = 0.25)
+)
+
+cols_indivs
+
+# Iterate over the list of vocalizations to map each vocalization back to the correct color and write out an updated image file with a colored border
+
+# i <- 2 # testing the loop in the first iteration, individuals or vectors in the list
+# z <- 1 # testing the loop in the first iteration, vocalizations or elements in each vector of the list
+
+# The outer loop with iterating variable i iterates over the length of img_list (4 individuals across 2 groups)
+invisible(pblapply(1:length(img_list), function(i){
+  
+  # cols_indivs[i]
+  
+  # The inner loop with iterating variable z iterates over the length of vector i of img_list (2 vocalizations for 1 individual)
+  lapply(1:length(img_list[[i]]), function(z){
+    
+    # Read in the original spectrogram image file
+    # Inside file.path(), paste the correct file extension back to end of the vocalization name to read in the image file
+    img <- magick::image_read(file.path(figures_path, paste(img_list[[i]][z], ".jpeg", sep = "")))
+  
+    # Add a colored border to the spectrogram object called "img" while making sure we're pulling the correct color and hue for this individual. Also specify the width of the border which appear to be in pixels, change those numbers passed to geometry to change the size of the border
+    
+    # Save the updated spectrogram with the colored border to a new spectrogram image file that has an updated name
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(figures_path, paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+    
+  })
+  
+}))
+
+# TKTK need to fix the fact that hues do NOT vary between individuals right now, but they should!!!
 
 ```
- 
 
+```{r}
+# 
+# Individual Data Set
+# IndividualIdentity_Group4_Indiv6_Call2
+# IndividualIdentity_Group4_Indiv6_Call4
+# IndividualIdentity_Group4_Indiv10_Call1
+# IndividualIdentity_Group4_Indiv10_Call3
+# 
+# IndividualIdentity_Group5_Indiv9_Call4
+# IndividualIdentity_Group5_Indiv9_Call5
+# IndividualIdentity_Group5_Indiv10_Call4
+# IndividualIdentity_Group5_Indiv10_Call5
+
+```
