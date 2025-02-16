@@ -745,16 +745,16 @@ system.time(
   
 )
 
-# On my laptop 3 social conditions and 4 information treatments with 1 iteration took about 11 minutes. 
-
-# Started a run of 4 social conditions, 4 information encoding treatments with 8 iterations each at 8:05 on 06 Feb 2025. The largest number of calls that will be compared in any one iteration will be 800 for the Dense social condition.
+# 4 social conditions, 4 information encoding treatments with 8 iterations each on evening of 15 Feb 2025. The largest number of calls that will be compared in any one iteration will be 800 for the Dense social condition. 10 hours on my Mac laptop.
+# user    system   elapsed 
+# 50690.847  7383.716 36639.766
 
 ```
 
 Checking the accuracy results.
 ```{r}
 
-files <- list.files(path = data_path, pattern = "Percent_recovery_")
+files <- list.files(path = data_path, pattern = "Accuracy_")
 files
 
 res <- data.table::rbindlist(pblapply(1:length(files), function(n){
@@ -767,9 +767,22 @@ glimpse(res)
 
 View(res)
 
-# Checking that there are no accuracy values above 1
-any(res$group > 1)
-any(res$individual_max > 1)
+# Check that there are no accuracy values above 1, looks good
+sapply(res %>% 
+         dplyr::select(names(.)[grep("accuracy", names(.))]), 
+       function(X){
+         any(X > 1)
+       }
+)
+
+# Check that there are no accuracy values below 0, looks good
+sapply(res %>% 
+         dplyr::select(names(.)[grep("accuracy", names(.))]), 
+       function(X){
+         any(X < 0)
+       }
+)
+
 
 ```
 
