@@ -5,7 +5,7 @@ output: html_document
 date: "2024-07-08"
 ---
 
-Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions written by Ari generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the percent recovery of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). 
+Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions written by Ari generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced 
 
 Below we iterate over social conditions and group versus individual information encoding at two social levels in character strings that will influence the distinctiveness or uniqueness of the strings and the resulting synthetic vocalizations at either social level. 
 
@@ -13,13 +13,11 @@ The pipeline below will allow us to indirectly address or compare how much infor
 
 TKTK updates to work on here:
 
-- Outline the research question better in the narrative text above
-- Remove all NMI function calls and results
-- Replace k-means clustering with Gaussian mixture models
-- Set the total number of clusters higher than the original number of classes per social level to avoid limiting clustering to the true number of classes
-- Calculate the percent recovery of original labels at each social level (how many original labels were predicted correctly and how many were not?), for both the edit distance and SPCC analyses
-- Then calculate the effect size of either the difference or the correlation between percent recovery by the edit distance and the SPCC analyses
-- Consider removing the information theory angle in the narrative text below since we will address the information theory side directly in another paper 
+- Then calculate the effect size of either the difference or the correlation between accuracy of call label predictions by the edit distance and the SPCC analyses, and possibly the effect size between predicting group vs individual identity labels too. Consider using Hedge's g because this does not assume that variances between the groups are equal and can account for unequal variances between groups by pooling the standard deviation. But Hedge's g may assume normality of the data, so Cliff's d could also be a good non-parametric choice (does not assume normally distributed data nor equal variance). 
+
+This code for calculating effect sizes should come after the pipeline below that ends with the accuracy calculation (following the looping structure). Read in the spreadsheets of results, then check the normality of all of the variables that will be used to caculate effect sizes, and check the equality of variances between variables too. Then use the normality and variance checks to decide which effect size calculations to use.
+
+- Remove the information theory angle in the narrative text below since we will move the information theory side focus to another paper 
 
 ```{r setup, include = FALSE}
 
@@ -34,7 +32,7 @@ Load packages and set cores.
 rm(list = ls())
 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -64,7 +62,7 @@ cores <- parallel::detectCores() - 4
 Initialize working directories for data and figures.
 ```{r}
 
-###################### MANULLY UPDATE EVERY TIME ##################################
+###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
@@ -116,7 +114,7 @@ if(!dir.exists(figure_path)){
 Source the paRsynth functions directly from the GitHub repository. 
 ```{r}
 
-###################### MANULLY UPDATE EVERY TIME ##################################
+###################### Manually update in every new coding session ##################################
 
 # Brittany's path should include "GitHub/paRsynth"
 # repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
@@ -147,9 +145,9 @@ In the code below, I handled negative SPCC values by setting these to the minimu
 
 # Synthetic experiments over varying social environment characteristics and information encoding rules
 
-How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use the percent recovery of original labels by clustering algorithms (performed on MDS feature spaces derived from the edit distance computed amongst strings and spectrographic cross-correlation computed amongst synthetic vocalizations) to ask how well we "recovered" information encoded at the group and individual levels.
+How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use the prediction accuracy of original labels by clustering algorithms (performed on MDS feature spaces derived from the edit distance computed amongst strings and spectrographic cross-correlation computed amongst synthetic vocalizations) to ask how well we "recovered" information encoded at the group and individual levels.
 
-Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each percent recovery calculations. In the looping structure below, a selection table is made and the edit distance and SPCC are performed each time a new call dataset is generated. Audio files are written to a directory associated with the project and removed before initiating the subsequent iteration. The duration of the audio files significantly impacts the computational time (files over 400 ms take a long time to generate). Also, long strings written to short duration audio files do not sound or look biologically relevant, so we are using a short string length below. The number of calls that will be compared by the edit distance and SPCC also increases computational time, as well as the number of treatments (social conditions, information encoding) and the number of iterations per treatment.
+Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each accuracy calculations. In the looping structure below, a selection table is made and the edit distance and SPCC are performed each time a new call dataset is generated. Audio files are written to a directory associated with the project and removed before initiating the subsequent iteration. The duration of the audio files significantly impacts the computational time (files over 400 ms take a long time to generate). Also, long strings written to short duration audio files do not sound or look biologically relevant, so we are using a short string length below. The number of calls that will be compared by the edit distance and SPCC also increases computational time, as well as the number of treatments (social conditions, information encoding) and the number of iterations per treatment.
 ```{r}
 
 #################### Information encoding and social environment treatments #################### 
@@ -194,8 +192,8 @@ information <- data.table::rbindlist(pblapply(1:length(social_envts), function(j
       group_information = group_information[i],
       individual_information = individual_information[i],
       # These values represent how much of the total social information encoding length is taken up by information encoding at either social level. When this value is 1, all 6 characters are used to encode group information. When this value is less than 0.5, more characters are devoted to individual information encoding. When this value is 0, all characters are used for individual information encoding. These two columns can be used as the x-axis in figures below (and maybe we can have one x-axis on the bottom, one on the top)
-      group_information_proportion = group_information[i] / max(group_information),
-      individual_information_proportion = individual_information[i] / max(individual_information)
+      group_information_proportion = round(group_information[i] / max(group_information), 2),
+      individual_information_proportion = round(individual_information[i] / max(individual_information), 2)
     )
     
     return(tmp)
@@ -210,22 +208,22 @@ View(information)
 
 # Then set other parameters for creating synthetic vocal identity signals
 # The length of the global header and tail should be the same across strings
-globals <- 12 # 6 characters for the global head, 6 for the global tail
+globals <- 8 # 4 characters for the global head, 4 for the global tail
 
 # Create variation within individuals, and this will be the same across strings created for the same individual
 random_variation <- 2
 
 # Initialize the total string length
 string_length <- (globals + max(group_information) + random_variation)
-string_length # 20
+string_length # 16
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
-iteratns <- 8
+iteratns <- 10
 # iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
-# z <- 3 # social environments
-# i <- 1 # information encoding treatments
+z <- 1 # social environments
+i <- 1 # information encoding treatments
 # n <- 1 # replicates or iterations
 
 # Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
@@ -326,7 +324,7 @@ system.time(
             tmp %>% 
               dplyr::filter(Call_ID == retain_calls$call_ID_1 | Call_ID == retain_calls$call_ID_2)
           )
-        
+          
         }))
         
         # glimpse(calls_filt)
@@ -541,29 +539,29 @@ system.time(
         edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
         
         # There is an earlier check built in above to avoid edit distance values of 0 for calls compared within an individual. But as the number of groups and individuals increases, the likelihood of generating the same call strings across individuals or groups increases, so the code below replaces edit distance values of 0 off of the diagonal with the minimum edit distance value in the matrix
-
+        
         # Check if there are values of 0 off of the diagonal in the edit distance matrix, which will happen by chance when the exact same strings are generated within an individual (even with the random variation)
         # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
         zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
-
+        
         if(zeroes > 0){
-
+          
           # Get the minimum non-zero similarity value in the matrix
           min_vals <- edit_mat[lower.tri(edit_mat)]
-
+          
           sec_min_val <- min(min_vals[min_vals > 0])
-
+          
           # Initialize a record of what was changed to save to the final results
           zero_notes <- paste(round(zeroes, 8), "% of all edit distance cells or", length(which(edit_mat[lower.tri(edit_mat)] == 0)), "unique comparisons were had an original edit distance value of 0 and were changed to the next minimum edit distance value of", round(sec_min_val, 8), sep = " ")
-
+          
           # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to the next highest similarity value in this matrix
           edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
           edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
-
+          
         } else {
-
+          
           zero_notes <- ""
-
+          
         }
         
         # These dimension names are helpful below
@@ -585,7 +583,7 @@ system.time(
         
         # str(edit_dist_mat)
         
-        # Reduce dimensionality of the SPCC and edit matrices using multidimensional scaling (MDS). Use the a different number of total MDS dimensions per treatment combination in order to reduce the stress of the final solution
+        # Reduce the dimensionality of the SPCC and edit matrices using multidimensional scaling (MDS). In other words, convert the proximity or distance space of these two matrices to a feature space that can be used in clustering approaches to predict labels of vocalizations. Use the a different number of total MDS dimensions per treatment combination in order to reduce the stress of the final solution
         if(social_envts[z] == "Sparse"){
           k <- 2
         } else {
@@ -628,41 +626,39 @@ system.time(
         
         # glimpse(mds_edit)
         
-        ### Step 10: Perform clustering and percent recovery calculations
-        # In order to calculate percent recovery at two social levels (individual and group), we need to run clustering at these two levels
+        ### Step 10: Perform clustering and accuracy calculations
+        # In order to calculate accuracy at two social levels (individual and group), we need to run clustering at these two levels
         
-        ### Group-level clustering and percent recovery calculations
+        ### Group-level clustering and accuracy calculations
         
         # Set the number of clusters to the number of unique groups
         num_clusters <- length(unique(mds_spcc$group_ID))
         # num_clusters
         
-        # TKTK change to GMMs
-        # Perform k-means clustering with this number of clusters on the SPCC and edit distance feature spaces
-        # Ensure that the kmeans algorithm uses only the MDS variables, so that it uses information from the patterns of acoustic variation only in order to detect clusters
-        spcc_kmeans_grp <- kmeans(mds_spcc[, grep("X|Y", names(mds_spcc))], centers = num_clusters)
-        # str(spcc_kmeans_grp)
+        # Perform model-based clustering with Gaussian mixture modeling and Bayesian information criterion model choice on the SPCC and edit distance feature spaces with the number of clusters above
+        # Ensure that the clustering algorithms use only the MDS variables, restricting them to information from the patterns of acoustic variation in order to detect clusters
+        spcc_gmms_grp <- mclust::Mclust(data = mds_spcc[, grep("X|Y", names(mds_spcc))], G = num_clusters, verbose = FALSE)
+        # str(spcc_gmms_grp)
         
-        # Calculate percent recovery of original group-level labels with k-means clustering on SPCC MDS features
-        tmp_mds_spcc <- mds_spcc %>% 
-          dplyr::mutate(
-            clusters = spcc_kmeans_grp$cluster
-          )
+        # Get the "optimal" number of clusters identified and calculate the accuracy
+        # Note the Mclust also returns the uncertainty of the predicted cluster labels, right now we are not using that
+        # Also calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features
+        # And save this information in a data frame
+        accuracy <- length(which(spcc_gmms_grp$classification == mds_spcc$group_ID))/nrow(mds_spcc)
+        # accuracy
         
-        spcc_nmi_grp <- nmi(X = tmp_mds_spcc, class_col_nm = "group_ID", cluster_col_nm = "clusters")
+        gmm_spcc <- accuracy
         
-        # Calculate percent recovery of original group-level labels with k-means clustering on edit distance MDS features
-        edit_kmeans_grp <- kmeans(mds_edit[, grep("X|Y", names(mds_edit))], centers = num_clusters)
-        # str(edit_kmeans_grp)
+        # Perform these same steps for the edit distance MDS features
+        edit_gmms_grp <- mclust::Mclust(data = mds_edit[, grep("X|Y", names(mds_edit))], G = num_clusters, verbose = FALSE)
+        # str(edit_gmms_grp)
         
-        tmp_mds_edit <- mds_edit %>% 
-          dplyr::mutate(
-            clusters = edit_kmeans_grp$cluster
-          )
+        accuracy <- length(which(edit_gmms_grp$classification == mds_edit$group_ID))/nrow(mds_edit)
+        # accuracy
         
-        edit_nmi_grp <- nmi(X = tmp_mds_edit, class_col_nm = "group_ID", cluster_col_nm = "clusters")
+        gmm_edit <- accuracy
         
-        ### Individual-level clustering and NMI calculation
+        ### Individual-level clustering on the SPCC and edit distance features, accuracy calculations
         
         # Set the number of clusters to the number of unique individuals within each group
         num_clusters <- mds_spcc %>% 
@@ -671,9 +667,9 @@ system.time(
         
         # num_clusters
         
-        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the percent recovery calculations. Use SPCC MDS features here
-        # n <- 1 # testing
-        spcc_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
+        # Perform Gaussian mixture model clustering with this number of clusters at the individual level within each group, so iterate over groups for the accuracy calculations. Use SPCC MDS features here
+        # m <- 1 # testing
+        spcc_gmms_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
           
           tmp <- mds_spcc[mds_spcc$group_ID == m, ]
           
@@ -682,24 +678,21 @@ system.time(
           # all(tmp$group_ID == m)
           
           # Perform clustering using the MDS coordinates as input
-          res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = FALSE)
           
-          tmp_mds <- tmp %>% 
-            dplyr::mutate(
-              clusters = res$cluster
-            )
+          # Get the "optimal" number of clusters identified and calculate the accuracy
+          # Also calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features, save this information in a data frame
+          accuracy <- length(which(res$classification == tmp$individual_ID))/nrow(tmp)
+          # accuracy
           
-          # glimpse(tmp_mds)
-          
-          # Calculate percent recovery of original individual-level labels, which means that the original classes are the group plus individual identity
-          return(nmi(X = tmp_mds, class_col_nm = "individual_ID", cluster_col_nm = "clusters"))
+          return(accuracy)
           
         }))
         
         
-        # Perform k-means clustering with this number of clusters within each group, so iterate over groups for the percent recovery calculation. Use edit distance MDS features here
-        # n <- 2 # testing
-        edit_kmeans_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
+        # Perform the same analyses using the edit distance MDS features here
+        # m <- 2 # testing
+        edit_gmms_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
           
           tmp <- mds_edit[mds_edit$group_ID == m, ]
           
@@ -708,23 +701,19 @@ system.time(
           # all(tmp$group_ID == m)
           
           # Perform clustering using the MDS coordinates as input
-          res <- kmeans(tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = FALSE)
           
-          tmp_mds <- tmp %>% 
-            dplyr::mutate(
-              clusters = res$cluster
-            )
+          # Calculate the accuracy
+          accuracy <- length(which(res$classification == tmp$individual_ID))/nrow(tmp)
+          # accuracy
           
-          # glimpse(tmp_mds)
-          
-          # Calculate percent recovery of original individual-level labels, which means that the original classes are the group plus individual identity
-          return(nmi(X = tmp_mds, class_col_nm = "individual_ID", cluster_col_nm = "clusters"))
+          return(accuracy)
           
         }))
         
-        # edit_kmeans_ind_cg
-        
-        
+        # edit_gmms_ind_cg
+
+        # Gather results that will be returned for downstream statistics and figures
         results <- data.frame(
           social_envt_treatment = social_envts[z],
           group_information = group_information[i], 
@@ -732,16 +721,14 @@ system.time(
           iteration = n,
           group_information_proportion = group_information[i] / max(group_information),
           individual_information_proportion = individual_information[i] / max(individual_information),
-          possible_unique_group_signatures = (symbols ^ group_information[i]),
-          possible_unique_individual_signatures = (symbols ^ individual_information[i]),
-          NMI_SPCC_group = spcc_nmi_grp,
-          NMI_edit_group = edit_nmi_grp,
-          NMI_SPCC_individual_mean = mean(spcc_kmeans_ind_cg),
-          NMI_edit_individual_mean = mean(edit_kmeans_ind_cg),
+          accuracy_SPCC_group = gmm_spcc,
+          accuracy_edit_group = gmm_edit,
+          accuracy_mean_SPCC_individual = mean(spcc_gmms_ind_cg),
+          accuracy_mean_edit_individual = mean(edit_gmms_ind_cg),
           notes = paste(neg_notes, one_notes, sep = "; ")
         )
         
-        # results
+        results
         
         ### Step 11: return results
         return(results)
@@ -750,7 +737,7 @@ system.time(
       
       ### Step 12: Write out the results for the given treatment combination across iterations
       res_tmp %>% 
-        write.csv(file.path(data_path, paste("Percent_recovery_results_", paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
+        write.csv(file.path(data_path, paste("Accuracy_results_", paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
       
     })
     
@@ -764,7 +751,7 @@ system.time(
 
 ```
 
-Checking the percent recovery results.
+Checking the accuracy results.
 ```{r}
 
 files <- list.files(path = data_path, pattern = "Percent_recovery_")
@@ -780,7 +767,7 @@ glimpse(res)
 
 View(res)
 
-# Checking that there are no percent recovery values above 1
+# Checking that there are no accuracy values above 1
 any(res$group > 1)
 any(res$individual_max > 1)
 

@@ -509,8 +509,6 @@ cols_indivs
 # The outer loop with iterating variable i iterates over the length of img_list (4 individuals across 2 groups)
 invisible(pblapply(1:length(img_list), function(i){
   
-  # cols_indivs[i]
-  
   # The inner loop with iterating variable z iterates over the length of vector i of img_list (2 vocalizations for 1 individual)
   lapply(1:length(img_list[[i]]), function(z){
     
