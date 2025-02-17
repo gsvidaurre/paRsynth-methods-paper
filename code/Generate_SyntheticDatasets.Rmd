@@ -38,6 +38,9 @@ invisible(lapply(1:length(X), function(x){
 # Add paRsynth to the list of packages to load
 # X <- c(X, "paRsynth")
 
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
 ```
 
 Initialize working directories for data on your local machine.
@@ -119,13 +122,16 @@ Check out documentation for the paRsynth functions. These functions are written 
 # Set the seed for reproducibility
 set.seed(888)
 
-# Initialize the same amounts of group, individual, random, and global information as in synthetic experiments
+# These were the same amounts of group, individual, random, and global information as in synthetic experiments
 individual_information <- c(0, 2, 4, 6)
 group_information <- rev(individual_information)
 
-# For the group membership dataset, choose
 individual_information
 group_information
+
+# For the group membership dataset, choose the values of group and individual information such that both are present, but group information is present in greater amounts
+group_information <- 4
+individual_information <- 2
 
 # Create variation within individuals
 random_variation <- 2 
@@ -140,7 +146,7 @@ n_individuals <- 10
 n_calls <- 5
 
 # Initialize the total string length
-string_length <- (globals + max(group_information) + random_variation)
+string_length <- (globals + group_information + individual_information + random_variation)
 string_length # 16
 
 ### Generate the string for each call
@@ -206,10 +212,10 @@ glimpse(calls_parsons_frequencies)
 synthetic_call_metadata_group <- write_audio(
   df = calls_parsons_frequencies, 
   save_path = audio_path, 
-  sampling_rate = 200000, 
-  sylLen = 800,
+  sampling_rate = 44100,
+  sylLen = 200,
+  temperature = 0.025, # default stochasticity in generating sound
   rolloffExact = c(0.25), # specify an amplitude value for the fundamental only, which will silence all harmonics
-  temperature = 0.025, # default value for stochasticity of generating sound
   prefix = "GroupMembership"
 )
 
@@ -221,20 +227,34 @@ glimpse(synthetic_call_metadata_group)
 ```{r}
 
 # Set the seed for reproducibility
-set.seed(44)
+set.seed(888)
 
-# Initialize the values of individual_information and group_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
-# Individual information can outweigh group information by a given factor
-factor_ratio <- 2
-group_information <- 4
-individual_information <- group_information * factor_ratio
-random_variation <- 4 # create variation within individuals
+# These were the same amounts of group, individual, random, and global information as in synthetic experiments
+individual_information <- c(0, 2, 4, 6)
+group_information <- rev(individual_information)
+
+individual_information
+group_information
+
+# For the group membership dataset, choose the values of group and individual information such that both are present, but individual information is present in greater amounts
+group_information <- 2
+individual_information <- 4
+
+# Create variation within individuals
+random_variation <- 2 
+
+# Then set other parameters for creating synthetic vocal identity signals
+# The length of the global header and tail should be the same across strings
+globals <- 8 # 4 characters for the global head, 4 for the global tail
 
 # Initialize the values of the number of groups, individuals, calls, and string length
 n_groups <- 5
 n_individuals <- 10
 n_calls <- 5
-string_length <- (group_information + individual_information + random_variation) + 20
+
+# Initialize the total string length
+string_length <- (globals + group_information + individual_information + random_variation)
+string_length # 16
 
 ### Generate the string for each call
 calls <- generate_strings(
@@ -253,7 +273,7 @@ glimpse(calls)
 length(unique(calls$Call))
 nrow(calls)
 
-# Convert the strings to Parsons code
+### Convert to Parsons code
 calls_parsons <- parsons_code(
   df = calls, 
   string_col = "Call",
@@ -268,7 +288,7 @@ calls_parsons <- parsons_code(
 
 glimpse(calls_parsons)
 
-# Convert the Parsons code to frequency values
+### Generate frequency anchors
 calls_parsons_frequencies <- frequency_anchors(
   df = calls_parsons, 
   parsons_col = "Call_Parsons_Code", 
@@ -282,14 +302,14 @@ calls_parsons_frequencies <- frequency_anchors(
 
 glimpse(calls_parsons_frequencies)
 
-# For each call or string, use these frequency vectors to generate synthetic audio files with the soundgen package
+### Write synthetic audio files
 synthetic_call_metadata_indiv <- write_audio(
   df = calls_parsons_frequencies, 
   save_path = audio_path, 
-  sampling_rate = 200000, 
-  sylLen = 800,
+  sampling_rate = 44100,
+  sylLen = 200,
+  temperature = 0.025, # default stochasticity in generating sound
   rolloffExact = c(0.25), # specify an amplitude value for the fundamental only, which will silence all harmonics
-  temperature = 0.025, # default value for stochasticity of generating sound
   prefix = "IndividualIdentity"
 )
 

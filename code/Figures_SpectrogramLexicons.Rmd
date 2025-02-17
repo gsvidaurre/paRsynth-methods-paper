@@ -42,8 +42,8 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize the directory for analysis on your local computer
@@ -140,7 +140,8 @@ sel_tbl <- data.table::rbindlist(pblapply(1:length(wavs), function(w){
       sampling_rate = tmp@samp.rate,
       group_ID = metadats_tmp[["Group"]],
       individual_ID = metadats_tmp[["Individual"]],
-      call_ID = metadats_tmp[["Call"]]
+      call = metadats_tmp[["Call"]],
+      call_ID = metadats_tmp[["Call_ID"]]
     )
     
   } else {
@@ -153,6 +154,7 @@ sel_tbl <- data.table::rbindlist(pblapply(1:length(wavs), function(w){
       sampling_rate = NA,
       group_ID = NA,
       individual_ID = NA,
+      call = NA,
       call_ID = NA
     )
     
