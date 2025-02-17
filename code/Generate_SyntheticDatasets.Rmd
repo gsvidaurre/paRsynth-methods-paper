@@ -4,7 +4,7 @@ output: html_document
 date: "2024-11-20"
 ---
 
-Purpose: Here we generate a synthetic identity signal datasets with more group than individual information, and more individual than group information. In each dataset, information at these two social levels is encoded in frequency modulation patterns. We use functions from the `paRsynth` package to create character strings, Parsons code strings, and frequency anchors that encode information at these two social levels. We then use the `soundgen` package to create synthetic audio files with the encoded information, and the `warbleR` package to create spectrograms. The resulting audio files, selection table spreadsheet are uploaded to a shared location for subsequent analysis and figures.
+Purpose: Here we generate synthetic vocal identity signal datasets with more group than individual information, and more individual than group information. In each dataset, information at these two social levels is encoded in frequency modulation patterns. We use functions from the `paRsynth` package to create character strings, Parsons code strings, and frequency anchors that encode information at these two social levels. We then use the `soundgen` package to create synthetic audio files with the encoded information, and the `warbleR` package to create spectrograms. The resulting audio files, selection table spreadsheet are uploaded to a shared location for subsequent analysis and figures.
 
 You can run this script to generate audio files and metadata, or if you want to reproduce results in later code, you can download the files saved in a shared location.
 ```{r setup, include = FALSE}
@@ -45,8 +45,8 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -83,18 +83,23 @@ if(!dir.exists(images_path)){
 
 ```
 
+Source the paRsynth functions directly from the GitHub repository. 
 ```{r}
 
-# For now, load the paRsynth functions from GitHub
-files <- list.files(pattern = ".R$", file.path(path, "GitHub_repos/paRsynth/R"), full.names = TRUE)
-files
+###################### Manually update in every new coding session ##################################
 
-invisible(sapply(1:length(files), function(x){
-  source(files[x])
-}))
+# Brittany's path should include "GitHub/paRsynth"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
-# Load all of the packages specified above
-invisible(lapply(X, library, character.only = TRUE))
+# Get all of the R files for each function in this directory
+function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
+function_files
+
+# Iterate over these files to load each function, and silence the output
+invisible(sapply(X = function_files, FUN = source))
+
+###################################################################################
 
 ```
 
@@ -112,20 +117,31 @@ Check out documentation for the paRsynth functions. These functions are written 
 ```{r}
 
 # Set the seed for reproducibility
-set.seed(44)
+set.seed(888)
 
-# Initialize the values of group_information and individual_information, which correspond to the length of the string that will be allocated to encoding group membership or individual identity information
-# Group information can outweigh individual information by a given factor
-factor_ratio <- 2
-individual_information <- 4
-group_information <- individual_information * factor_ratio
-random_variation <- 4 # create variation within individuals
+# Initialize the same amounts of group, individual, random, and global information as in synthetic experiments
+individual_information <- c(0, 2, 4, 6)
+group_information <- rev(individual_information)
+
+# For the group membership dataset, choose
+individual_information
+group_information
+
+# Create variation within individuals
+random_variation <- 2 
+
+# Then set other parameters for creating synthetic vocal identity signals
+# The length of the global header and tail should be the same across strings
+globals <- 8 # 4 characters for the global head, 4 for the global tail
 
 # Initialize the values of the number of groups, individuals, calls, and string length
 n_groups <- 5
 n_individuals <- 10
 n_calls <- 5
-string_length <- (group_information + individual_information + random_variation) + 20
+
+# Initialize the total string length
+string_length <- (globals + max(group_information) + random_variation)
+string_length # 16
 
 ### Generate the string for each call
 calls <- generate_strings(
