@@ -32,7 +32,7 @@ Load packages and set cores.
 rm(list = ls())
 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "ggpubr", "paletteer", "effsize")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -44,7 +44,7 @@ invisible(lapply(1:length(X), function(x){
 }))
 
 # TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
-# TKTK once we start using the package again in package format, we need to add paRsynth:: before eeach function
+# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
 # Install the paRsynth package from GitHub if you haven't installed it already
 # devtools::install_github("gsvidaurre/paRsynth")
 
@@ -67,8 +67,8 @@ Initialize working directories for data and figures.
 # Initialize a base path (we may need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -908,30 +908,157 @@ sapply(res %>%
        }
 )
 
+## TKTK Brittany contribution Feb 18
+# TKTK Checking for normality of (1) accuracy_SPCC_group (2) accuracy_edit_group (3) accuracy_mean_SPCC_individual (4) accuracy_mean_edit_individual
+
+#First, accuracy_SPCC_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.74818, p-value = 2.881e-15. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_SPCC_group, 
+                  main = "Density plot of SPCC Group Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_SPCC_group)
+shapiro.test(res$accuracy_SPCC_group)
+
+#Second, accuracy_edit_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.77529, p-value = 2.176e-14. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_edit_group, 
+                  main = "Density plot of Edit Distance Group Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_edit_group)
+shapiro.test(res$accuracy_edit_group)
+
+#Third, accuracy_mean_SPCC_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.79511, p-value = 1.069e-13. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_mean_SPCC_individual, 
+                  main = "Density plot of SPCC Individual Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_mean_SPCC_individual)
+shapiro.test(res$accuracy_mean_SPCC_individual)
+
+#Fourth, accuracy_mean_edit_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.81332, p-value = 5.083e-13. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_mean_edit_individual, 
+                  main = "Density plot of SPCC Individual Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_mean_edit_individual)
+shapiro.test(res$accuracy_mean_edit_individual)
+```
+
+TKTK Brittany's attempt to add these steps:
+
+- Then calculate the effect size of either the difference or the correlation between accuracy of call label predictions by the edit distance and the SPCC analyses, and possibly the effect size between predicting group vs individual identity labels too. Consider using Hedge's g because this does not assume that variances between the groups are equal and can account for unequal variances between groups by pooling the standard deviation. But Hedge's g may assume normality of the data, so Cliff's d could also be a good non-parametric choice (does not assume normally distributed data nor equal variance). 
+
+
+Because all four accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
+```{r}
+# Group SPCC v Edit Distance
+effsize::cliff.delta(res$accuracy_SPCC_group, res$accuracy_edit_group)
+
+# Cliff's Delta
+# 
+# delta estimate: -0.07855469 (negligible)
+# 95 percent confidence interval:
+#       lower       upper 
+# -0.20325590  0.04865424 
+# Because SPCC is specified first above, it means it is the comparison group. the negative result indicates the distribution of accuracy_SPCC_group is smaller than accuracy_edit_group, but negligibly so  - so not different
+
+
+
+# Individual SPCC v Edit Distance
+effsize::cliff.delta(res$accuracy_mean_SPCC_individual, res$accuracy_mean_edit_individual)
+
+# Cliff's Delta
+# 
+# delta estimate: -0.03578125 (negligible)
+# 95 percent confidence interval:
+#       lower       upper 
+# -0.16153502  0.09111596 
+# Because SPCC is specified first above, it means it is the comparison group. the negative result indicated the distribution of accuracy_mean_SPCC_individual is smaller than accuracy_mean_edit_individual, but negligibly so  - so not different
+
+
+
+# SPCC Group V Indiviudal
+effsize::cliff.delta(res$accuracy_SPCC_group, res$accuracy_mean_SPCC_individual)
+
+# Cliff's Delta
+# 
+# delta estimate: -0.09332031 (negligible)
+# 95 percent confidence interval:
+#      lower      upper 
+# -0.2176497  0.0339892
+
+
+
+# Edit Group V individual
+effsize::cliff.delta(res$accuracy_edit_group, res$accuracy_mean_edit_individual)
+
+# Cliff's Delta
+# 
+# delta estimate: -0.04527344 (negligible)
+# 95 percent confidence interval:
+#       lower       upper 
+# -0.17084743  0.08174779 
+```
+
+TKTK Brittany Fun With Plots
+```{r}
+
+# Average Accuracy Measures by Encoding treatment and social condition
+# TKTK need to figure out how to reorganize legend so that it is NOT in alphabetical order
+# TKTK, when using scale_color_paletteer_d("nationalparkcolors::Arches"), it has two purple-ish colors that are hard to distinguish. Consider making a list of color codes from arches instead that skips the hex code for the fourth color and goes to the fifth color, which is like a dark-ish blue
+
+# Plotting accuracy_SPCC_group by group information encoding and social environment treatment
+Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_paletteer_d("nationalparkcolors::Arches") +
+  geom_boxplot() 
+
+# Plotting accuracy_edit_group by group information encoding and social environment treatment
+Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_paletteer_d("nationalparkcolors::Arches") +
+  geom_boxplot() 
+
+# Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
+Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_paletteer_d("nationalparkcolors::Arches") +
+  geom_boxplot() 
+
+# Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
+Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_paletteer_d("nationalparkcolors::Arches") +
+  geom_boxplot() 
+
+
+ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
+                  common.legend = TRUE, 
+                  ncol = 2,
+                  nrow = 2) # for future reference, I don't know why, but plot doesn't work until ncol and nrow come after common.legend. 
 
 ```
 
-Making NMI plots (Brittany edition)
-TKTK instead of geom_smooth, use geom_ribbon where you can specific upper and lower bounds for CI?
-Jan 31, tried geom_ribbon with individual min and max value, looks weird. Not sure what is going on. 
-TKTK need to make prettier with colors, export in a better way
 ```{r}
-install.packages('ggpubr')
-library(ggpubr)
 
-NMI_Group_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_group, color = social_envt_treatment)) +
-  geom_point() + 
-  geom_smooth()
+# Just for internal purposes only, not planning to be a figure in the manuscript
+# correlations between SPCC and Edit Accuracy Measures, by social condition
 
-NMI_Individ_plot <- ggplot(nmi_res, aes(x = information_encoding_treatment, y = NMI_individual_mean, color = social_envt_treatment, shape = social_envt_treatment)) +
-  geom_ribbon(aes(ymin = NMI_individual_min, ymax = NMI_individual_max, fill = social_envt_treatment), color = NA, alpha = .25) +  
-  geom_point()
+# Plotting Group Accuracy Edit by SPCC
+GroupAccPlot <- ggplot(res, aes(accuracy_SPCC_group,accuracy_edit_group, color = social_envt_treatment, shape = social_envt_treatment)) +
+  theme_classic() +
+  geom_point(size = 2) +
+  scale_shape(solid = FALSE) +
+  scale_color_paletteer_d("nationalparkcolors::Arches") +
+  geom_quantile(quantiles = 0.5, linewidth = 1.5) 
+  
+# Plotting Individual Accuracy Edit by SPCC
+IndAccPlot <- ggplot(res, aes(accuracy_mean_SPCC_individual, accuracy_mean_edit_individual, color = social_envt_treatment, shape = social_envt_treatment)) +
+  theme_classic() +
+  geom_point(size = 2) +
+  scale_shape(solid = FALSE) +
+  scale_color_paletteer_d("nationalparkcolors::Arches") +
+  geom_quantile(quantiles = 0.5, linewidth = 1.5) 
 
-
-ggpubr::ggarrange(NMI_Group_plot, NMI_Individ_plot,
-                  labels = "AUTO", 
+ggpubr::ggarrange(GroupAccPlot, IndAccPlot, 
                   common.legend = TRUE, 
-                  legend = "bottom")
+                  legend = "top")
 
 
 ```
