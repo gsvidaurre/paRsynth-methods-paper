@@ -1072,30 +1072,36 @@ res$social_envt_treatment <- factor(res$social_envt_treatment, levels = c("Spars
 # Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+fillcols <- scales::alpha(cols, alpha = .2)
 
 # Plotting accuracy_SPCC_group by group information encoding and social environment treatment
-Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment)) +
+Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
   scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
   geom_boxplot() 
+  
 
 # Plotting accuracy_edit_group by group information encoding and social environment treatment
-Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment)) +
+Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
   scale_color_manual(values = cols) +
-  geom_boxplot() 
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
 
 # Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
-Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment)) +
+Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
   scale_color_manual(values = cols) +
-  geom_boxplot() 
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
 
 # Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
-Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment)) +
+Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
   scale_color_manual(values = cols) +
-  geom_boxplot() 
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
 
 
 ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
