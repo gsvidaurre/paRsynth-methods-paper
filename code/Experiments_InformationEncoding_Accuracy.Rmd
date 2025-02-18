@@ -940,13 +940,176 @@ ggpubr::ggqqplot(res$accuracy_mean_edit_individual)
 shapiro.test(res$accuracy_mean_edit_individual)
 ```
 
-TKTK Brittany's attempt to add these steps:
-
-- Then calculate the effect size of either the difference or the correlation between accuracy of call label predictions by the edit distance and the SPCC analyses, and possibly the effect size between predicting group vs individual identity labels too. Consider using Hedge's g because this does not assume that variances between the groups are equal and can account for unequal variances between groups by pooling the standard deviation. But Hedge's g may assume normality of the data, so Cliff's d could also be a good non-parametric choice (does not assume normally distributed data nor equal variance). 
-
+TKTK Brittany's attempt at effect size analyses
 
 Because all four accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
+
 ```{r}
+
+# TKTK someone better than me can probably loop this, including loop saving these values into data frame?
+
+# Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment
+
+
+### (1) Sparse X Group Info 0
+  
+  #First, read in data file
+    data1 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-0.csv"))
+    # glimpse(data1) #Double check the file is correct
+ 
+ #Second, perform Cliff's D for GROUP information
+    effsize::cliff.delta(data1$accuracy_SPCC_group, data1$accuracy_edit_group)
+      # delta estimate: -0.05 (negligible)
+        # 95 percent confidence interval:
+        # lower      upper 
+        # -0.5187324  0.4418445 
+  
+  #Third, perform Cliff's D for INDIVIDUAL information
+    effsize::cliff.delta(data1$accuracy_mean_SPCC_individual, data1$accuracy_mean_edit_individual)
+      # delta estimate: 0.04 (negligible)
+        # 95 percent confidence interval:
+        #      lower      upper 
+        # -0.3387836  0.4076257 
+
+    
+### (2) Sparse X Group Info .3
+      
+  #First, read in data file
+    data2 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-2.csv"))
+    # glimpse(data2) # Double check the file is correct
+    # view(data2) # Double check the file is correct
+ 
+ #Second, perform Cliff's D for GROUP information
+    effsize::cliff.delta(data2$accuracy_SPCC_group, data2$accuracy_edit_group)
+      # delta estimate: -0.19 (small)
+        # 95 percent confidence interval:
+        #      lower      upper 
+        # -0.6219969  0.3306708  
+  
+  #Third, perform Cliff's D for INDIVIDUAL information
+    effsize::cliff.delta(data2$accuracy_mean_SPCC_individual, data2$accuracy_mean_edit_individual)
+      # delta estimate: -0.41 (medium)
+        # 95 percent confidence interval:
+        #       lower       upper 
+        # -0.71824127  0.03276851 
+
+    
+### (3) Sparse X Group Info .6
+          
+  #First, read in data file
+    data3 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-4.csv"))
+    # glimpse(data3) # Double check the file is correct
+    # view(data3) # Double check the file is correct
+ 
+ #Second, perform Cliff's D for GROUP information
+    effsize::cliff.delta(data3$accuracy_SPCC_group, data3$accuracy_edit_group)
+      # delta estimate: -0.6 (large)
+        # 95 percent confidence interval:
+        #      lower      upper 
+        # -0.8555110 -0.1094975 
+  
+  #Third, perform Cliff's D for INDIVIDUAL information
+    effsize::cliff.delta(data3$accuracy_mean_SPCC_individual, data3$accuracy_mean_edit_individual)
+      # delta estimate: -0.24 (small)
+      # 95 percent confidence interval:
+      #      lower      upper 
+      # -0.6568505  0.2892114 
+
+    
+### (4) Sparse X Group Info 1
+              
+  #First, read in data file
+    data4 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-6.csv"))
+    # glimpse(data4) # Double check the file is correct
+    # view(data4) # Double check the file is correct
+ 
+ #Second, perform Cliff's D for GROUP information
+    effsize::cliff.delta(data4$accuracy_SPCC_group, data4$accuracy_edit_group)
+      # delta estimate: -0.45 (medium)
+        # 95 percent confidence interval:
+        #      lower      upper 
+        # -0.7683967  0.0469661
+  
+  #Third, perform Cliff's D for INDIVIDUAL information
+    effsize::cliff.delta(data4$accuracy_mean_SPCC_individual, data4$accuracy_mean_edit_individual)
+      # delta estimate: -0.3 (small)
+        # 95 percent confidence interval:
+        #      lower      upper 
+        # -0.6727896  0.1942818 
+
+# TKTK left off here, because I think there is a more efficient way to do this, but I'm not sure - Brittany 
+# Intermediate X Group Info 0
+# Intermediate X Group Info .3
+# Intermediate X Group Info .6
+# Intermediate X Group Info 1
+
+# Crowded X Group Info 0
+# Crowded X Group Info .3
+# Crowded X Group Info .6
+# Crowded X Group Info 1
+
+# Dense X Group Info 0
+# Dense X Group Info .3
+# Dense X Group Info .6
+# Dense X Group Info 1
+```
+
+TKTK NEXT STEPS: need to make data frame of effect sizes and confidence intervals for plotting, plotting should be geom_pointrange?   
+
+TKTK need to move plots into their own code file
+TKTK Brittany Fun With Plots
+TKTK idea: when plotting effect sizes, insert lines to mark negligable, small, medium, large effect categories?
+```{r}
+
+# Average Accuracy Measures by Encoding treatment and social condition
+
+#first, reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
+res$social_envt_treatment <- factor(res$social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense"))
+
+# Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
+# paletteer_d("nationalparkcolors::Arches")
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+# Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
+
+cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+
+# Plotting accuracy_SPCC_group by group information encoding and social environment treatment
+Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  geom_boxplot() 
+
+# Plotting accuracy_edit_group by group information encoding and social environment treatment
+Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  geom_boxplot() 
+
+# Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
+Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  geom_boxplot() 
+
+# Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
+Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  geom_boxplot() 
+
+
+ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
+                  common.legend = TRUE, 
+                  ncol = 2,
+                  nrow = 2) # for future reference, I don't know why, but plot doesn't work until ncol and nrow come after common.legend. 
+
+```
+
+ZOMBIE CODE
+```{r}
+
+# General Effect Size Differences 
+
 # Group SPCC v Edit Distance
 effsize::cliff.delta(res$accuracy_SPCC_group, res$accuracy_edit_group)
 
@@ -994,44 +1157,6 @@ effsize::cliff.delta(res$accuracy_edit_group, res$accuracy_mean_edit_individual)
 # 95 percent confidence interval:
 #       lower       upper 
 # -0.17084743  0.08174779 
-```
-
-TKTK Brittany Fun With Plots
-```{r}
-
-# Average Accuracy Measures by Encoding treatment and social condition
-# TKTK need to figure out how to reorganize legend so that it is NOT in alphabetical order
-# TKTK, when using scale_color_paletteer_d("nationalparkcolors::Arches"), it has two purple-ish colors that are hard to distinguish. Consider making a list of color codes from arches instead that skips the hex code for the fourth color and goes to the fifth color, which is like a dark-ish blue
-
-# Plotting accuracy_SPCC_group by group information encoding and social environment treatment
-Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_paletteer_d("nationalparkcolors::Arches") +
-  geom_boxplot() 
-
-# Plotting accuracy_edit_group by group information encoding and social environment treatment
-Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_paletteer_d("nationalparkcolors::Arches") +
-  geom_boxplot() 
-
-# Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
-Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_paletteer_d("nationalparkcolors::Arches") +
-  geom_boxplot() 
-
-# Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
-Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_paletteer_d("nationalparkcolors::Arches") +
-  geom_boxplot() 
-
-
-ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
-                  common.legend = TRUE, 
-                  ncol = 2,
-                  nrow = 2) # for future reference, I don't know why, but plot doesn't work until ncol and nrow come after common.legend. 
 
 ```
 
@@ -1059,7 +1184,6 @@ IndAccPlot <- ggplot(res, aes(accuracy_mean_SPCC_individual, accuracy_mean_edit_
 ggpubr::ggarrange(GroupAccPlot, IndAccPlot, 
                   common.legend = TRUE, 
                   legend = "top")
-
 
 ```
 
