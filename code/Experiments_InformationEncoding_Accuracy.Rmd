@@ -1074,6 +1074,7 @@ res$social_envt_treatment <- factor(res$social_envt_treatment, levels = c("Spars
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
 fillcols <- scales::alpha(cols, alpha = .2)
 
+ 
 # Plotting accuracy_SPCC_group by group information encoding and social environment treatment
 Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
@@ -1081,7 +1082,6 @@ Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion),
   scale_fill_manual(values = fillcols,) +
   geom_boxplot() 
   
-
 # Plotting accuracy_edit_group by group information encoding and social environment treatment
 Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
