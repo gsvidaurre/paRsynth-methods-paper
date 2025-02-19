@@ -65,10 +65,10 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -117,8 +117,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ###################### Manually update in every new coding session ##################################
 
 # Brittany's path should include "GitHub/paRsynth"
-# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -890,7 +890,7 @@ res <- data.table::rbindlist(pblapply(1:length(files), function(n){
 
 glimpse(res)
 
-View(res)
+# View(res)
 
 # Check that there are no accuracy values above 1, looks good
 sapply(res %>% 
@@ -908,6 +908,118 @@ sapply(res %>%
        }
 )
 
+```
+
+
+TKTK NEXT STEPS: need to make data frame of effect sizes and confidence intervals for plotting, plotting should be geom_pointrange?   
+
+TKTK need to move plots into their own code file
+TKTK Brittany Fun With Plots
+TKTK idea: when plotting effect sizes, insert lines to mark negligable, small, medium, large effect categories?
+```{r}
+
+# Average Accuracy Measures by Encoding treatment and social condition
+
+# TKTK check that the number of rows matches the number of treatments and iterations
+# TKTK 4 social and 4 information treatments by 10 iterations should be 160 rows
+glimpse(res)
+
+# Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
+
+?pivot_longer
+
+res_summ <- res %>% 
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # glimpse()
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus all of the types of accuracy measurements
+  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_type) %>% 
+  # glimpse()
+  # Once a data frame is grouped, you can calculate summary statistics by each group
+  dplyr::summarise(
+    mean_accuracy = mean(accuracy_measurements),
+    # Calculate the 95% CI measurements and extract the upper 95% CI value
+    upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
+    lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
+  ) %>% 
+  # Make sure to ungroup before plotting, and the columns used for grouping will be retained
+  ungroup() %>%
+  # glimpse()
+  # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
+    social_envt_treatment = factor(social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense")),
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(group_information_proportion)
+  )
+
+# There should be 4 * 4 * 4 rows, or 64 rows
+glimpse(res_summ)
+
+# The levels for the social condition treatment column looks good
+levels(res_summ$social_envt_treatment)
+
+# Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
+# paletteer_d("nationalparkcolors::Arches")
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+# Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
+
+cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+fillcols <- scales::alpha(cols, alpha = .2)
+
+# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
+res_summ %>% 
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy)) +
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI)) +
+  # Can also use facet_grid()
+  # TKTK need to split the accuracy_type column info into more columns...
+  facet_wrap(accuracy_type ~ )
+
+
+ 
+# Plotting accuracy_SPCC_group by group information encoding and social environment treatment
+Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot() 
+  
+# Plotting accuracy_edit_group by group information encoding and social environment treatment
+Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
+
+# Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
+Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
+
+# Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
+Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
+
+
+ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
+                  common.legend = TRUE, 
+                  ncol = 2,
+                  nrow = 2) # for future reference, I don't know why, but plot doesn't work until ncol and nrow come after common.legend. 
+
+```
+
+```{r}
 ## TKTK Brittany contribution Feb 18
 # TKTK Checking for normality of (1) accuracy_SPCC_group (2) accuracy_edit_group (3) accuracy_mean_SPCC_individual (4) accuracy_mean_edit_individual
 
@@ -938,6 +1050,7 @@ ggpubr::ggdensity(res$accuracy_mean_edit_individual,
                   xlab = "Accuracy")
 ggpubr::ggqqplot(res$accuracy_mean_edit_individual)
 shapiro.test(res$accuracy_mean_edit_individual)
+
 ```
 
 TKTK Brittany's attempt at effect size analyses
@@ -1054,62 +1167,6 @@ Because all four accuracy measures are not normally distributed, we will use Cli
 # Dense X Group Info 1
 ```
 
-TKTK NEXT STEPS: need to make data frame of effect sizes and confidence intervals for plotting, plotting should be geom_pointrange?   
-
-TKTK need to move plots into their own code file
-TKTK Brittany Fun With Plots
-TKTK idea: when plotting effect sizes, insert lines to mark negligable, small, medium, large effect categories?
-```{r}
-
-# Average Accuracy Measures by Encoding treatment and social condition
-
-#first, reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
-res$social_envt_treatment <- factor(res$social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense"))
-
-# Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
-# paletteer_d("nationalparkcolors::Arches")
-#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
-# Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
-
-cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
-fillcols <- scales::alpha(cols, alpha = .2)
-
- 
-# Plotting accuracy_SPCC_group by group information encoding and social environment treatment
-Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot() 
-  
-# Plotting accuracy_edit_group by group information encoding and social environment treatment
-Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot()
-
-# Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
-Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot()
-
-# Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
-Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot()
-
-
-ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
-                  common.legend = TRUE, 
-                  ncol = 2,
-                  nrow = 2) # for future reference, I don't know why, but plot doesn't work until ncol and nrow come after common.legend. 
-
-```
 
 ZOMBIE CODE
 ```{r}
