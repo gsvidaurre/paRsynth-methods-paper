@@ -712,7 +712,7 @@ system.time(
         }))
         
         # edit_gmms_ind_cg
-
+        
         # Gather results that will be returned for downstream statistics and figures
         results <- data.frame(
           social_envt_treatment = social_envts[z],
@@ -937,9 +937,22 @@ res_summ <- res %>%
     values_to = "accuracy_measurements"
   ) %>% 
   # glimpse()
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Checking, pull the new column and check the unique values to check that the replacement was done correctly
+  # pull(tmp) %>% 
+  # unique()
+  # glimpse()
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  # glimpse()
   # Group by the columns that have information about each experimental treatment
-  # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus all of the types of accuracy measurements
-  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_type) %>% 
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
+  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_method, accuracy_level) %>% 
   # glimpse()
   # Once a data frame is grouped, you can calculate summary statistics by each group
   dplyr::summarise(
@@ -956,14 +969,18 @@ res_summ <- res %>%
   dplyr::mutate(
     social_envt_treatment = factor(social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense")),
     # Convert the x-axis column to factor to control axis ticks
-    group_information_proportion = factor(group_information_proportion)
+    group_information_proportion = factor(round(group_information_proportion, 2))
   )
 
-# There should be 4 * 4 * 4 rows, or 64 rows
+# There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows
 glimpse(res_summ)
 
 # The levels for the social condition treatment column looks good
 levels(res_summ$social_envt_treatment)
+
+# Looks good
+unique(res_summ$accuracy_method)
+unique(res_summ$accuracy_level)
 
 # Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
 # paletteer_d("nationalparkcolors::Arches")
@@ -971,25 +988,41 @@ levels(res_summ$social_envt_treatment)
 # Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
-fillcols <- scales::alpha(cols, alpha = .2)
+fillcols <- scales::alpha(cols, alpha = 0.2)
+shps <- c(21, 22, 24, 25) # Also encode social conditions by shape. See the points function for options
 
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
 res_summ %>% 
-  ggplot(aes(x = group_information_proportion, y = mean_accuracy)) +
-  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI)) +
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = social_envt_treatment, fill = social_envt_treatment, shape = social_envt_treatment)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 2, stroke = 1) +
   # Can also use facet_grid()
-  # TKTK need to split the accuracy_type column info into more columns...
-  facet_wrap(accuracy_type ~ )
+  # facet_wrap(accuracy_level ~ accuracy_method) +
+  facet_grid(rows = vars(accuracy_level), cols = vars(accuracy_method)) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols) +
+  scale_shape_manual(values = shps) +
+  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
+  guides(color = guide_legend(title = "Social Condition", override.aes = list(size = 3)), fill = guide_legend(title = "Social Condition"),
+         shape = guide_legend(title = "Social Condition")) +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    legend.position = "top",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10)
+  )
 
 
- 
+
 # Plotting accuracy_SPCC_group by group information encoding and social environment treatment
 Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols,) +
   geom_boxplot() 
-  
+
 # Plotting accuracy_edit_group by group information encoding and social environment treatment
 Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment, fill = social_envt_treatment)) +
   theme_classic() +
@@ -1065,90 +1098,90 @@ Because all four accuracy measures are not normally distributed, we will use Cli
 
 
 ### (1) Sparse X Group Info 0
-  
-  #First, read in data file
-    data1 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-0.csv"))
-    # glimpse(data1) #Double check the file is correct
- 
- #Second, perform Cliff's D for GROUP information
-    effsize::cliff.delta(data1$accuracy_SPCC_group, data1$accuracy_edit_group)
-      # delta estimate: -0.05 (negligible)
-        # 95 percent confidence interval:
-        # lower      upper 
-        # -0.5187324  0.4418445 
-  
-  #Third, perform Cliff's D for INDIVIDUAL information
-    effsize::cliff.delta(data1$accuracy_mean_SPCC_individual, data1$accuracy_mean_edit_individual)
-      # delta estimate: 0.04 (negligible)
-        # 95 percent confidence interval:
-        #      lower      upper 
-        # -0.3387836  0.4076257 
 
-    
+#First, read in data file
+data1 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-0.csv"))
+# glimpse(data1) #Double check the file is correct
+
+#Second, perform Cliff's D for GROUP information
+effsize::cliff.delta(data1$accuracy_SPCC_group, data1$accuracy_edit_group)
+# delta estimate: -0.05 (negligible)
+# 95 percent confidence interval:
+# lower      upper 
+# -0.5187324  0.4418445 
+
+#Third, perform Cliff's D for INDIVIDUAL information
+effsize::cliff.delta(data1$accuracy_mean_SPCC_individual, data1$accuracy_mean_edit_individual)
+# delta estimate: 0.04 (negligible)
+# 95 percent confidence interval:
+#      lower      upper 
+# -0.3387836  0.4076257 
+
+
 ### (2) Sparse X Group Info .3
-      
-  #First, read in data file
-    data2 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-2.csv"))
-    # glimpse(data2) # Double check the file is correct
-    # view(data2) # Double check the file is correct
- 
- #Second, perform Cliff's D for GROUP information
-    effsize::cliff.delta(data2$accuracy_SPCC_group, data2$accuracy_edit_group)
-      # delta estimate: -0.19 (small)
-        # 95 percent confidence interval:
-        #      lower      upper 
-        # -0.6219969  0.3306708  
-  
-  #Third, perform Cliff's D for INDIVIDUAL information
-    effsize::cliff.delta(data2$accuracy_mean_SPCC_individual, data2$accuracy_mean_edit_individual)
-      # delta estimate: -0.41 (medium)
-        # 95 percent confidence interval:
-        #       lower       upper 
-        # -0.71824127  0.03276851 
 
-    
+#First, read in data file
+data2 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-2.csv"))
+# glimpse(data2) # Double check the file is correct
+# view(data2) # Double check the file is correct
+
+#Second, perform Cliff's D for GROUP information
+effsize::cliff.delta(data2$accuracy_SPCC_group, data2$accuracy_edit_group)
+# delta estimate: -0.19 (small)
+# 95 percent confidence interval:
+#      lower      upper 
+# -0.6219969  0.3306708  
+
+#Third, perform Cliff's D for INDIVIDUAL information
+effsize::cliff.delta(data2$accuracy_mean_SPCC_individual, data2$accuracy_mean_edit_individual)
+# delta estimate: -0.41 (medium)
+# 95 percent confidence interval:
+#       lower       upper 
+# -0.71824127  0.03276851 
+
+
 ### (3) Sparse X Group Info .6
-          
-  #First, read in data file
-    data3 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-4.csv"))
-    # glimpse(data3) # Double check the file is correct
-    # view(data3) # Double check the file is correct
- 
- #Second, perform Cliff's D for GROUP information
-    effsize::cliff.delta(data3$accuracy_SPCC_group, data3$accuracy_edit_group)
-      # delta estimate: -0.6 (large)
-        # 95 percent confidence interval:
-        #      lower      upper 
-        # -0.8555110 -0.1094975 
-  
-  #Third, perform Cliff's D for INDIVIDUAL information
-    effsize::cliff.delta(data3$accuracy_mean_SPCC_individual, data3$accuracy_mean_edit_individual)
-      # delta estimate: -0.24 (small)
-      # 95 percent confidence interval:
-      #      lower      upper 
-      # -0.6568505  0.2892114 
 
-    
+#First, read in data file
+data3 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-4.csv"))
+# glimpse(data3) # Double check the file is correct
+# view(data3) # Double check the file is correct
+
+#Second, perform Cliff's D for GROUP information
+effsize::cliff.delta(data3$accuracy_SPCC_group, data3$accuracy_edit_group)
+# delta estimate: -0.6 (large)
+# 95 percent confidence interval:
+#      lower      upper 
+# -0.8555110 -0.1094975 
+
+#Third, perform Cliff's D for INDIVIDUAL information
+effsize::cliff.delta(data3$accuracy_mean_SPCC_individual, data3$accuracy_mean_edit_individual)
+# delta estimate: -0.24 (small)
+# 95 percent confidence interval:
+#      lower      upper 
+# -0.6568505  0.2892114 
+
+
 ### (4) Sparse X Group Info 1
-              
-  #First, read in data file
-    data4 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-6.csv"))
-    # glimpse(data4) # Double check the file is correct
-    # view(data4) # Double check the file is correct
- 
- #Second, perform Cliff's D for GROUP information
-    effsize::cliff.delta(data4$accuracy_SPCC_group, data4$accuracy_edit_group)
-      # delta estimate: -0.45 (medium)
-        # 95 percent confidence interval:
-        #      lower      upper 
-        # -0.7683967  0.0469661
-  
-  #Third, perform Cliff's D for INDIVIDUAL information
-    effsize::cliff.delta(data4$accuracy_mean_SPCC_individual, data4$accuracy_mean_edit_individual)
-      # delta estimate: -0.3 (small)
-        # 95 percent confidence interval:
-        #      lower      upper 
-        # -0.6727896  0.1942818 
+
+#First, read in data file
+data4 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-6.csv"))
+# glimpse(data4) # Double check the file is correct
+# view(data4) # Double check the file is correct
+
+#Second, perform Cliff's D for GROUP information
+effsize::cliff.delta(data4$accuracy_SPCC_group, data4$accuracy_edit_group)
+# delta estimate: -0.45 (medium)
+# 95 percent confidence interval:
+#      lower      upper 
+# -0.7683967  0.0469661
+
+#Third, perform Cliff's D for INDIVIDUAL information
+effsize::cliff.delta(data4$accuracy_mean_SPCC_individual, data4$accuracy_mean_edit_individual)
+# delta estimate: -0.3 (small)
+# 95 percent confidence interval:
+#      lower      upper 
+# -0.6727896  0.1942818 
 
 # TKTK left off here, because I think there is a more efficient way to do this, but I'm not sure - Brittany 
 # Intermediate X Group Info 0
@@ -1235,7 +1268,7 @@ GroupAccPlot <- ggplot(res, aes(accuracy_SPCC_group,accuracy_edit_group, color =
   scale_shape(solid = FALSE) +
   scale_color_paletteer_d("nationalparkcolors::Arches") +
   geom_quantile(quantiles = 0.5, linewidth = 1.5) 
-  
+
 # Plotting Individual Accuracy Edit by SPCC
 IndAccPlot <- ggplot(res, aes(accuracy_mean_SPCC_individual, accuracy_mean_edit_individual, color = social_envt_treatment, shape = social_envt_treatment)) +
   theme_classic() +
