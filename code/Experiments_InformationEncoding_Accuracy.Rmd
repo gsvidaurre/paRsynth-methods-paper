@@ -65,10 +65,10 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -991,67 +991,58 @@ cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
 fillcols <- scales::alpha(cols, alpha = 0.2)
 shps <- c(21, 22, 24, 25) # Also encode social conditions by shape. See the points function for options
 
+# Need to make named character vectors to relabel facet text
+# Renaming the Accuracy Method labels
+method_labs <- c("Edit Distance", "SPCC")
+names(method_labs) <- c("edit", "SPCC")
+
+# Renaming the Accuracy Information Level labels
+level_labs <- c("Group Information", "Individual Information")
+names(level_labs) <- c("group", "individual")
+
+#making this in case we want to make the facet background a very very light grey
+ngrey <- scales::alpha("grey", .2)
+
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
 res_summ %>% 
   ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = social_envt_treatment, fill = social_envt_treatment, shape = social_envt_treatment)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
-  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 2, stroke = 1) +
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85) +
   # Can also use facet_grid()
   # facet_wrap(accuracy_level ~ accuracy_method) +
-  facet_grid(rows = vars(accuracy_level), cols = vars(accuracy_method)) +
+  facet_grid(
+    accuracy_level ~ accuracy_method,
+    labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
+    ) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Social Condition", override.aes = list(size = 3)), fill = guide_legend(title = "Social Condition"),
+  guides(color = guide_legend(title = "Social Condition", override.aes = list(size = .6)), fill = guide_legend(title = "Social Condition"),
          shape = guide_legend(title = "Social Condition")) +
+  labs(y = "Average Accurary", x = "Proportion of Group Information") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
   theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size=14),
+    axis.title = element_text(size=16,face="bold"),
     legend.position = "top",
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 10)
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text.x = element_text (size = 14, face = "bold"),
+    strip.text.y = element_text (size = 14, face = "bold"),
+    strip.background = element_rect(color = "black", fill = "white")
   )
 
-
-
-# Plotting accuracy_SPCC_group by group information encoding and social environment treatment
-Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot() 
-
-# Plotting accuracy_edit_group by group information encoding and social environment treatment
-Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot()
-
-# Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
-Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot()
-
-# Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
-Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
-  theme_classic() +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols,) +
-  geom_boxplot()
-
-
-ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
-                  common.legend = TRUE, 
-                  ncol = 2,
-                  nrow = 2) # for future reference, I don't know why, but plot doesn't work until ncol and nrow come after common.legend. 
+# This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
 
 ```
 
+Checking the normality of the accuracy measures before we run effect size analyses (TLDR: none are normally distributed)
 ```{r}
 ## TKTK Brittany contribution Feb 18
 # TKTK Checking for normality of (1) accuracy_SPCC_group (2) accuracy_edit_group (3) accuracy_mean_SPCC_individual (4) accuracy_mean_edit_individual
@@ -1096,113 +1087,114 @@ Because all four accuracy measures are not normally distributed, we will use Cli
 
 # Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment
 
+glimpse(res)
 
-### (1) Sparse X Group Info 0
+eff_res <- res %>%
+  # Need to set up data frame so that accuracy_SPCC_group and accuracy_mean_SPCC_individual are combined into accuracy_SPCC (same thing but for edit). and there is another column called Info Level which has information about Group v Individual should be 4 social conditions x 4 group info proportions x 2 info levels X 10 iterations = 320 rows
+  
+    #Make data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # glimpse()
+  
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
+  ) %>%
+  # Checking, pull the new column and check the unique values to check that the replacement was done correctly
+  # pull(tmp) %>%
+  # unique()
+  # glimpse()
+  
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  # glimpse()
 
-#First, read in data file
-data1 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-0.csv"))
-# glimpse(data1) #Double check the file is correct
+  # Now, recover method as separate columns with pivot wider
+  pivot_wider(
+    names_from = accuracy_method, 
+    values_from = accuracy_measurements,
+    names_glue = "accuracy_{accuracy_method}_measurements"
+  ) %>%
+    # glimpse()
+  
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
+  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_level) %>% 
+  # glimpse()
+  
+  # TKTK this isn't working and I don't know why! -Brittany
+  # Once the data frame is grouped, we can calculate effect size comparisons
+  dplyr::summarise(
+    eff_size = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["delta estimate"]],
+    eff_upper = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["upper"]],
+    eff_lower = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["lower"]]
+    ) %>%
+  ungroup() %>%
+  
+ # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
+    social_envt_treatment = factor(social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense")),
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2))
+  )
+  
+# TKTK HELP there should be 32 rows in eff_res and 6 colums, but I can't get the results of eff size to save as columns  
+glimpse(eff_res)  
 
-#Second, perform Cliff's D for GROUP information
-effsize::cliff.delta(data1$accuracy_SPCC_group, data1$accuracy_edit_group)
-# delta estimate: -0.05 (negligible)
-# 95 percent confidence interval:
-# lower      upper 
-# -0.5187324  0.4418445 
+# Now to make plots of the effect size estimates and the CIs
+# Instead of 4 plots like above I think we will only have two 
+# y axis = eff_size (comparing SPCC accuracy to edit distance accuracy)
+# x axis = group_information_proportion
+# color = social_ent+treatment
+# facet will be one panel for Group Level Info and one panel for Individual level info
+# am I thinking about this right???
 
-#Third, perform Cliff's D for INDIVIDUAL information
-effsize::cliff.delta(data1$accuracy_mean_SPCC_individual, data1$accuracy_mean_edit_individual)
-# delta estimate: 0.04 (negligible)
-# 95 percent confidence interval:
-#      lower      upper 
-# -0.3387836  0.4076257 
-
-
-### (2) Sparse X Group Info .3
-
-#First, read in data file
-data2 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-2.csv"))
-# glimpse(data2) # Double check the file is correct
-# view(data2) # Double check the file is correct
-
-#Second, perform Cliff's D for GROUP information
-effsize::cliff.delta(data2$accuracy_SPCC_group, data2$accuracy_edit_group)
-# delta estimate: -0.19 (small)
-# 95 percent confidence interval:
-#      lower      upper 
-# -0.6219969  0.3306708  
-
-#Third, perform Cliff's D for INDIVIDUAL information
-effsize::cliff.delta(data2$accuracy_mean_SPCC_individual, data2$accuracy_mean_edit_individual)
-# delta estimate: -0.41 (medium)
-# 95 percent confidence interval:
-#       lower       upper 
-# -0.71824127  0.03276851 
-
-
-### (3) Sparse X Group Info .6
-
-#First, read in data file
-data3 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-4.csv"))
-# glimpse(data3) # Double check the file is correct
-# view(data3) # Double check the file is correct
-
-#Second, perform Cliff's D for GROUP information
-effsize::cliff.delta(data3$accuracy_SPCC_group, data3$accuracy_edit_group)
-# delta estimate: -0.6 (large)
-# 95 percent confidence interval:
-#      lower      upper 
-# -0.8555110 -0.1094975 
-
-#Third, perform Cliff's D for INDIVIDUAL information
-effsize::cliff.delta(data3$accuracy_mean_SPCC_individual, data3$accuracy_mean_edit_individual)
-# delta estimate: -0.24 (small)
-# 95 percent confidence interval:
-#      lower      upper 
-# -0.6568505  0.2892114 
-
-
-### (4) Sparse X Group Info 1
-
-#First, read in data file
-data4 <- read.csv(file.path(data_path, "Accuracy_results_Sparse_groupInfo-6.csv"))
-# glimpse(data4) # Double check the file is correct
-# view(data4) # Double check the file is correct
-
-#Second, perform Cliff's D for GROUP information
-effsize::cliff.delta(data4$accuracy_SPCC_group, data4$accuracy_edit_group)
-# delta estimate: -0.45 (medium)
-# 95 percent confidence interval:
-#      lower      upper 
-# -0.7683967  0.0469661
-
-#Third, perform Cliff's D for INDIVIDUAL information
-effsize::cliff.delta(data4$accuracy_mean_SPCC_individual, data4$accuracy_mean_edit_individual)
-# delta estimate: -0.3 (small)
-# 95 percent confidence interval:
-#      lower      upper 
-# -0.6727896  0.1942818 
-
-# TKTK left off here, because I think there is a more efficient way to do this, but I'm not sure - Brittany 
-# Intermediate X Group Info 0
-# Intermediate X Group Info .3
-# Intermediate X Group Info .6
-# Intermediate X Group Info 1
-
-# Crowded X Group Info 0
-# Crowded X Group Info .3
-# Crowded X Group Info .6
-# Crowded X Group Info 1
-
-# Dense X Group Info 0
-# Dense X Group Info .3
-# Dense X Group Info .6
-# Dense X Group Info 1
 ```
 
 
 ZOMBIE CODE
 ```{r}
+
+# Plotting accuracy_SPCC_group by group information encoding and social environment treatment
+Acc_SPCC_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_SPCC_group, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot() 
+
+# Plotting accuracy_edit_group by group information encoding and social environment treatment
+Acc_Edit_Group_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_edit_group, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
+
+# Plotting accuracy_mean_SPCC_individual by group information encoding and social environment treatment
+Acc_SPCC_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_SPCC_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
+
+# Plotting accuracy_mean_edit_individual by group information encoding and social environment treatment
+Acc_Edit_Ind_Plot <- ggplot (res, aes(as.factor(group_information_proportion), accuracy_mean_edit_individual, color = social_envt_treatment, fill = social_envt_treatment)) +
+  theme_classic() +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols,) +
+  geom_boxplot()
+
+
+ggpubr::ggarrange(Acc_SPCC_Group_Plot, Acc_Edit_Group_Plot, Acc_SPCC_Ind_Plot, Acc_Edit_Ind_Plot,
+                  common.legend = TRUE, 
+                  ncol = 2,
+                  nrow = 2) # for future reference, I don't know why, but plot doesn't work until ncol and nrow come after common.legend. 
 
 # General Effect Size Differences 
 
