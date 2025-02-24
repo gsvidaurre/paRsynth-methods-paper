@@ -65,10 +65,10 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -108,6 +108,15 @@ figure_path <- file.path(path, analysis_dir, figure_dir)
 if(!dir.exists(figure_path)){ 
   dir.create(figure_path)
 }
+
+```
+
+Source custom functions for this manuscript.
+```{r}
+
+# Load custom functions for the code below
+# This line of code loads a function to calculate accuracy by class after clustering
+source(file.path(path, "GitHub_repos/paRsynth-methods-paper/code/functions/accuracy.R"))
 
 ```
 
@@ -204,7 +213,7 @@ information <- data.table::rbindlist(pblapply(1:length(social_envts), function(j
   
 }))
 
-View(information)
+# View(information)
 
 # Then set other parameters for creating synthetic vocal identity signals
 # The length of the global header and tail should be the same across strings
@@ -222,9 +231,9 @@ iteratns <- 10
 # iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
-z <- 1 # social environments
+z <- 2 # social environments
 i <- 1 # information encoding treatments
-# n <- 1 # replicates or iterations
+n <- 1 # replicates or iterations
 
 # Iterate over the social environment and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
 
@@ -640,23 +649,43 @@ system.time(
         spcc_gmms_grp <- mclust::Mclust(data = mds_spcc[, grep("X|Y", names(mds_spcc))], G = num_clusters, verbose = FALSE)
         # str(spcc_gmms_grp)
         
-        # Get the "optimal" number of clusters identified and calculate the accuracy
-        # Note the Mclust also returns the uncertainty of the predicted cluster labels, right now we are not using that
-        # Also calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features
-        # And save this information in a data frame
-        accuracy <- length(which(spcc_gmms_grp$classification == mds_spcc$group_ID))/nrow(mds_spcc)
-        # accuracy
+        # Combine the resulting cluster labels with the original information about signals
+        # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+        mds_spcc_clust <- mds_spcc %>% 
+          dplyr::mutate(
+            cluster_label = spcc_gmms_grp$classification
+          )
         
-        gmm_spcc <- accuracy
+        # glimpse(mds_spcc_clust)
+        
+        # Calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features
+        # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
+        gmm_spcc <- accuracy(X = mds_spcc_clust, class_column = "group_ID", cluster_column = "cluster_label")
+        # str(gmm_spcc)
+        
+        # Take the mean of the group-level accuracy across groups
+        gmm_spcc <- mean(gmm_spcc)
+        
         
         # Perform these same steps for the edit distance MDS features
         edit_gmms_grp <- mclust::Mclust(data = mds_edit[, grep("X|Y", names(mds_edit))], G = num_clusters, verbose = FALSE)
         # str(edit_gmms_grp)
         
-        accuracy <- length(which(edit_gmms_grp$classification == mds_edit$group_ID))/nrow(mds_edit)
-        # accuracy
+        # Combine the resulting cluster labels with the original information about signals
+        # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+        mds_edit_clust <- mds_edit %>% 
+          dplyr::mutate(
+            cluster_label = edit_gmms_grp$classification
+          )
         
-        gmm_edit <- accuracy
+        # glimpse(mds_edit_clust)
+        
+        gmm_edit <- accuracy(X = mds_edit_clust, class_column = "group_ID", cluster_column = "cluster_label")
+        # str(gmm_edit)
+        
+        # Take the mean of the group-level accuracy across groups
+        gmm_edit <- mean(gmm_edit)
+        
         
         ### Individual-level clustering on the SPCC and edit distance features, accuracy calculations
         
@@ -667,9 +696,11 @@ system.time(
         
         # num_clusters
         
+        # TKTK need to figure out how to handle when Mclust() returns a NULL value (fixed this by setting the cluster number lower)
+        
         # Perform Gaussian mixture model clustering with this number of clusters at the individual level within each group, so iterate over groups for the accuracy calculations. Use SPCC MDS features here
-        # m <- 1 # testing
-        spcc_gmms_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
+        # m <- 3 # testing
+        spcc_gmms_ind <- lapply(1:n_groups[z], function(m){
           
           tmp <- mds_spcc[mds_spcc$group_ID == m, ]
           
@@ -678,21 +709,44 @@ system.time(
           # all(tmp$group_ID == m)
           
           # Perform clustering using the MDS coordinates as input
-          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = FALSE)
+          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = TRUE)
           
-          # Get the "optimal" number of clusters identified and calculate the accuracy
-          # Also calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features, save this information in a data frame
-          accuracy <- length(which(res$classification == tmp$individual_ID))/nrow(tmp)
-          # accuracy
+          if(!is.null(res)){
+            
+            # Combine the resulting cluster labels with the original information about signals
+            # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+            tmp_clust <- tmp %>% 
+              dplyr::mutate(
+                cluster_label = res$classification
+              )
+            
+            # glimpse(tmp_clust)
+            
+            # Calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features
+            # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
+            # This returns a vector of accuracy values across each individual within the given group
+            gmm_spcc <- accuracy(X = tmp_clust, class_column = "individual_ID", cluster_column = "cluster_label")
+            # str(gmm_spcc)
+            
+            # Return the individual-level accuracies
+            return(gmm_spcc)
           
-          return(accuracy)
+          # Sometimes a clustering result cannot be returned for a given group with the given number of clusters, so return that NULL result
+          } else {
+            
+            return(res)
+            
+          }
           
-        }))
+        })
+        
+        # Remove the list structure and calculate the mean at the individual-level across groups
+        spcc_gmms_ind_cg <- mean(unlist(spcc_gmms_ind))
         
         
         # Perform the same analyses using the edit distance MDS features here
-        # m <- 2 # testing
-        edit_gmms_ind_cg <- unlist(lapply(1:n_groups[z], function(m){
+        # m <- 1 # testing
+        edit_gmms_ind <- lapply(1:n_groups[z], function(m){
           
           tmp <- mds_edit[mds_edit$group_ID == m, ]
           
@@ -701,17 +755,39 @@ system.time(
           # all(tmp$group_ID == m)
           
           # Perform clustering using the MDS coordinates as input
-          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = FALSE)
+          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = TRUE)
           
-          # Calculate the accuracy
-          accuracy <- length(which(res$classification == tmp$individual_ID))/nrow(tmp)
-          # accuracy
+          if(!is.null(res)){
+            
+            # Combine the resulting cluster labels with the original information about signals
+            # We can do this column addition because we used mds_edit directly as input to the clustering algorithm, so rows in each object are in the same order
+            tmp_clust <- tmp %>% 
+              dplyr::mutate(
+                cluster_label = res$classification
+              )
+            
+            # glimpse(tmp_clust)
+            
+            # Calculate accuracy of original group-level labels with k-means clustering on edit MDS features
+            # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
+            # This returns a vector of accuracy values across each individual within the given group
+            gmm_edit <- accuracy(X = tmp_clust, class_column = "individual_ID", cluster_column = "cluster_label")
+            # str(gmm_edit)
+            
+            # Return the individual-level accuracies
+            return(gmm_edit)
           
-          return(accuracy)
+          # Sometimes a clustering result cannot be returned for a given group with the given number of clusters, so return that NULL result
+          } else {
+            
+            return(res)
+            
+          }
           
-        }))
+        })
         
-        # edit_gmms_ind_cg
+        # Remove the list structure and calculate the mean at the individual-level across groups
+        edit_gmms_ind_cg <- mean(unlist(edit_gmms_ind))
         
         # Gather results that will be returned for downstream statistics and figures
         results <- data.frame(
@@ -723,12 +799,12 @@ system.time(
           individual_information_proportion = individual_information[i] / max(individual_information),
           accuracy_SPCC_group = gmm_spcc,
           accuracy_edit_group = gmm_edit,
-          accuracy_mean_SPCC_individual = mean(spcc_gmms_ind_cg),
-          accuracy_mean_edit_individual = mean(edit_gmms_ind_cg),
+          accuracy_mean_SPCC_individual = spcc_gmms_ind_cg,
+          accuracy_mean_edit_individual = edit_gmms_ind_cg,
           notes = paste(neg_notes, one_notes, sep = "; ")
         )
         
-        results
+        # results
         
         ### Step 11: return results
         return(results)
@@ -753,6 +829,8 @@ system.time(
 
 
 TKTK can also add back temperature = 0.025 to sound generation
+
+TKTK ask Vanessa: replace 0's to be something small like 0.001? Off the diagonal in the edit distance matrix
 
 TKTK integrate code like this into the loop above: Make sure to remove the very same comparisons from the edit distance and SPCC matrices
 Next, remove pairwise comparisons from the SPCC matrix that had an edit distance of 0.
@@ -1010,7 +1088,7 @@ res_summ %>%
   facet_grid(
     accuracy_level ~ accuracy_method,
     labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
-    ) +
+  ) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
@@ -1089,43 +1167,34 @@ glimpse(res)
 
 # Need to set up new data frame so that both SPCC measures are combined into accuracy_SPCC (& same thing but for Edit). There will be another column called Level which has information about Group vs Individual. 
 
-eff_res <- res %>%
- 
-    #Make data frame longer so that each row is a separate accuracy calculation
+eff_res_method <- res %>%
+  #Make data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
     # Select all of the columns that start with the pattern "accuracy"
     cols = names(.)[grep("^accuracy", names(.))],
     names_to = "accuracy_type",
     values_to = "accuracy_measurements"
   ) %>% 
-  # glimpse()
-  
   # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
   dplyr::mutate(
     # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
     accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
   ) %>%
-  # Checking, pull the new column and check the unique values to check that the replacement was done correctly
-  # pull(tmp) %>%
-  # unique()
-  # glimpse()
-  
   # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
   tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
-  # glimpse()
-
   # Now, recover "method" as separate columns with pivot wider
   pivot_wider(
     names_from = accuracy_method, 
     values_from = accuracy_measurements,
     names_glue = "accuracy_{accuracy_method}_measurements"
-  ) %>%
-    # glimpse()
-  
+  )
+
+glimpse(eff_res_method)
+
 ################# 
 # For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
-#     effsize::cliff.delta(eff_res$accuracy_SPCC_measurements, eff_res$accuracy_edit_measurements)
-    
+effsize::cliff.delta(eff_res_method$accuracy_SPCC_measurements, eff_res_method$accuracy_edit_measurements)
+
 # They are not: 
 # delta estimate: -0.05734375 (negligible)
 # 95 percent confidence interval:
@@ -1133,21 +1202,37 @@ eff_res <- res %>%
 # -0.14617594  0.03240583 
 #################   
 
+
+########################
+# TKTK add the qualitative assessment of magnitude
+
+# Then calculate effect sizes of the difference between methods per treatment combination
+eff_res_method <- eff_res_method %>% 
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
   dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_level) %>% 
-  # glimpse()
-  
   # Once the data frame is grouped, we can calculate effect size comparisons 
   # Using reframe() and not summarize() because we need to change the number of rows returned, and summarize() expects the same number of rows it started with. Key point to remember, reframe() returns UNGROUPED dataframe, so no need to use the ungroup() function at the end of this part
   # Because I have SPPC measurements BEFORE edit measurements in this function, it means SPCC is the comparison groups. So a negative eff_delta value means the distribution of SPCC measurements is smaller than edit measurements. A positive value means it is bigger.
-    dplyr::reframe(
+  dplyr::reframe(
     eff_delta = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["estimate"]],
     eff_CI_upper = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["conf.int"]][["upper"]],
     eff_CI_lower = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["conf.int"]][["lower"]]
-    ) %>%
-    # glimpse()
- 
+  )
+
+glimpse(eff_res_method)
+
+# Print the results
+eff_res_method %>%
+  # The period indicates the current object
+  print(n = nrow(.))
+
+# Save the results as a .csv file as well
+eff_res_method %>%
+  write.csv(., file = file.path(data_path, "effect_sizes_byMethod.csv"), row.names = FALSE)
+
+# Next, plot the results
+eff_res_method_gg <- eff_res_method %>%
   # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
   # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
   dplyr::mutate(
@@ -1157,14 +1242,9 @@ eff_res <- res %>%
     # convert accuracy_level to factor
     accuracy_level = factor(accuracy_level)
   )
-  
-# there should be 32 rows in eff_res and 6 colums, but I can't get the results of eff size to save as columns  
-glimpse(eff_res)  
 
-# TKTK Once accuracy measures are finalized, we will need to save eff_res as a csv, to include as supplimental table in manuscript (to display dealtas and CIs for all effect size calcs)
-# TKTK need to double check this function
-# write.csv(eff_res, data.path)
-
+# There should be 32 rows in eff_res and 6 columns
+glimpse(eff_res_method_gg)  
 
 # Setting up for plots
 # defining colors, fill colors and shapes
@@ -1176,6 +1256,7 @@ shps <- c(21, 22, 24, 25)
 level_labs <- c("Group Information", "Individual Information")
 names(level_labs) <- c("group", "individual")
 
+# TKTK add horizontal lines to indicate eff size magnitude categories
 # Now to make plots of the effect size estimates and the CIs
 eff_res %>% 
   ggplot(aes(x = group_information_proportion, y = eff_delta, color = social_envt_treatment, fill = social_envt_treatment, shape = social_envt_treatment)) +
@@ -1212,6 +1293,7 @@ eff_res %>%
 
 Step 3: Calculating Group vs Individual Effect Sizes for all Social x Info Proportion x Method combinations
 
+TKTK make same updates as above
 ```{r}
 # Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment at each information level 
 
@@ -1222,8 +1304,8 @@ glimpse(res)
 # Need to set up new data frame so that accuracy_SPCC_group and accuracy_edit_group are combined into accuracy_group (& same thing but for individual). There will be another column called Metho Type which has information about SPCC v Edit. 
 
 eff_res <- res %>%
- 
-    #Make data frame longer so that each row is a separate accuracy calculation
+  
+  #Make data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
     # Select all of the columns that start with the pattern "accuracy"
     cols = names(.)[grep("^accuracy", names(.))],
@@ -1245,19 +1327,19 @@ eff_res <- res %>%
   # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
   tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
   # glimpse()
-
+  
   # Now, recover "method" as separate columns with pivot wider
   pivot_wider(
     names_from = accuracy_level, 
     values_from = accuracy_measurements,
     names_glue = "accuracy_{accuracy_level}_measurements"
   ) %>% 
-    # glimpse()
+  # glimpse()
   
-################# 
+  ################# 
 # For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
-    # effsize::cliff.delta(eff_res$accuracy_group_measurements, eff_res$accuracy_individual_measurements)
-    
+# effsize::cliff.delta(eff_res$accuracy_group_measurements, eff_res$accuracy_individual_measurements)
+
 # They are not: 
 # delta estimate: -0.06915039 (negligible)
 # 95 percent confidence interval:
@@ -1265,21 +1347,21 @@ eff_res <- res %>%
 # -0.15784110  0.02064707
 #################   
 
-  # Group by the columns that have information about each experimental treatment
-  # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
-  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_method) %>% 
+# Group by the columns that have information about each experimental treatment
+# Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
+dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_method) %>% 
   # glimpse()
   
   # Once the data frame is grouped, we can calculate effect size comparisons 
   # Because I have Group measurements BEFORE Individual measurements in this function, it means Group is the comparison groups. So a negative eff_delta value means the distribution of Group measurements is smaller than individual measurements. A positive value means it is bigger.
   # TKTK effsize is throwing warnings below - need to double check measures once what have correct accuracy calculations
-    dplyr::reframe(
+  dplyr::reframe(
     eff_delta = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["estimate"]],
     eff_CI_upper = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["upper"]],
     eff_CI_lower = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["lower"]]
-    ) %>%
-    # glimpse()
- 
+  ) %>%
+  # glimpse()
+  
   # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
   # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
   dplyr::mutate(
@@ -1289,7 +1371,7 @@ eff_res <- res %>%
     # convert accuracy_level to factor
     accuracy_method = factor(accuracy_method)
   )
-  
+
 # there should be 32 rows in eff_res and 6 colums, but I can't get the results of eff size to save as columns  
 glimpse(eff_res)  
 
