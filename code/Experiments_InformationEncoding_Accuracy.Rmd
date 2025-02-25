@@ -5,19 +5,11 @@ output: html_document
 date: "2024-07-08"
 ---
 
-Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions written by Ari generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced 
+Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced 
 
 Below we iterate over social conditions and group versus individual information encoding at two social levels in character strings that will influence the distinctiveness or uniqueness of the strings and the resulting synthetic vocalizations at either social level. 
 
 The pipeline below will allow us to indirectly address or compare how much information about group membership versus individual identity is contained in patterns of acoustic variation across character strings and their corresponding synthetic vocalizations that represent vocal identity signals. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the percentage of original individual-level labels recovered by clustering should be high, but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about group membership.
-
-TKTK updates to work on here:
-
-- Then calculate the effect size of either the difference or the correlation between accuracy of call label predictions by the edit distance and the SPCC analyses, and possibly the effect size between predicting group vs individual identity labels too. Consider using Hedge's g because this does not assume that variances between the groups are equal and can account for unequal variances between groups by pooling the standard deviation. But Hedge's g may assume normality of the data, so Cliff's d could also be a good non-parametric choice (does not assume normally distributed data nor equal variance). 
-
-This code for calculating effect sizes should come after the pipeline below that ends with the accuracy calculation (following the looping structure). Read in the spreadsheets of results, then check the normality of all of the variables that will be used to caculate effect sizes, and check the equality of variances between variables too. Then use the normality and variance checks to decide which effect size calculations to use.
-
-- Remove the information theory angle in the narrative text below since we will move the information theory side focus to another paper 
 
 ```{r setup, include = FALSE}
 
@@ -65,9 +57,9 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
@@ -126,8 +118,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ###################### Manually update in every new coding session ##################################
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -375,7 +367,7 @@ system.time(
           save_path = data_path, 
           sampling_rate = 44100,
           sylLen = 200,
-          temperature = 0,
+          temperature = 0.025,
           prefix = paste(social_envts[z], paste("groupInfo", group_information[i], sep = "-"), sep = "_"),
           invalidArgAction = "ignore" # This argument fixes the variable sampling rates that soundgen assigns in the background
         )
@@ -547,7 +539,7 @@ system.time(
         
         edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
         
-        # There is an earlier check built in above to avoid edit distance values of 0 for calls compared within an individual. But as the number of groups and individuals increases, the likelihood of generating the same call strings across individuals or groups increases, so the code below replaces edit distance values of 0 off of the diagonal with the minimum edit distance value in the matrix
+        # There is an earlier check built in above to avoid edit distance values of 0 for calls compared within an individual. But as the number of groups and individuals increases, the likelihood of generating the same call strings across individuals or groups increases, so the code below replaces edit distance values of 0 off of the diagonal with a small number close to 0. The lowest non-zero value in the edit distance matrix is 1. Replace zeroes off of the diagonal with 1/10th of this value, or 0.1.
         
         # Check if there are values of 0 off of the diagonal in the edit distance matrix, which will happen by chance when the exact same strings are generated within an individual (even with the random variation)
         # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
@@ -561,11 +553,11 @@ system.time(
           sec_min_val <- min(min_vals[min_vals > 0])
           
           # Initialize a record of what was changed to save to the final results
-          zero_notes <- paste(round(zeroes, 8), "% of all edit distance cells or", length(which(edit_mat[lower.tri(edit_mat)] == 0)), "unique comparisons were had an original edit distance value of 0 and were changed to the next minimum edit distance value of", round(sec_min_val, 8), sep = " ")
+          zero_notes <- paste(round(zeroes, 8), "% of all edit distance cells or", length(which(edit_mat[lower.tri(edit_mat)] == 0)), "unique comparisons were had an original edit distance value of 0 and were changed to the next minimum edit distance value of", round(sec_min_val/10, 8), sep = " ")
           
           # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to the next highest similarity value in this matrix
-          edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
-          edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val, 8)
+          edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
+          edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
           
         } else {
           
@@ -644,16 +636,16 @@ system.time(
         num_clusters <- length(unique(mds_spcc$group_ID))
         # num_clusters
         
-        # Perform model-based clustering with Gaussian mixture modeling and Bayesian information criterion model choice on the SPCC and edit distance feature spaces with the number of clusters above
+        # Perform kmeans clustering on the SPCC and edit distance feature spaces with the number of clusters above
         # Ensure that the clustering algorithms use only the MDS variables, restricting them to information from the patterns of acoustic variation in order to detect clusters
-        spcc_gmms_grp <- mclust::Mclust(data = mds_spcc[, grep("X|Y", names(mds_spcc))], G = num_clusters, verbose = FALSE)
+        spcc_gmms_grp <- kmeans(x = mds_spcc[, grep("X|Y", names(mds_spcc))], centers = num_clusters)
         # str(spcc_gmms_grp)
         
         # Combine the resulting cluster labels with the original information about signals
         # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
         mds_spcc_clust <- mds_spcc %>% 
           dplyr::mutate(
-            cluster_label = spcc_gmms_grp$classification
+            cluster_label = spcc_gmms_grp$cluster
           )
         
         # glimpse(mds_spcc_clust)
@@ -668,14 +660,14 @@ system.time(
         
         
         # Perform these same steps for the edit distance MDS features
-        edit_gmms_grp <- mclust::Mclust(data = mds_edit[, grep("X|Y", names(mds_edit))], G = num_clusters, verbose = FALSE)
+        edit_gmms_grp <- kmeans(x = mds_edit[, grep("X|Y", names(mds_edit))], centers = num_clusters)
         # str(edit_gmms_grp)
         
         # Combine the resulting cluster labels with the original information about signals
         # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
         mds_edit_clust <- mds_edit %>% 
           dplyr::mutate(
-            cluster_label = edit_gmms_grp$classification
+            cluster_label = edit_gmms_grp$cluster
           )
         
         # glimpse(mds_edit_clust)
@@ -696,10 +688,8 @@ system.time(
         
         # num_clusters
         
-        # TKTK need to figure out how to handle when Mclust() returns a NULL value (fixed this by setting the cluster number lower)
-        
-        # Perform Gaussian mixture model clustering with this number of clusters at the individual level within each group, so iterate over groups for the accuracy calculations. Use SPCC MDS features here
-        # m <- 3 # testing
+        # Perform kmeans clustering with this number of clusters at the individual level within each group, so iterate over groups for the accuracy calculations. Use SPCC MDS features here
+        # m <- 4 # testing
         spcc_gmms_ind <- lapply(1:n_groups[z], function(m){
           
           tmp <- mds_spcc[mds_spcc$group_ID == m, ]
@@ -709,36 +699,36 @@ system.time(
           # all(tmp$group_ID == m)
           
           # Perform clustering using the MDS coordinates as input
-          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = TRUE)
+          res <- kmeans(x = tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
           
-          if(!is.null(res)){
-            
-            # Combine the resulting cluster labels with the original information about signals
-            # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
-            tmp_clust <- tmp %>% 
-              dplyr::mutate(
-                cluster_label = res$classification
-              )
-            
-            # glimpse(tmp_clust)
-            
-            # Calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features
-            # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
-            # This returns a vector of accuracy values across each individual within the given group
-            gmm_spcc <- accuracy(X = tmp_clust, class_column = "individual_ID", cluster_column = "cluster_label")
-            # str(gmm_spcc)
-            
-            # Return the individual-level accuracies
-            return(gmm_spcc)
+          # Combine the resulting cluster labels with the original information about signals
+          # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+          tmp_clust <- tmp %>% 
+            dplyr::mutate(
+              cluster_label = res$cluster
+            )
           
-          # Sometimes a clustering result cannot be returned for a given group with the given number of clusters, so return that NULL result
-          } else {
-            
-            return(res)
-            
-          }
+          # glimpse(tmp_clust)
+          
+          # Calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features
+          # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
+          # This returns a vector of accuracy values across each individual within the given group
+          gmm_spcc <- accuracy(X = tmp_clust, class_column = "individual_ID", cluster_column = "cluster_label")
+          # str(gmm_spcc)
+          
+          # Return the individual-level accuracies
+          return(gmm_spcc)
           
         })
+        
+        # str(spcc_gmms_ind)
+        
+        # Save information about whether there were NULL clustering results for any of the classes here 
+        if(any(sapply(spcc_gmms_ind, is.null))){
+          
+          null_notes <- paste("Null clustering results for", length(which(sapply(spcc_gmms_ind, is.null))), "group(s)", sep = " ")
+          
+        }
         
         # Remove the list structure and calculate the mean at the individual-level across groups
         spcc_gmms_ind_cg <- mean(unlist(spcc_gmms_ind))
@@ -755,36 +745,34 @@ system.time(
           # all(tmp$group_ID == m)
           
           # Perform clustering using the MDS coordinates as input
-          res <- mclust::Mclust(data = tmp[, grep("X|Y", names(tmp))], G = num_clusters, verbose = TRUE)
+          res <- kmeans(x = tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
           
-          if(!is.null(res)){
-            
-            # Combine the resulting cluster labels with the original information about signals
-            # We can do this column addition because we used mds_edit directly as input to the clustering algorithm, so rows in each object are in the same order
-            tmp_clust <- tmp %>% 
-              dplyr::mutate(
-                cluster_label = res$classification
-              )
-            
-            # glimpse(tmp_clust)
-            
-            # Calculate accuracy of original group-level labels with k-means clustering on edit MDS features
-            # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
-            # This returns a vector of accuracy values across each individual within the given group
-            gmm_edit <- accuracy(X = tmp_clust, class_column = "individual_ID", cluster_column = "cluster_label")
-            # str(gmm_edit)
-            
-            # Return the individual-level accuracies
-            return(gmm_edit)
+          # Combine the resulting cluster labels with the original information about signals
+          # We can do this column addition because we used mds_edit directly as input to the clustering algorithm, so rows in each object are in the same order
+          tmp_clust <- tmp %>% 
+            dplyr::mutate(
+              cluster_label = res$cluster
+            )
           
-          # Sometimes a clustering result cannot be returned for a given group with the given number of clusters, so return that NULL result
-          } else {
-            
-            return(res)
-            
-          }
+          # glimpse(tmp_clust)
+          
+          # Calculate accuracy of original group-level labels with k-means clustering on edit MDS features
+          # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
+          # This returns a vector of accuracy values across each individual within the given group
+          gmm_edit <- accuracy(X = tmp_clust, class_column = "individual_ID", cluster_column = "cluster_label")
+          # str(gmm_edit)
+          
+          # Return the individual-level accuracies
+          return(gmm_edit)
           
         })
+        
+         # Save information about whether there were NULL clustering results for any of the classes here 
+        if(any(sapply(edit_gmms_ind, is.null))){
+          
+          null_notes <- paste("Null clustering results for", length(which(sapply(edit_gmms_ind, is.null))), "group(s)", sep = " ")
+          
+        }
         
         # Remove the list structure and calculate the mean at the individual-level across groups
         edit_gmms_ind_cg <- mean(unlist(edit_gmms_ind))

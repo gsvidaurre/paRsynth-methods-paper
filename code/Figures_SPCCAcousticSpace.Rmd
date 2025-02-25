@@ -49,8 +49,8 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "/Users/summe/OneDrive/Desktop/" #Summer's path
 
 # Initialize the directory for analysis on your local computer
@@ -105,7 +105,7 @@ Read in the synthetic call metadata and set cores for parallel processing.
 synthetic_call_metadata <- read.csv(file.path(analysis_path, "synthetic_call_metadata.csv"))
 glimpse(synthetic_call_metadata)
 
-cores <- parallel::detectCores() - 2
+cores <- parallel::detectCores() - 4
 cores
 
 # Find the maximum frequency anchor value across all vocalizations
@@ -197,11 +197,11 @@ str(xc_mat)
 dim(xc_mat)
 
 # Checking, get the percentage of unique values that are negative
-neg_values <- length(xc_mat[xc_mat<0])/(dim(xc_mat)[1]*dim(xc_mat)[2])
+neg_values <- length(xc_mat[xc_mat < 0]) / (dim(xc_mat)[1] * dim(xc_mat)[2])
 neg_values # No negative values, looks good
 
 # No values of 1 off of the diagonal, looks good
-ones <- ((length(which(xc_mat[lower.tri(xc_mat)] > 0.999999))*2)/length(xc_mat)) * 100
+ones <- ((length(which(xc_mat[lower.tri(xc_mat)] > 0.999999))*2) / length(xc_mat)) * 100
 ones
 
 # Update the dimension names of the matrix
@@ -216,6 +216,8 @@ saveRDS(xc_mat, file.path(analysis_path, "xc_mat.RDS"))
 Step 8: Calculate the edit distance amongst all strings
 
 ```{r}
+
+xc_mat <- readRDS(file.path(analysis_path, "xc_mat.RDS"))
 
 # For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
 edit_dists <- unlist(lapply(1:nrow(xc_mat), function(m){
@@ -243,9 +245,21 @@ edit_dists <- unlist(lapply(1:nrow(xc_mat), function(m){
 edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
 # dim(edit_mat)
 
-# Check for values of 0 off of the diagonal...and there are zeroes off of the diagonal, so I need to remove some comparisons, and will also need to remove the same comparisons from the cross-correlation matrix. 
+# Check for values of 0 off of the diagonal. This will happen by chance when the exact same strings are generated within an individual (even with the random variation).
 zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
 zeroes
+
+# The code below replaces edit distance values of 0 off of the diagonal with a small number close to 0. The lowest non-zero value in the edit distance matrix is 1. Replace zeroes off of the diagonal with 1/10th of this value, or 0.1.
+
+# Get the minimum non-zero similarity value in the matrix, which should be 1
+min_vals <- edit_mat[lower.tri(edit_mat)]
+
+sec_min_val <- min(min_vals[min_vals > 0])
+sec_min_val
+
+# Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of 1, the smallest non-zero value in this matrix
+edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
+edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
 
 # Update the dimension names of the matrix
 dimnames(edit_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
@@ -254,15 +268,6 @@ dimnames(edit_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
 saveRDS(edit_mat, file.path(analysis_path, "edit_mat.RDS"))
 
 ```
-
-
-TKTK Next steps:
-
-- Melt the edit distance matrix and find the call comparisons with values of 0 off of the diagonal
-- Melt the SPCC matrix too
-- Remove those call comparisons from both melted matrices
-- Rebuild the matrices
-- Then proceed with MDS acoustic space
 
 
 # Step 3: Reduce the dimensionality of the SPCC and edit distance matrices with multidimensional scaling.
@@ -276,14 +281,14 @@ dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
 str(dist_mat)
 
 # Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is "low" stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
-iso <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
-str(iso)
+iso_spcc <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
+str(iso_spcc)
 
 # Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
-mds_df <- data.frame(
+mds_spcc <- data.frame(
   sound.files = dimnames(xc_mat)[[1]],
-  X = as.vector(iso$points[, 1]), 
-  Y = as.vector(iso$points[, 2])
+  X = as.vector(iso_spcc$points[, 1]), 
+  Y = as.vector(iso_spcc$points[, 2])
 ) %>% 
   inner_join(
     sel_tbl %>% 
@@ -299,16 +304,54 @@ mds_df <- data.frame(
     dataset = factor(dataset)
   )
 
-glimpse(mds_df)
+glimpse(mds_spcc)
 
 ```
 
-# Step 5: Generate low-dimensional acoustic space plots
-
-Calls from both datasets in the same universal acoustic space. Start with aesthetics.
 ```{r}
 
-mds_df_all <- mds_df %>%
+edit_mat <- readRDS(file.path(analysis_path, "edit_mat.RDS"))
+str(edit_mat)
+
+# Convert to a dist object for isoMDS (this is already a distance matrix and should not be subtracted from 1)
+dist_mat <- stats::as.dist(edit_mat, diag = TRUE, upper = TRUE)
+str(dist_mat)
+
+# Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is "low" stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
+iso_edit <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
+str(iso_edit)
+
+# Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
+mds_edit <- data.frame(
+  sound.files = dimnames(edit_mat)[[1]],
+  X = as.vector(iso_edit$points[, 1]), 
+  Y = as.vector(iso_edit$points[, 2])
+) %>% 
+  inner_join(
+    sel_tbl %>% 
+      dplyr::select(sound.files, group_ID, individual_ID, dataset),
+    by = c("sound.files")
+  ) %>%
+  dplyr::mutate(
+    unique_individuals = paste(group_ID, individual_ID, sep = " - "),
+    group_ID = factor(group_ID),
+    individual_ID = factor(individual_ID),
+    unique_individuals = factor(unique_individuals),
+    dataset = gsub("_", " ", dataset),
+    dataset = factor(dataset)
+  )
+
+glimpse(mds_edit)
+
+```
+
+
+# Step 5: Generate low-dimensional acoustic space plots
+
+Calls from both datasets in the same universal acoustic space (SPCC). Start with aesthetics.
+```{r}
+
+mds_df_all <- mds_spcc %>%
   # Create a column that combines dataset and group
   dplyr::mutate(
     dataset_group = paste(dataset, group_ID, sep = "-"),
@@ -358,8 +401,8 @@ mds_df_all %>%
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(-0.35, 0.4), breaks = seq(-0.35, 0.4, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0.4, 0.05), 2))) +
-  scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.05), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.05), 2))) +
+  # scale_x_continuous(limits = c(-0.35, 0.4), breaks = seq(-0.35, 0.4, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0.4, 0.05), 2))) +
+  # scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.05), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.05), 2))) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -378,7 +421,59 @@ mds_df_all %>%
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_bothDatasets.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_bothDatasets.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+```
+
+The same plot, but the edit distance.
+```{r}
+
+mds_df_all <- mds_edit %>%
+  # Create a column that combines dataset and group
+  dplyr::mutate(
+    dataset_group = paste(dataset, group_ID, sep = "-"),
+    dataset_group = factor(dataset_group)
+  )
+
+hulls <- plyr::ddply(mds_df_all, "dataset_group", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+mds_df_all %>% 
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = dataset_group), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = dataset), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") + 
+  # The legend is currently on but should be modified downstream as needed
+  guides(color = guide_legend(title = "Group ID", override.aes = list(size = 3)), shape = guide_legend(title = "Dataset", override.aes = list(size = 3)), fill = guide_legend(title = "Group ID", override.aes = list(size = 3))) +
+  # Uncomment this line to remove the legend
+  # guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  # scale_x_continuous(limits = c(-0.35, 0.4), breaks = seq(-0.35, 0.4, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0.4, 0.05), 2))) +
+  # scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.05), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.05), 2))) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    legend.position = "top",
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 8),
+    legend.key.spacing = unit(0.15, "lines"),
+    legend.box.spacing =  unit(0.1, "lines"),
+    plot.margin = margin(0, 3, -3, -3)
+  )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_bothDatasets.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 ```
 
