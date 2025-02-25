@@ -651,6 +651,136 @@ system.time(
         # glimpse(mds_spcc_clust)
         
         # Calculate accuracy of original group-level labels with k-means clustering on SPCC MDS features
+        # I want to convert this calculation to be accuracy across groups, not within groups
+        X <- mds_spcc_clust
+        class_column <- "group_ID"
+        cluster_column <- "cluster_label"
+        
+        accuracy <- function(X, class_column, cluster_column){
+          
+          # Pull out the unique identifiers for the given social level
+          ids <- unique(X[[class_column]])
+          # ids
+          
+          # Per group, figure out if the majority of vocalizations were assigned to a single cluster, which can be used as the reference cluster for that group
+          
+          # Group by the original classes and by the cluster labels
+          tmp <- X %>% 
+            group_by(!!sym(class_column), !!sym(cluster_column)) %>% 
+            # Count rows by each combination of unique values per column used in the grouping (original class label, cluster label)
+            dplyr::summarise(
+              n = n()
+            )
+          
+          # Then for each unique class label, we need to figure out if there was a single cluster that can be used as the reference cluster, or whether there were ties. And we also need to ensure that the reference cluster is unique per class
+          
+          # Then find the combinations of original class labels and cluster labels that had the most vocalizations
+          # If the majority of vocalizations in each original class were assigned to a single cluster, then there will be one row per unique class label here
+          tmp_max <- tmp %>% 
+            dplyr::filter(n == max(n)) %>%
+            ungroup()
+          
+          clust_summ <- tmp_max %>% 
+            group_by(!!sym(cluster_column)) %>% 
+            dplyr::summarise(
+              n = n()
+            ) %>% 
+            ungroup()
+          
+          # If any clusters were identified as the majority cluster for more than one original class label, then:
+          if(any(clust_summ$n > 1)){
+            
+            # Find the duplicated cluster label
+            dup_clust <- clust_summ[[cluster_column]][which(clust_summ$n > 1)]
+            dup_clust
+            
+            # Search for the original classes that have a duplicated cluster label in the results for the maximum cluster assignments
+            ties <- tmp_max %>% 
+              dplyr::filter(!!sym(cluster_column) == dup_clust)
+            
+            # If one class had more vocalizations assigned to this cluster, then assign that class the current cluster (do nothing to the current cluster assignment), but assign the other classes the cluster to which the second largest number of calls were assigned
+            if(length(max(ties$n)) == 1){
+              
+              clust_assign <- tmp_max %>% 
+                dplyr::select(-n)
+              
+              # Get the class identifier for the class that needs a cluster reassignment
+              reass_class <- ties %>% 
+                dplyr::filter(n != max(n)) %>% 
+                pull(!!sym(class_column))
+              
+              # Search for all cluster assignments for this class, and find the cluster with the second largest number of vocalizations assigned to it
+              new_assign <- tmp %>%
+                dplyr::filter(!!sym(class_column) == reass_class) %>% 
+                # Remove the overall majority
+                dplyr::filter(n != max(n)) %>% 
+                # Find the second largest majority
+                dplyr::filter(n == max(n)) %>% 
+                # Remove non-duplicated cluster labels already assigned to other classes
+                # TKTK how to add a ! before the !!sym()??
+                dplyr::filter(! !!sym(cluster_column) %in% tmp_max %>% 
+                                dplyr::filter(!!sym(cluster_column) != dup_clust) %>% 
+                                pull(!!sym(cluster_column))) %>% 
+                pull(!!sym(cluster_column))
+              
+              # Randomly sample one cluster label....TKTK here we need to doublecheck which cluster isn't already taken elsewhere
+              if(length(new_assign) > 1){
+                
+              }
+              
+              
+            }
+            
+            
+            
+            
+            
+            
+          }
+          
+          # a <- 1
+          # lapply(1:length(ids), function(a){
+          #   
+          #   tmp_id <- ids[a]
+          #   tmp_id
+          #   
+          #   tmp_max
+          #   
+          #   tmp2 <- tmp %>%
+          #     dplyr::filter(!!sym(class_column) == tmp_id)
+          #   
+          #   tmp2
+          #   
+          #   
+          # })
+          
+          
+          # If the majority of vocalizations for each original class were assigned to a single unique cluster (no tie for the majority), then there will be the same number of rows in tmp as unique values in the original class label column. Use the class and cluster labels as a reference for accuracy calculations
+          if(nrow(tmp) == length(unique(X[[class_column]])) & length(unique(tmp[[cluster_column]])) == length(unique(X[[class_column]]))){
+            
+            ref_clusters <- tmp %>% 
+              dplyr::select(-c(n))
+            
+            # But if there were ties for the majority, then there should be more rows in tmp than there are unique original class labels, or there may be fewer 
+          } else {
+            
+            # TKTK But if there was a tie for the cluster majority, then randomly select the reference cluster
+            
+            
+            ref_cluster <- sample(maj_cluster[[cluster_column]], size = 1)
+            
+          }
+          
+          # TKTK calculate accuracy per group but with the unique reference clusters
+          accuracy <- length(which(clust_tmp[[cluster_column]] == ref_cluster))/nrow(clust_tmp)
+          
+          return(accuracy)
+          
+          # }))
+          
+        }
+        
+        
         # Accuracy should be calculated within a group. And we need to make sure that we randomly select a "true" cluster label when signals within a group are evenly assigned across different cluster labels, see the function accuracy() in accuracy.R
         gmm_spcc <- accuracy(X = mds_spcc_clust, class_column = "group_ID", cluster_column = "cluster_label")
         # str(gmm_spcc)
@@ -767,7 +897,7 @@ system.time(
           
         })
         
-         # Save information about whether there were NULL clustering results for any of the classes here 
+        # Save information about whether there were NULL clustering results for any of the classes here 
         if(any(sapply(edit_gmms_ind, is.null))){
           
           null_notes <- paste("Null clustering results for", length(which(sapply(edit_gmms_ind, is.null))), "group(s)", sep = " ")
