@@ -1,0 +1,308 @@
+---
+title: "Information Encoding Experiments - Effect Size Calculations"
+author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
+output: html_document
+date: "2025-02-26"
+---
+
+TKTK Purpose: The following code was designed to calculate Cliff's Delta Effect Size for (1) SPCC v Edit across all Social Environment x Group Information Proportion X Information Level conditions and (2) Group vs Individual Information across all Social Environment X Group Information Proportion X Method conditions.  
+
+These results will then be plotted for figures in the manuscript
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+
+```
+
+Load packages and set cores.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Initialize packages for data processing and analysis
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "ggpubr", "paletteer", "effsize")
+
+# Install packages if they're not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
+# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
+# Install the paRsynth package from GitHub if you haven't installed it already
+# devtools::install_github("gsvidaurre/paRsynth")
+
+# Add paRsynth to the list of packages to load
+# X <- c(X, "paRsynth")
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+# Set cores for parallel processing
+cores <- parallel::detectCores() - 4
+
+```
+
+Initialize working directories for data and figures.
+```{r}
+
+###################### Manually update in every new coding session ##################################
+
+# Initialize a base path (we may need a separate base path per user)
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/home/gsvidaurre/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
+
+###################################################################################
+
+```
+
+```{r}
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_synthetic_experiments"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+data_dir <- "data"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+data_path <- file.path(path, analysis_dir, data_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(data_path)){ 
+  dir.create(data_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+figure_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figure_path <- file.path(path, analysis_dir, figure_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figure_path)){ 
+  dir.create(figure_path)
+}
+
+```
+
+Step 1: Load the data files from the Accuracy Calculations results
+
+```{r}
+
+files <- list.files(path = data_path, pattern = "Accuracy_")
+files
+
+res <- data.table::rbindlist(pblapply(1:length(files), function(n){
+  
+  return(read.csv(file.path(data_path, files[n])))
+  
+}), fill = TRUE)
+
+glimpse(res)
+
+```
+
+Step 2: Checking the normality of the accuracy measures before we run effect size analyses (TLDR: none are normally distributed)
+```{r}
+# Checking for normality of (1) accuracy_SPCC_group (2) accuracy_edit_group (3) accuracy_mean_SPCC_individual (4) accuracy_mean_edit_individual using data frame "res"
+
+#First, accuracy_SPCC_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.74818, p-value = 2.881e-15. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_SPCC_group, 
+                  main = "Density plot of SPCC Group Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_SPCC_group)
+shapiro.test(res$accuracy_SPCC_group)
+
+#Second, accuracy_edit_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.77529, p-value = 2.176e-14. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_edit_group, 
+                  main = "Density plot of Edit Distance Group Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_edit_group)
+shapiro.test(res$accuracy_edit_group)
+
+#Third, accuracy_mean_SPCC_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.79511, p-value = 1.069e-13. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_mean_SPCC_individual, 
+                  main = "Density plot of SPCC Individual Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_mean_SPCC_individual)
+shapiro.test(res$accuracy_mean_SPCC_individual)
+
+#Fourth, accuracy_mean_edit_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.81332, p-value = 5.083e-13. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+ggpubr::ggdensity(res$accuracy_mean_edit_individual, 
+                  main = "Density plot of SPCC Individual Accuracy", 
+                  xlab = "Accuracy")
+ggpubr::ggqqplot(res$accuracy_mean_edit_individual)
+shapiro.test(res$accuracy_mean_edit_individual)
+
+```
+
+Because all four accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
+
+Step 3: Calculating SPCC v Edit Effect Sizes for all Social x Info Proportion x Level combinations
+
+```{r}
+
+# Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment at each information level 
+
+# Start with data frame "res"
+
+glimpse(res)
+
+# Need to set up new data frame so that both SPCC measures are combined into accuracy_SPCC (& same thing but for Edit). There will be another column called Level which has information about Group vs Individual. 
+
+eff_res_method <- res %>%
+  #Make data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  # Now, recover "method" as separate columns with pivot wider
+  pivot_wider(
+    names_from = accuracy_method, 
+    values_from = accuracy_measurements,
+    names_glue = "accuracy_{accuracy_method}_measurements"
+  )
+
+glimpse(eff_res_method)
+
+################# 
+# For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
+effsize::cliff.delta(eff_res_method$accuracy_SPCC_measurements, eff_res_method$accuracy_edit_measurements)
+
+# They are not: 
+# delta estimate: -0.05734375 (negligible)
+# 95 percent confidence interval:
+#       lower       upper 
+# -0.14617594  0.03240583 
+#################   
+
+
+########################
+
+# Then calculate effect sizes of the difference between methods per treatment combination
+eff_res_method <- eff_res_method %>% 
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
+  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_level) %>% 
+  # Once the data frame is grouped, we can calculate effect size comparisons 
+  # Using reframe() and not summarize() because we need to change the number of rows returned, and summarize() expects the same number of rows it started with. Key point to remember, reframe() returns UNGROUPED dataframe, so no need to use the ungroup() function at the end of this part
+  # Because I have SPPC measurements BEFORE edit measurements in this function, it means SPCC is the comparison groups. So a negative eff_delta value means the distribution of SPCC measurements is smaller than edit measurements. A positive value means it is bigger.
+ dplyr::reframe(
+    eff_delta = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["estimate"]],
+    eff_CI_upper = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["conf.int"]][["upper"]],
+    eff_CI_lower = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["conf.int"]][["lower"]],
+    eff_magnitude = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["magnitude"]]
+  )
+
+glimpse(eff_res_method)
+
+# Print the results
+eff_res_method %>%
+  # The period indicates the current object
+  print(n = nrow(.))
+
+# Save the results as a .csv file as well
+eff_res_method %>%
+  write.csv(., file = file.path(data_path, "effect_sizes_byMethod.csv"), row.names = FALSE)
+
+```
+
+Step 4: Calculating Group vs Individual Effect Sizes for all Social x Info Proportion x Method combinations
+
+TKTK make same updates as above
+```{r}
+# Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment at each information level 
+
+# Start with data frame "res"
+
+glimpse(res)
+
+# Need to set up new data frame so that accuracy_SPCC_group and accuracy_edit_group are combined into accuracy_group (& same thing but for individual). There will be another column called Metho Type which has information about SPCC v Edit. 
+
+eff_res_level <- res %>%
+    #Make data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  # Now, recover "level" as separate columns with pivot wider
+  pivot_wider(
+    names_from = accuracy_level, 
+    values_from = accuracy_measurements,
+    names_glue = "accuracy_{accuracy_level}_measurements"
+  ) 
+
+glimpse(eff_res_level)
+  
+################# 
+# For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
+effsize::cliff.delta(eff_res_level$accuracy_group_measurements, eff_res_level$accuracy_individual_measurements)
+
+# They are not: 
+# delta estimate: -0.06915039 (negligible)
+# 95 percent confidence interval:
+#       lower       upper 
+# -0.15784110  0.02064707
+#################   
+
+# Calculate effect sizes of the difference between levels per treatment combination
+eff_res_level <- eff_res_level %>% 
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
+  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_method) %>% 
+  # Once the data frame is grouped, we can calculate effect size comparisons 
+  # Because I have Group measurements BEFORE Individual measurements in this function, it means Group is the comparison groups. So a negative eff_delta value means the distribution of Group measurements is smaller than individual measurements. A positive value means it is bigger.
+  # TKTK effsize is throwing warnings below - need to double check measures once what have correct accuracy calculations
+  dplyr::reframe(
+    eff_delta = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["estimate"]],
+    eff_CI_upper = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["upper"]],
+    eff_CI_lower = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["lower"]],
+    eff_magnitude = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["magnitude"]]
+  ) 
+
+glimpse(eff_res_level)
+
+# Print the results
+eff_res_level %>%
+  # The period indicates the current object
+  print(n = nrow(.))
+
+# Save the results as a .csv file as well
+eff_res_level %>%
+  write.csv(., file = file.path(data_path, "effect_sizes_byLevel.csv"), row.names = FALSE)
+```
+

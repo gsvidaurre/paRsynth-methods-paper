@@ -1,0 +1,258 @@
+---
+title: "Information Encoding Experiments"
+author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
+output: html_document
+date: "2024-07-08"
+---
+
+Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced 
+
+Below we iterate over social conditions and group versus individual information encoding at two social levels in character strings that will influence the distinctiveness or uniqueness of the strings and the resulting synthetic vocalizations at either social level. 
+
+The pipeline below will allow us to indirectly address or compare how much information about group membership versus individual identity is contained in patterns of acoustic variation across character strings and their corresponding synthetic vocalizations that represent vocal identity signals. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the percentage of original individual-level labels recovered by clustering should be high, but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about group membership.
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+
+```
+
+Load packages and set cores.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Initialize packages for data processing and analysis
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "ggpubr", "paletteer", "effsize")
+
+# Install packages if they're not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
+# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
+# Install the paRsynth package from GitHub if you haven't installed it already
+# devtools::install_github("gsvidaurre/paRsynth")
+
+# Add paRsynth to the list of packages to load
+# X <- c(X, "paRsynth")
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+# Set cores for parallel processing
+cores <- parallel::detectCores() - 4
+
+```
+
+Initialize working directories for data and figures.
+```{r}
+
+###################### Manually update in every new coding session ##################################
+
+# Initialize a base path (we may need a separate base path per user)
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/home/gsvidaurre/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
+
+###################################################################################
+
+```
+
+```{r}
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_synthetic_experiments"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+data_dir <- "data"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+data_path <- file.path(path, analysis_dir, data_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(data_path)){ 
+  dir.create(data_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+figure_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figure_path <- file.path(path, analysis_dir, figure_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figure_path)){ 
+  dir.create(figure_path)
+}
+
+```
+
+Load files
+```{r}
+
+files <- list.files(path = data_path, pattern = "Accuracy_")
+files
+
+res <- data.table::rbindlist(pblapply(1:length(files), function(n){
+  
+  return(read.csv(file.path(data_path, files[n])))
+  
+}), fill = TRUE)
+
+glimpse(res)
+
+# View(res)
+
+# Check that there are no accuracy values above 1, looks good
+sapply(res %>% 
+         dplyr::select(names(.)[grep("accuracy", names(.))]), 
+       function(X){
+         any(X > 1)
+       }
+)
+
+# Check that there are no accuracy values below 0, looks good
+sapply(res %>% 
+         dplyr::select(names(.)[grep("accuracy", names(.))]), 
+       function(X){
+         any(X < 0)
+       }
+)
+
+```
+
+The following code creates a data frame from "res" called "res_sum", which is used to create plots of average accuracy for SPCC and Edit methods by Group Info Proportion and Social Environment Treatments. Plots are seperate for information level (group or individual)
+
+If updating, please save plot as "Accuracy_Average_Pointrange"
+```{r}
+
+# Average Accuracy Measures by Encoding treatment and social condition
+
+# TKTK check that the number of rows matches the number of treatments and iterations
+# TKTK 4 social and 4 information treatments by 10 iterations should be 160 rows
+glimpse(res)
+
+# Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
+
+res_summ <- res %>% 
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  # glimpse()
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
+  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_method, accuracy_level) %>% 
+  # Once a data frame is grouped, you can calculate summary statistics by each group
+  dplyr::summarise(
+    mean_accuracy = mean(accuracy_measurements),
+    # Calculate the 95% CI measurements and extract the upper 95% CI value
+    upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
+    lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
+  ) %>% 
+  # Make sure to ungroup before plotting, and the columns used for grouping will be retained
+  ungroup() %>%
+  # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
+    social_envt_treatment = factor(social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense")),
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2))
+  )
+
+# There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows
+glimpse(res_summ)
+
+# The levels for the social condition treatment column looks good
+levels(res_summ$social_envt_treatment)
+
+# Looks good
+unique(res_summ$accuracy_method)
+unique(res_summ$accuracy_level)
+
+# Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
+# paletteer_d("nationalparkcolors::Arches")
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+# Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
+
+cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+fillcols <- scales::alpha(cols, alpha = 0.2)
+shps <- c(21, 22, 24, 25) # Also encode social conditions by shape. See the points function for options
+
+# Need to make named character vectors to relabel facet text
+# Renaming the Accuracy Method labels
+method_labs <- c("Edit Distance", "SPCC")
+names(method_labs) <- c("edit", "SPCC")
+
+# Renaming the Accuracy Information Level labels
+level_labs <- c("Group Information", "Individual Information")
+names(level_labs) <- c("group", "individual")
+
+#making this in case we want to make the facet background a very very light grey
+ngrey <- scales::alpha("grey", .2)
+
+# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
+res_summ %>% 
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = social_envt_treatment, fill = social_envt_treatment, shape = social_envt_treatment)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85) +
+  # Can also use facet_grid()
+  # facet_wrap(accuracy_level ~ accuracy_method) +
+  facet_grid(
+    accuracy_level ~ accuracy_method,
+    labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
+  ) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols) +
+  scale_shape_manual(values = shps) +
+  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
+  guides(color = guide_legend(title = "Social Condition", override.aes = list(size = .6)), fill = guide_legend(title = "Social Condition"),
+         shape = guide_legend(title = "Social Condition")) +
+  labs(y = "Average Accurary", x = "Proportion of Group Information") +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size=14),
+    axis.title = element_text(size=16,face="bold"),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text.x = element_text (size = 14, face = "bold"),
+    strip.text.y = element_text (size = 14, face = "bold"),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+# This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
+
+```
