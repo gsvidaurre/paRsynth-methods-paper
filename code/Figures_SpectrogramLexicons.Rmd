@@ -42,8 +42,8 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize the directory for analysis on your local computer
