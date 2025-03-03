@@ -220,9 +220,9 @@ iteratns <- 10
 # iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
-z <- 2 # number of groups and individuals, or social conditions, as well as the number of calls per individual
-i <- 1 # information encoding treatments
-n <- 1 # replicates or iterations
+# z <- 2 # number of groups and individuals, or social conditions, as well as the number of calls per individual
+# i <- 1 # information encoding treatments
+# n <- 1 # replicates or iterations
 
 # Iterate over the social conditions and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
 
@@ -257,73 +257,7 @@ system.time(
         
         # glimpse(calls)
         
-        # # TKTK consider removing this given new balanced sampling scheme above
-        # ### Step 2: Calculate the edit distance among strings generated for each unique individual, and retain only the number of calls per individual set by n_calls that have an edit distance > 0 (such that calls for the same individual are not the exact same string)
-        # 
-        # # Iterate over each individual to compare the edit distance amongst their calls, and return only n_calls with edit distance > 0
-        # unique_indivs <- unique(paste(calls$Group, calls$Individual, sep = "-"))
-        # # unique_indivs
-        # 
-        # # Note that this solution will not generalize well whenever n_calls is greater than 2
-        # calls_filt <- data.table::rbindlist(lapply(1:length(unique_indivs), function(m){
-        #   
-        #   tmp_indiv <- unique_indivs[m]
-        #   # tmp_indiv
-        #   
-        #   tmp <- calls %>% 
-        #     dplyr::filter(paste(Group, Individual, sep = "-") == tmp_indiv)
-        #   
-        #   
-        #   call_comps <- data.table::rbindlist(lapply(1:ncol(tmp), function(p){
-        #     
-        #     res <- data.table::rbindlist(lapply(1:ncol(tmp), function(q){
-        #       
-        #       edit_dist <- stringdist(
-        #         a = tmp %>% 
-        #           slice(p) %>% 
-        #           pull(Call),
-        #         b = tmp %>% 
-        #           slice(q) %>% 
-        #           pull(Call),
-        #         method = "lv"
-        #       )
-        #       
-        #       if(edit_dist > 0){
-        #         return(
-        #           data.frame(
-        #             individual = tmp_indiv,
-        #             call_ID_1 = tmp %>% 
-        #               slice(p) %>% 
-        #               pull(Call_ID),
-        #             call_ID_2 = tmp %>% 
-        #               slice(q) %>% 
-        #               pull(Call_ID)
-        #           )
-        #         )
-        #       }
-        #       
-        #     }))
-        #     
-        #     return(res)
-        #     
-        #   }))
-        #   
-        #   # call_comps
-        #   
-        #   # Then randomly select a single comparison representing 2 calls or strings with an edit distance > 0
-        #   retain_calls <- call_comps[sample(1:nrow(call_comps), size = n_calls/2), ]
-        #   
-        #   # Use this output to filter the calls data frame for the given individual to return only the calls we will use in downstream analyses
-        #   return(
-        #     tmp %>% 
-        #       dplyr::filter(Call_ID == retain_calls$call_ID_1 | Call_ID == retain_calls$call_ID_2)
-        #   )
-        #   
-        # }))
-        # 
-        # glimpse(calls_filt)
-        
-        ### Step 3: Convert the strings to Parsons code
+        ### Step 2: Convert the strings to Parsons code
         calls_parsons <- parsons_code(
           # df = calls_filt, 
           df = calls,
@@ -339,7 +273,7 @@ system.time(
         
         # glimpse(calls_parsons)
         
-        ### Step 4: Convert the Parsons code to frequency values
+        ### Step 3: Convert the Parsons code to frequency values
         calls_parsons_frequencies <- frequency_anchors(
           df = calls_parsons, 
           parsons_col = "Call_Parsons_Code", 
@@ -358,7 +292,7 @@ system.time(
         freq_cols <- calls_parsons_frequencies[, grep("^Freq", names(calls_parsons_frequencies))]
         upp_freq <- max(sapply(freq_cols, max)) + 2000
         
-        ### Step 5: For each call or string, use these frequency vectors to generate synthetic audio files with paRsynth and the soundgen package
+        ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with paRsynth and the soundgen package
         
         synthetic_call_metadata <- write_audio(
           df = calls_parsons_frequencies, 
@@ -382,7 +316,7 @@ system.time(
         
         ###### Information recovery pipeline with traditional bioacoustics tools
         
-        ### Step 6: Generate a selection table for the warbleR package
+        ### Step 5: Generate a selection table for the warbleR package
         # w <- 1 # testing
         
         sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
@@ -432,7 +366,7 @@ system.time(
           stop("Variable sampling rates detected across synthetic audio files, and downstream analyses will fail")
         }
         
-        ### Step 7: Perform SPCC using a default window length and a bandpass filter set 2 kHz above the maximum frequency anchor value
+        ### Step 6: Perform SPCC using a default window length and a bandpass filter set 2 kHz above the maximum frequency anchor value
         xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, upp_freq), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = data_path)
         # str(xc_mat)
         
@@ -482,11 +416,11 @@ system.time(
         # Update the dimension names of the matrix
         dimnames(xc_mat) <- list(wavs, wavs)
         
-        ### Step 8: Remove .wav files to free up storage space
+        ### Step 7: Remove .wav files to free up storage space
         rem_files <- file.path(data_path, wavs)
         invisible(file.remove(rem_files))
         
-        ### Step 9: Calculate the edit distance amongst all strings
+        ### Step 8: Calculate the edit distance amongst all strings
         
         # For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
         edit_dists <- unlist(lapply(1:nrow(xc_mat), function(m){
@@ -601,7 +535,7 @@ system.time(
         
         # glimpse(mds_edit)
         
-        ### Step 11: Perform clustering and accuracy calculations
+        ### Step 10: Perform clustering and accuracy calculations
         # In order to calculate accuracy at two social levels (individual and group), we need to run clustering at these two levels
         
         ### Group-level clustering and accuracy calculations
@@ -783,6 +717,7 @@ system.time(
         # Take the mean of the individual-level accuracies across groups
         acc_edit_ind <- mean(acc_edit_inds)
         
+        ### Step 11: Return results
         # Gather results that will be returned for downstream statistics and figures
         results <- data.frame(
           n_groups = N[z],
@@ -801,13 +736,12 @@ system.time(
         )
          
         # results
-        
-        ### Step 12: Return results
+    
         return(results)
         
       }))
       
-      ### Step 13: Write out the results for the given treatment combination across iterations
+      ### Step 12: Write out the results for the given treatment combination across iterations
       res_tmp %>% 
         write.csv(file.path(data_path, paste("Accuracy_", paste(paste("classes", N[z], sep = "-"), paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
       
