@@ -751,7 +751,7 @@ system.time(
   
 )
 
-# 4 social conditions, 4 information encoding treatments with 10 iterations each and new accuracy measurements on evening of 27 Feb 2025.
+# 4 social conditions, 4 information encoding treatments with 10 iterations each and new accuracy measurements on 03 Mar 2025: 21h 35m 28s
 
 ```
 
