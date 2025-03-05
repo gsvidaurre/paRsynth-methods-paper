@@ -26,7 +26,7 @@ rm(list = ls())
 
 # tktk update list
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse",  "data.table", "ggpubr", "effsize")
+X <- c("devtools", "dplyr", "pbapply", "stringdist", "tidyverse",  "data.table", "ggpubr", "effsize")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -59,10 +59,10 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -122,6 +122,8 @@ glimpse(res)
 ```
 
 Step 2: Checking the normality of the accuracy measures (parsed out into each level and method combination) before we run effect size analyses. For each measure, we create density and QQ plots to visualize the distribution of the data. Then we perform a Shapiro Wilks test of normality. 
+
+TKTK perform normality checks by all combinations outlined in the data frame
 ```{r}
 # Checking for normality of (1) accuracy_SPCC_group (2) accuracy_edit_group (3) accuracy_mean_SPCC_individual (4) accuracy_mean_edit_individual using data frame "res"
 
@@ -174,83 +176,14 @@ print(shapiro.test(res$accuracy_mean_edit_individual))
 
 Because all four accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
 
-Step 3: Calculating Effect Sizes for SPCC v Edit Distance Accuracy for all Social x Info Proportion x Level combinations
+Step 3: Calculating Effect Sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods
 ```{r}
 
-# Start with data frame "res"
-glimpse(res)
-
-# Need to set up new data frame so that both there is column that contains method information as a seperate column from the accuracy measures  
-
-eff_res_method <- res %>%
-  #Make data frame longer so that each row is a separate accuracy calculation
-  pivot_longer(
-    # Select all of the columns that start with the pattern "accuracy"
-    cols = names(.)[grep("^accuracy", names(.))],
-    names_to = "accuracy_type",
-    values_to = "accuracy_measurements"
-  ) %>% 
-  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
-  dplyr::mutate(
-    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
-    accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
-  ) %>%
-  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
-  tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
-  # Now, recover "method" as separate columns with pivot wider
-  pivot_wider(
-    names_from = accuracy_method, 
-    values_from = accuracy_measurements,
-    names_glue = "accuracy_{accuracy_method}_measurements"
-  )
-
-glimpse(eff_res_method)
-
-################# 
-# For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
-effsize::cliff.delta(eff_res_method$accuracy_SPCC_measurements, eff_res_method$accuracy_edit_measurements)
-print(effsize::cliff.delta(eff_res_method$accuracy_SPCC_measurements, eff_res_method$accuracy_edit_measurements))
-# delta estimate: -0.2155273 (small)
-# 95 percent confidence interval:
-#      lower      upper 
-# -0.3010648 -0.1265493 
-#################   
-
-# Now, calculate effect sizes of the difference between methods per treatment combination
-eff_res_method <- eff_res_method %>% 
-  # Group by the columns that have information about each experimental treatment
-  # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
-  dplyr::group_by(n_groups, group_information_proportion, accuracy_level) %>% 
-  # Once the data frame is grouped, we can calculate effect size comparisons 
-  # Using reframe() and not summarize() because we need to change the number of rows returned, and summarize() expects the same number of rows it started with. Key point to remember, reframe() returns UNGROUPED dataframe, so no need to use the ungroup() function at the end of this part
-  # Because we call SPPC measurements before edit measurements in this function, it means SPCC is the comparison groups. Therefore, a negative eff_delta value means the distribution of SPCC measurements is smaller than edit measurements. A positive value means it is bigger. Below, we save all the delta values, 95% confidence intervals, and the magnitudes of each effect size comparison. 
- dplyr::reframe(
-    eff_delta = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["estimate"]],
-    eff_CI_upper = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["conf.int"]][["upper"]],
-    eff_CI_lower = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["conf.int"]][["lower"]],
-    eff_magnitude = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["magnitude"]]
-  )
-
-glimpse(eff_res_method)
-
-# Print the results
-eff_res_method %>%
-  # The period indicates the current object
-  print(n = nrow(.))
-
-# Save the results as a .csv file as well
-eff_res_method %>%
-  write.csv(., file = file.path(data_path, "effect_sizes_byMethod.csv"), row.names = FALSE)
-
-```
-
-Step 4: Calculating Effect Sizes for Group vs Individual Accuracy for all Social x Info Proportion x Method combinations
-```{r}
 # Start with data frame "res"
 glimpse(res)
 
 # Need to set up new data frame so that there is a separate column for information level information, Same steps as in Step 3, just recovery Level information instead of Method
-eff_res_level <- res %>%
+res_summ <- res %>%
     #Make data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
     # Select all of the columns that start with the pattern "accuracy"
@@ -272,20 +205,13 @@ eff_res_level <- res %>%
     names_glue = "accuracy_{accuracy_level}_measurements"
   ) 
 
-glimpse(eff_res_level)
-  
-################# 
-# For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
-effsize::cliff.delta(eff_res_level$accuracy_group_measurements, eff_res_level$accuracy_individual_measurements)
-print(effsize::cliff.delta(eff_res_level$accuracy_group_measurements, eff_res_level$accuracy_individual_measurements))
-# delta estimate: 0.0090625 (negligible)
-# 95 percent confidence interval:
-#       lower       upper 
-# -0.08054401  0.09852371 
-# #################   
+glimpse(res_summ)
+
+
+# TKTK order the accuracy_method column by method (factor), to interpret the sign correctly for effect size measurements 
 
 # Calculate effect sizes of the difference between levels per treatment combination
-eff_res_level <- eff_res_level %>% 
+eff_res_level <- res_summ %>% 
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
   dplyr::group_by(n_groups, group_information_proportion, accuracy_method) %>% 
@@ -298,6 +224,43 @@ eff_res_level <- eff_res_level %>%
     eff_CI_lower = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["lower"]],
     eff_magnitude = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["magnitude"]]
   ) 
+
+# Running dplyr::last_dplyr_warnings() shows that this warning pops up for many other effect size calculations too, like group 17: `n_groups = 6`, `group_information_proportion = 0`,
+  # `accuracy_method = "SPCC"`.
+
+# Density plots for visualization of the warning above
+res_summ %>% 
+  dplyr::filter(accuracy_method == "SPCC") %>% 
+  ggplot() +
+  geom_density(aes(x = accuracy_group_measurements), fill = alpha("navy", 0.65)) +
+  geom_density(aes(x = accuracy_individual_measurements), fill = alpha("firebrick", 0.65)) +
+  facet_wrap(n_groups ~ group_information_proportion)
+
+res_summ %>% 
+  dplyr::filter(accuracy_method == "edit") %>% 
+  ggplot() +
+  geom_density(aes(x = accuracy_group_measurements), fill = alpha("navy", 0.65)) +
+  geom_density(aes(x = accuracy_individual_measurements), fill = alpha("firebrick", 0.65)) +
+  facet_wrap(n_groups ~ group_information_proportion)
+
+# An effect size calculation for one of the data subsamples throwing the error
+res_summ %>% 
+  dplyr::filter(n_groups == 6, group_information_proportion == 0, accuracy_method == "SPCC") %>% 
+  dplyr::reframe(
+    eff_delta = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["estimate"]]
+  )
+  # View()
+
+# Warning message:
+# There were 60 warnings in `dplyr::reframe()`.
+# The first warning was:
+# ℹ In argument: `eff_delta = ...[[]]`.
+# ℹ In group 8: `n_groups = 2`, `group_information_proportion = 1`,
+#   `accuracy_method = "edit"`.
+# Caused by warning in `cliff.delta.default()`:
+# ! The samples are fully disjoint, using approximate Confidence Interval estimation
+# ℹ Run dplyr::last_dplyr_warnings() to see the 59 remaining
+#   warnings. 
 
 glimpse(eff_res_level)
 
