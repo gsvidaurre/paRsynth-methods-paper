@@ -1,15 +1,11 @@
 ---
-title: "Information Encoding Experiments"
+title: "Information Encoding Experiments - Accuracy Figures"
 author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
 output: html_document
 date: "2024-07-08"
 ---
 
-Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced 
-
-Below we iterate over social conditions and group versus individual information encoding at two social levels in character strings that will influence the distinctiveness or uniqueness of the strings and the resulting synthetic vocalizations at either social level. 
-
-The pipeline below will allow us to indirectly address or compare how much information about group membership versus individual identity is contained in patterns of acoustic variation across character strings and their corresponding synthetic vocalizations that represent vocal identity signals. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the percentage of original individual-level labels recovered by clustering should be high, but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about group membership.
+Purpose: The following code was designed to create figures for the manuscript. This figure uses output from the script "Experiments_InformationEncoding_Accuracy". The following code creates a data frame which is used to create plots of average accuracy for SPCC and Edit methods by Group Info Proportion and Social Environment Treatments. Plots are separate for information level (group or individual).
 
 ```{r setup, include = FALSE}
 
@@ -23,6 +19,7 @@ Load packages and set cores.
 # Clean the global environment
 rm(list = ls())
 
+# tktk update list 
 # Initialize packages for data processing and analysis
 X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "ggpubr", "paletteer", "effsize")
 
@@ -137,7 +134,7 @@ sapply(res %>%
 
 ```
 
-The following code creates a data frame from "res" called "res_sum", which is used to create plots of average accuracy for SPCC and Edit methods by Group Info Proportion and Social Environment Treatments. Plots are seperate for information level (group or individual)
+The following code creates a data frame from "res" called "res_sum", which is used to create plots of average accuracy for SPCC and Edit methods by Group Info Proportion and Social Environment Treatments. Plots are separate for information level (group or individual)
 
 If updating, please save plot as "Accuracy_Average_Pointrange"
 ```{r}
@@ -169,7 +166,7 @@ res_summ <- res %>%
   # glimpse()
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
-  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_method, accuracy_level) %>% 
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>% 
   # Once a data frame is grouped, you can calculate summary statistics by each group
   dplyr::summarise(
     mean_accuracy = mean(accuracy_measurements),
@@ -182,7 +179,7 @@ res_summ <- res %>%
   # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
   # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
   dplyr::mutate(
-    social_envt_treatment = factor(social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense")),
+    n_groups = factor(n_groups),
     # Convert the x-axis column to factor to control axis ticks
     group_information_proportion = factor(round(group_information_proportion, 2))
   )
@@ -191,7 +188,7 @@ res_summ <- res %>%
 glimpse(res_summ)
 
 # The levels for the social condition treatment column looks good
-levels(res_summ$social_envt_treatment)
+levels(res_summ$n_groups)
 
 # Looks good
 unique(res_summ$accuracy_method)
@@ -220,9 +217,9 @@ ngrey <- scales::alpha("grey", .2)
 
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
 res_summ %>% 
-  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = social_envt_treatment, fill = social_envt_treatment, shape = social_envt_treatment)) +
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = n_groups, fill = n_groups, shape = n_groups)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
-  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85) +
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
   # Can also use facet_grid()
   # facet_wrap(accuracy_level ~ accuracy_method) +
   facet_grid(
@@ -233,8 +230,8 @@ res_summ %>%
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Social Condition", override.aes = list(size = .6)), fill = guide_legend(title = "Social Condition"),
-         shape = guide_legend(title = "Social Condition")) +
+  guides(color = guide_legend(title = "Number of Original Classes", override.aes = list(size = .6)), fill = guide_legend(title = "Number of Original Classes"),
+         shape = guide_legend(title = "Number of Original Classes")) +
   labs(y = "Average Accurary", x = "Proportion of Group Information") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels

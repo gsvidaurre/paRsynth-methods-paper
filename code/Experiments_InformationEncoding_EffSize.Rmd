@@ -5,14 +5,17 @@ output: html_document
 date: "2025-02-26"
 ---
 
-TKTK Purpose: The following code was designed to calculate Cliff's Delta Effect Size for (1) SPCC v Edit across all Social Environment x Group Information Proportion X Information Level conditions and (2) Group vs Individual Information across all Social Environment X Group Information Proportion X Method conditions.  
+Purpose: The following code was designed to calculate Cliff's Delta Effect Size for (1) SPCC v Edit distance accuracy measures across all Social Environment x Group Information Proportion X Information Level conditions and (2) Group vs Individual Information level accuracy measures across all Social Environment X Group Information Proportion X Method conditions. Before calculating these effect sizes, we check the distribution of our accuracy measures. They are not normally distributed, so we opt to calculate Cliff's Delta as the effect size.
 
-These results will then be plotted for figures in the manuscript
+Effect Sizes are calculated in Steps 3 and 4. This code saves the data table with all the Cliff's Delta values, 95% Confidence Intervals and effect size magnitudes. Magnitude is assessed through the effsize package, which uses thresholds provided in Romano, 2006. (|d|<0.147 "negligible", |d|<0.33 "small", |d|<0.474 "medium", otherwise "large")
+
+These tables will be included in the manuscript and will be called in future figure scripts to plot average effect size values for each type of comparison. 
 
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 
+?cliff.delta()
 ```
 
 Load packages and set cores.
@@ -21,8 +24,9 @@ Load packages and set cores.
 # Clean the global environment
 rm(list = ls())
 
+# tktk update list
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "ggpubr", "paletteer", "effsize")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse",  "data.table", "ggpubr", "effsize")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -101,8 +105,7 @@ if(!dir.exists(figure_path)){
 
 ```
 
-Step 1: Load the data files from the Accuracy Calculations results
-
+Step 1: Load the data files from the Accuracy Calculations results. These files are the results from the "Experiments_InformationEncoding_Accuracy" script. These need to be manually downloaded from google drive and stored in the data folder first 
 ```{r}
 
 files <- list.files(path = data_path, pattern = "Accuracy_")
@@ -118,53 +121,66 @@ glimpse(res)
 
 ```
 
-Step 2: Checking the normality of the accuracy measures before we run effect size analyses (TLDR: none are normally distributed)
+Step 2: Checking the normality of the accuracy measures (parsed out into each level and method combination) before we run effect size analyses. For each measure, we create density and QQ plots to visualize the distribution of the data. Then we perform a Shapiro Wilks test of normality. 
 ```{r}
 # Checking for normality of (1) accuracy_SPCC_group (2) accuracy_edit_group (3) accuracy_mean_SPCC_individual (4) accuracy_mean_edit_individual using data frame "res"
 
-#First, accuracy_SPCC_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.74818, p-value = 2.881e-15. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+#First, accuracy_SPCC_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
+# 	Shapiro-Wilk normality test
+# data:  res$accuracy_SPCC_group
+# W = 0.91227, p-value = 3.141e-08
+# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
 ggpubr::ggdensity(res$accuracy_SPCC_group, 
                   main = "Density plot of SPCC Group Accuracy", 
                   xlab = "Accuracy")
 ggpubr::ggqqplot(res$accuracy_SPCC_group)
 shapiro.test(res$accuracy_SPCC_group)
+print(shapiro.test(res$accuracy_SPCC_group))
 
-#Second, accuracy_edit_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.77529, p-value = 2.176e-14. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+#Second, accuracy_edit_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
+# data:  res$accuracy_edit_group
+# W = 0.91668, p-value = 6.006e-08
+# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
 ggpubr::ggdensity(res$accuracy_edit_group, 
                   main = "Density plot of Edit Distance Group Accuracy", 
                   xlab = "Accuracy")
 ggpubr::ggqqplot(res$accuracy_edit_group)
 shapiro.test(res$accuracy_edit_group)
+print(shapiro.test(res$accuracy_edit_group))
 
-#Third, accuracy_mean_SPCC_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.79511, p-value = 1.069e-13. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+#Third, accuracy_mean_SPCC_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
+# data:  res$accuracy_mean_SPCC_individual
+# W = 0.94378, p-value = 5.458e-06
+# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
 ggpubr::ggdensity(res$accuracy_mean_SPCC_individual, 
                   main = "Density plot of SPCC Individual Accuracy", 
                   xlab = "Accuracy")
 ggpubr::ggqqplot(res$accuracy_mean_SPCC_individual)
 shapiro.test(res$accuracy_mean_SPCC_individual)
+print(shapiro.test(res$accuracy_mean_SPCC_individual))
 
-#Fourth, accuracy_mean_edit_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality: W = 0.81332, p-value = 5.083e-13. P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+#Fourth, accuracy_mean_edit_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
+# data:  res$accuracy_mean_edit_individual
+# W = 0.94531, p-value = 7.277e-06
+# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
 ggpubr::ggdensity(res$accuracy_mean_edit_individual, 
                   main = "Density plot of SPCC Individual Accuracy", 
                   xlab = "Accuracy")
 ggpubr::ggqqplot(res$accuracy_mean_edit_individual)
 shapiro.test(res$accuracy_mean_edit_individual)
+print(shapiro.test(res$accuracy_mean_edit_individual))
 
 ```
 
 Because all four accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
 
-Step 3: Calculating SPCC v Edit Effect Sizes for all Social x Info Proportion x Level combinations
-
+Step 3: Calculating Effect Sizes for SPCC v Edit Distance Accuracy for all Social x Info Proportion x Level combinations
 ```{r}
 
-# Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment at each information level 
-
 # Start with data frame "res"
-
 glimpse(res)
 
-# Need to set up new data frame so that both SPCC measures are combined into accuracy_SPCC (& same thing but for Edit). There will be another column called Level which has information about Group vs Individual. 
+# Need to set up new data frame so that both there is column that contains method information as a seperate column from the accuracy measures  
 
 eff_res_method <- res %>%
   #Make data frame longer so that each row is a separate accuracy calculation
@@ -193,25 +209,21 @@ glimpse(eff_res_method)
 ################# 
 # For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
 effsize::cliff.delta(eff_res_method$accuracy_SPCC_measurements, eff_res_method$accuracy_edit_measurements)
-
-# They are not: 
-# delta estimate: -0.05734375 (negligible)
+print(effsize::cliff.delta(eff_res_method$accuracy_SPCC_measurements, eff_res_method$accuracy_edit_measurements))
+# delta estimate: -0.2155273 (small)
 # 95 percent confidence interval:
-#       lower       upper 
-# -0.14617594  0.03240583 
+#      lower      upper 
+# -0.3010648 -0.1265493 
 #################   
 
-
-########################
-
-# Then calculate effect sizes of the difference between methods per treatment combination
+# Now, calculate effect sizes of the difference between methods per treatment combination
 eff_res_method <- eff_res_method %>% 
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
-  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_level) %>% 
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_level) %>% 
   # Once the data frame is grouped, we can calculate effect size comparisons 
   # Using reframe() and not summarize() because we need to change the number of rows returned, and summarize() expects the same number of rows it started with. Key point to remember, reframe() returns UNGROUPED dataframe, so no need to use the ungroup() function at the end of this part
-  # Because I have SPPC measurements BEFORE edit measurements in this function, it means SPCC is the comparison groups. So a negative eff_delta value means the distribution of SPCC measurements is smaller than edit measurements. A positive value means it is bigger.
+  # Because we call SPPC measurements before edit measurements in this function, it means SPCC is the comparison groups. Therefore, a negative eff_delta value means the distribution of SPCC measurements is smaller than edit measurements. A positive value means it is bigger. Below, we save all the delta values, 95% confidence intervals, and the magnitudes of each effect size comparison. 
  dplyr::reframe(
     eff_delta = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["estimate"]],
     eff_CI_upper = effsize::cliff.delta(accuracy_SPCC_measurements, accuracy_edit_measurements)[["conf.int"]][["upper"]],
@@ -232,18 +244,12 @@ eff_res_method %>%
 
 ```
 
-Step 4: Calculating Group vs Individual Effect Sizes for all Social x Info Proportion x Method combinations
-
-TKTK make same updates as above
+Step 4: Calculating Effect Sizes for Group vs Individual Accuracy for all Social x Info Proportion x Method combinations
 ```{r}
-# Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment at each information level 
-
 # Start with data frame "res"
-
 glimpse(res)
 
-# Need to set up new data frame so that accuracy_SPCC_group and accuracy_edit_group are combined into accuracy_group (& same thing but for individual). There will be another column called Metho Type which has information about SPCC v Edit. 
-
+# Need to set up new data frame so that there is a separate column for information level information, Same steps as in Step 3, just recovery Level information instead of Method
 eff_res_level <- res %>%
     #Make data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
@@ -271,21 +277,20 @@ glimpse(eff_res_level)
 ################# 
 # For paper, checking if total SPCC accuracy measures are different from total edit accuracy measures. Need to stop the pipeline to do this.  
 effsize::cliff.delta(eff_res_level$accuracy_group_measurements, eff_res_level$accuracy_individual_measurements)
-
-# They are not: 
-# delta estimate: -0.06915039 (negligible)
+print(effsize::cliff.delta(eff_res_level$accuracy_group_measurements, eff_res_level$accuracy_individual_measurements))
+# delta estimate: 0.0090625 (negligible)
 # 95 percent confidence interval:
 #       lower       upper 
-# -0.15784110  0.02064707
-#################   
+# -0.08054401  0.09852371 
+# #################   
 
 # Calculate effect sizes of the difference between levels per treatment combination
 eff_res_level <- eff_res_level %>% 
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
-  dplyr::group_by(social_envt_treatment, group_information_proportion, accuracy_method) %>% 
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method) %>% 
   # Once the data frame is grouped, we can calculate effect size comparisons 
-  # Because I have Group measurements BEFORE Individual measurements in this function, it means Group is the comparison groups. So a negative eff_delta value means the distribution of Group measurements is smaller than individual measurements. A positive value means it is bigger.
+  # Because we call Group measurements before Individual measurements in this function, it means Group is the comparison group. Therefore, a negative eff_delta value means the distribution of Group measurements is smaller than Individual measurements. A positive value means it is bigger. Below, we save all the delta values, 95% confidence intervals, and the magnitudes of each effect size comparison. 
   # TKTK effsize is throwing warnings below - need to double check measures once what have correct accuracy calculations
   dplyr::reframe(
     eff_delta = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["estimate"]],

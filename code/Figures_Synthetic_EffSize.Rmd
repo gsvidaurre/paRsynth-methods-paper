@@ -1,15 +1,11 @@
 ---
-title: "Information Encoding Experiments - Effect Size Figures "
+title: "Information Encoding Experiments - Effect Size Figures"
 author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
 output: html_document
-date: "2024-02-26"
+date: "2025-02-26"
 ---
 
-Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced 
-
-Below we iterate over social conditions and group versus individual information encoding at two social levels in character strings that will influence the distinctiveness or uniqueness of the strings and the resulting synthetic vocalizations at either social level. 
-
-The pipeline below will allow us to indirectly address or compare how much information about group membership versus individual identity is contained in patterns of acoustic variation across character strings and their corresponding synthetic vocalizations that represent vocal identity signals. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the percentage of original individual-level labels recovered by clustering should be high, but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about group membership.
+Purpose: The following code was designed to create figures for the manuscript. These figures use the output of "Experiments_InformationEncoding_EffSize" to create plots that display (1) the average effect size between accuracy at the "Method" (SPCC v Edit) level, and (2) the average effect size between accuracy at the "Level" (Group v Individual Information) level. 
 
 ```{r setup, include = FALSE}
 
@@ -23,8 +19,9 @@ Load packages and set cores.
 # Clean the global environment
 rm(list = ls())
 
+# tktk update list
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "ggpubr", "paletteer", "effsize")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -34,14 +31,6 @@ invisible(lapply(1:length(X), function(x){
     install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
   }
 }))
-
-# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
-# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
-# Install the paRsynth package from GitHub if you haven't installed it already
-# devtools::install_github("gsvidaurre/paRsynth")
-
-# Add paRsynth to the list of packages to load
-# X <- c(X, "paRsynth")
 
 # Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE))
@@ -116,11 +105,12 @@ eff_res_method_gg <- eff_res_method %>%
   # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
   # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
   dplyr::mutate(
-    social_envt_treatment = factor(social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense")),
     # Convert the x-axis column to factor to control axis ticks
     group_information_proportion = factor(round(group_information_proportion, 2)),
     # convert accuracy_level to factor
-    accuracy_level = factor(accuracy_level)
+    accuracy_level = factor(accuracy_level),
+    # Convert n_groups to a factor
+    n_groups = factor(n_groups)
   )
 
 # There should be 32 rows in eff_res and 6 columns
@@ -138,24 +128,21 @@ names(level_labs) <- c("group", "individual")
 # TKTK add horizontal lines to indicate eff size magnitude categories
 # Now to make plots of the effect size estimates and the CIs
 eff_res_method_gg %>% 
-  ggplot(aes(x = group_information_proportion, y = eff_delta, color = social_envt_treatment, fill = social_envt_treatment, shape = social_envt_treatment)) +
+  ggplot(aes(x = group_information_proportion, y = eff_delta, color = n_groups, fill = n_groups, shape = n_groups)) +
+  # Add in lines a 0 and + and - .474 (large effect threshold) first, so they sit behind the point range items in the plot. 
+  geom_hline(aes(yintercept = 0), color = "grey") +
+  geom_hline(aes(yintercept = .474), linetype = "longdash", color = "grey") +
+  geom_hline(aes(yintercept = -.474), linetype = "longdash", color = "grey") +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
-  geom_hline(aes(yintercept = 0), color = "grey") +
-  geom_hline(aes(yintercept = .147), linetype = "longdash", color = "grey") +
-  geom_hline(aes(yintercept = -.147), linetype = "longdash", color = "grey") +
-  geom_hline(aes(yintercept = .33), linetype = "dashed", color = "grey") +
-  geom_hline(aes(yintercept = -.33), linetype = "dashed", color = "grey") +
-  geom_hline(aes(yintercept = .474), linetype = "dotted", color = "grey") +
-  geom_hline(aes(yintercept = -.474), linetype = "dotted", color = "grey") +
   facet_grid(~accuracy_level, labeller = labeller(accuracy_level = level_labs)) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = cols) +
   scale_shape_manual(values = shps) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Social Condition", override.aes = list(size = .6)), fill = guide_legend(title = "Social Condition"),
-         shape = guide_legend(title = "Social Condition")) +
-  labs(y = "Effect Size", x = "Proportion of Group Information") +
+  guides(color = guide_legend(title = "Number of Original Classes", override.aes = list(size = .6)), fill = guide_legend(title = "Number of Original Classes"),
+         shape = guide_legend(title = "Number of Original Classes")) +
+  labs(y = "Average Cliff's Detla and 95% CI", x = "Proportion of Group Information") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
@@ -173,7 +160,6 @@ eff_res_method_gg %>%
     strip.background = element_rect(color = "black", fill = "white")
   )
 
-
 ```
 
 Plotting Group vs Individual Effect Sizes for all Social x Info Proportion x Method combinations
@@ -190,11 +176,12 @@ eff_res_level_gg <- eff_res_level %>%
 # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
 # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
 dplyr::mutate(
-    social_envt_treatment = factor(social_envt_treatment, levels = c("Sparse", "Intermediate", "Crowded", "Dense")),
     # Convert the x-axis column to factor to control axis ticks
     group_information_proportion = factor(round(group_information_proportion, 2)),
     # convert accuracy_level to factor
-    accuracy_method = factor(accuracy_method)
+    accuracy_method = factor(accuracy_method),
+    # Convert n_groups to a factor
+    n_groups = factor(n_groups)
   )
 
 # there should be 32 rows in eff_res and 6 colums, but I can't get the results of eff size to save as columns  
@@ -211,27 +198,19 @@ names(method_labs) <- c("SPCC", "edit")
 
 # Now to make plots of the effect size estimates and the CIs
 eff_res_level_gg %>% 
-  ggplot(aes(x = group_information_proportion, y = eff_delta, color = social_envt_treatment, fill = social_envt_treatment, shape = social_envt_treatment)) +
-  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
-  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
+  ggplot(aes(x = group_information_proportion, y = eff_delta, color = n_groups, fill = n_groups, shape = n_groups)) +
   geom_hline(aes(yintercept = 0), color = "grey") +
-  geom_hline(aes(yintercept = .147), linetype = "longdash", color = "grey") +
-  geom_hline(aes(yintercept = -.147), linetype = "longdash", color = "grey") +
-  geom_hline(aes(yintercept = .33), linetype = "dashed", color = "grey") +
-  geom_hline(aes(yintercept = -.33), linetype = "dashed", color = "grey") +
-  geom_hline(aes(yintercept = .474), linetype = "dotted", color = "grey") +
-  geom_hline(aes(yintercept = -.474), linetype = "dotted", color = "grey") +
+  geom_hline(aes(yintercept = .474), linetype = "longdash", color = "grey") +
+  geom_hline(aes(yintercept = -.474), linetype = "longdash", color = "grey") +
+  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
   facet_grid(~accuracy_method, labeller = labeller(accuracy_method = method_labs)) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = cols) +
   scale_shape_manual(values = shps) +
-  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Social Condition", override.aes = list(size = .6)), fill = guide_legend(title = "Social Condition"),
-         shape = guide_legend(title = "Social Condition")) +
-  labs(y = "Effect Size", x = "Proportion of Group Information") +
+  guides(color = guide_legend(title = "Number of Original Classes", override.aes = list(size = .6)), fill = guide_legend(title = "Number of Original Classes"),
+         shape = guide_legend(title = "Number of Original Classes")) +
+  labs(y = "Average Cliff's Detla and 95% CI", x = "Proportion of Group Information") +
   theme_bw() +
-  # Remove gridlines using theme() and change the background color of the strip labels
-  # Place legend on the top
   theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
