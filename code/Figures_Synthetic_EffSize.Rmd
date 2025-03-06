@@ -5,7 +5,7 @@ output: html_document
 date: "2025-02-26"
 ---
 
-Purpose: The following code was designed to create figures for the manuscript. These figures use the output of "Experiments_InformationEncoding_EffSize" to create plots that display (1) the average effect size between accuracy at the "Method" (SPCC v Edit) level, and (2) the average effect size between accuracy at the "Level" (Group v Individual Information) level. 
+Purpose: The following code was designed to create a figure displaying the average effect size delta values for the comparisons between level (Group and Individual) accuracy measures.
 
 ```{r setup, include = FALSE}
 
@@ -89,76 +89,6 @@ figure_path <- file.path(path, analysis_dir, figure_dir)
 if(!dir.exists(figure_path)){ 
   dir.create(figure_path)
 }
-
-```
-
-Plotting SPCC v Edit Distance Effect Sizes for all Social x Info Proportion x Level combinations
-```{r}
-
-# Load in data file 
-eff_res_method <- read.csv(file.path(data_path, "effect_sizes_byMethod.csv"))
-
-glimpse(eff_res_method)
-
-# Prepare for plotting the effect size results
-eff_res_method_gg <- eff_res_method %>%
-  # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
-  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
-  dplyr::mutate(
-    # Convert the x-axis column to factor to control axis ticks
-    group_information_proportion = factor(round(group_information_proportion, 2)),
-    # convert accuracy_level to factor
-    accuracy_level = factor(accuracy_level),
-    # Convert n_groups to a factor
-    n_groups = factor(n_groups)
-  )
-
-# There should be 32 rows in eff_res and 6 columns
-glimpse(eff_res_method_gg)  
-
-# defining colors, fill colors and shapes
-cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
-fillcols <- scales::alpha(cols, alpha = 0.2) # only use if you want fill colors to be slightly transparent
-shps <- c(21, 22, 24, 25) 
-
-# Renaming the Accuracy Information Level labels
-level_labs <- c("Group Information", "Individual Information")
-names(level_labs) <- c("group", "individual")
-
-# TKTK add horizontal lines to indicate eff size magnitude categories
-# Now to make plots of the effect size estimates and the CIs
-eff_res_method_gg %>% 
-  ggplot(aes(x = group_information_proportion, y = eff_delta, color = n_groups, fill = n_groups, shape = n_groups)) +
-  # Add in lines a 0 and + and - .474 (large effect threshold) first, so they sit behind the point range items in the plot. 
-  geom_hline(aes(yintercept = 0), color = "grey") +
-  geom_hline(aes(yintercept = .474), linetype = "longdash", color = "grey") +
-  geom_hline(aes(yintercept = -.474), linetype = "longdash", color = "grey") +
-  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
-  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
-  facet_grid(~accuracy_level, labeller = labeller(accuracy_level = level_labs)) +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = cols) +
-  scale_shape_manual(values = shps) +
-  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Number of Original Classes", override.aes = list(size = .6)), fill = guide_legend(title = "Number of Original Classes"),
-         shape = guide_legend(title = "Number of Original Classes")) +
-  labs(y = "Average Cliff's Detla and 95% CI", x = "Proportion of Group Information") +
-  theme_bw() +
-  # Remove gridlines using theme() and change the background color of the strip labels
-  # Place legend on the top
-  theme(
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.background = element_blank(),
-    axis.text = element_text(size=14),
-    axis.title = element_text(size=16,face="bold"),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
-    strip.text.x = element_text (size = 14, face = "bold"),
-    strip.text.y = element_text (size = 14, face = "bold"),
-    strip.background = element_rect(color = "black", fill = "white")
-  )
 
 ```
 

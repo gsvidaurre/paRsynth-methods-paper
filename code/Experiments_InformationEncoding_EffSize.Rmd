@@ -15,7 +15,6 @@ These tables will be included in the manuscript and will be called in future fig
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 
-?cliff.delta()
 ```
 
 Load packages and set cores.
@@ -59,10 +58,10 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -121,62 +120,7 @@ glimpse(res)
 
 ```
 
-Step 2: Checking the normality of the accuracy measures (parsed out into each level and method combination) before we run effect size analyses. For each measure, we create density and QQ plots to visualize the distribution of the data. Then we perform a Shapiro Wilks test of normality. 
-
-TKTK perform normality checks by all combinations outlined in the data frame
-```{r}
-# Checking for normality of (1) accuracy_SPCC_group (2) accuracy_edit_group (3) accuracy_mean_SPCC_individual (4) accuracy_mean_edit_individual using data frame "res"
-
-#First, accuracy_SPCC_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
-# 	Shapiro-Wilk normality test
-# data:  res$accuracy_SPCC_group
-# W = 0.91227, p-value = 3.141e-08
-# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
-ggpubr::ggdensity(res$accuracy_SPCC_group, 
-                  main = "Density plot of SPCC Group Accuracy", 
-                  xlab = "Accuracy")
-ggpubr::ggqqplot(res$accuracy_SPCC_group)
-shapiro.test(res$accuracy_SPCC_group)
-print(shapiro.test(res$accuracy_SPCC_group))
-
-#Second, accuracy_edit_group density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
-# data:  res$accuracy_edit_group
-# W = 0.91668, p-value = 6.006e-08
-# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
-ggpubr::ggdensity(res$accuracy_edit_group, 
-                  main = "Density plot of Edit Distance Group Accuracy", 
-                  xlab = "Accuracy")
-ggpubr::ggqqplot(res$accuracy_edit_group)
-shapiro.test(res$accuracy_edit_group)
-print(shapiro.test(res$accuracy_edit_group))
-
-#Third, accuracy_mean_SPCC_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
-# data:  res$accuracy_mean_SPCC_individual
-# W = 0.94378, p-value = 5.458e-06
-# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
-ggpubr::ggdensity(res$accuracy_mean_SPCC_individual, 
-                  main = "Density plot of SPCC Individual Accuracy", 
-                  xlab = "Accuracy")
-ggpubr::ggqqplot(res$accuracy_mean_SPCC_individual)
-shapiro.test(res$accuracy_mean_SPCC_individual)
-print(shapiro.test(res$accuracy_mean_SPCC_individual))
-
-#Fourth, accuracy_mean_edit_individual density plot (left skewed) and Q-Q plot (way off the 45 degree reference line) therefore variable is not normally distributed. Also did a sharpiro.test for normality
-# data:  res$accuracy_mean_edit_individual
-# W = 0.94531, p-value = 7.277e-06
-# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
-ggpubr::ggdensity(res$accuracy_mean_edit_individual, 
-                  main = "Density plot of SPCC Individual Accuracy", 
-                  xlab = "Accuracy")
-ggpubr::ggqqplot(res$accuracy_mean_edit_individual)
-shapiro.test(res$accuracy_mean_edit_individual)
-print(shapiro.test(res$accuracy_mean_edit_individual))
-
-```
-
-Because all four accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
-
-Step 3: Calculating Effect Sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods
+Step 2: Checking the normality of the accuracy measures (summed by level) before we run effect size analyses. For each measure, we create density and QQ plots to visualize the distribution of the data. Then we perform a Shapiro Wilks test of normality. 
 ```{r}
 
 # Start with data frame "res"
@@ -207,8 +151,39 @@ res_summ <- res %>%
 
 glimpse(res_summ)
 
+# Now check normality of two accuracy measures (Group and Individual) using 3 methods: density plot, QQ plot, and Shaprio Wilks Normality Test
+# First, accuracy_group_measurements
+print(ggpubr::ggdensity(res_summ$accuracy_group_measurements, 
+                  main = "Density plot of SPCC Group Accuracy", 
+                  xlab = "Accuracy"))
+print(ggpubr::ggqqplot(res_summ$accuracy_group_measurements))
+print(shapiro.test(res_summ$accuracy_group_measurements))
+# Density plot is left skewed and QQ plot is not aligned
+# 	Shapiro-Wilk normality test
+# data:  res_summ$accuracy_group_measurements
+# W = 0.92249, p-value = 8.049e-12
+# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
 
-# TKTK order the accuracy_method column by method (factor), to interpret the sign correctly for effect size measurements 
+# Second, accuracy_individual_measurements
+print(ggpubr::ggdensity(res_summ$accuracy_individual_measurements, 
+                  main = "Density plot of SPCC Group Accuracy", 
+                  xlab = "Accuracy"))
+print(ggpubr::ggqqplot(res_summ$accuracy_individual_measurements))
+# Density plot is left skewed and QQ plot is not aligned
+# 	Shapiro-Wilk normality test
+# data:  res_summ$accuracy_individual_measurements
+# W = 0.94642, p-value = 2.201e-09
+# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+
+```
+
+Because the accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
+
+Step 3: Calculating Effect Sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods
+```{r}
+
+# Start with data frame "res_sum" created above
+glimpse(res_summ)
 
 # Calculate effect sizes of the difference between levels per treatment combination
 eff_res_level <- res_summ %>% 
@@ -217,39 +192,12 @@ eff_res_level <- res_summ %>%
   dplyr::group_by(n_groups, group_information_proportion, accuracy_method) %>% 
   # Once the data frame is grouped, we can calculate effect size comparisons 
   # Because we call Group measurements before Individual measurements in this function, it means Group is the comparison group. Therefore, a negative eff_delta value means the distribution of Group measurements is smaller than Individual measurements. A positive value means it is bigger. Below, we save all the delta values, 95% confidence intervals, and the magnitudes of each effect size comparison. 
-  # TKTK effsize is throwing warnings below - need to double check measures once what have correct accuracy calculations
   dplyr::reframe(
     eff_delta = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["estimate"]],
     eff_CI_upper = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["upper"]],
     eff_CI_lower = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["lower"]],
     eff_magnitude = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["magnitude"]]
   ) 
-
-# Running dplyr::last_dplyr_warnings() shows that this warning pops up for many other effect size calculations too, like group 17: `n_groups = 6`, `group_information_proportion = 0`,
-  # `accuracy_method = "SPCC"`.
-
-# Density plots for visualization of the warning above
-res_summ %>% 
-  dplyr::filter(accuracy_method == "SPCC") %>% 
-  ggplot() +
-  geom_density(aes(x = accuracy_group_measurements), fill = alpha("navy", 0.65)) +
-  geom_density(aes(x = accuracy_individual_measurements), fill = alpha("firebrick", 0.65)) +
-  facet_wrap(n_groups ~ group_information_proportion)
-
-res_summ %>% 
-  dplyr::filter(accuracy_method == "edit") %>% 
-  ggplot() +
-  geom_density(aes(x = accuracy_group_measurements), fill = alpha("navy", 0.65)) +
-  geom_density(aes(x = accuracy_individual_measurements), fill = alpha("firebrick", 0.65)) +
-  facet_wrap(n_groups ~ group_information_proportion)
-
-# An effect size calculation for one of the data subsamples throwing the error
-res_summ %>% 
-  dplyr::filter(n_groups == 6, group_information_proportion == 0, accuracy_method == "SPCC") %>% 
-  dplyr::reframe(
-    eff_delta = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["estimate"]]
-  )
-  # View()
 
 # Warning message:
 # There were 60 warnings in `dplyr::reframe()`.
@@ -261,6 +209,10 @@ res_summ %>%
 # ! The samples are fully disjoint, using approximate Confidence Interval estimation
 # ℹ Run dplyr::last_dplyr_warnings() to see the 59 remaining
 #   warnings. 
+# This code throws several warnings:
+# Running dplyr::last_dplyr_warnings() shows that this warning pops up for many other effect size calculations too, like group 17: `n_groups = 6`, `group_information_proportion = 0`,
+  # `accuracy_method = "SPCC"`.
+# See below for our investigation of these warnings
 
 glimpse(eff_res_level)
 
@@ -272,5 +224,79 @@ eff_res_level %>%
 # Save the results as a .csv file as well
 eff_res_level %>%
   write.csv(., file = file.path(data_path, "effect_sizes_byLevel.csv"), row.names = FALSE)
+.
+```
+
+The warnings above mean that the distributions for the comparison throwing the warning are completely different from each other. To double check this is true, below we create density plots for each n_group and group info proportion combination for SPCC Accuracy measures and for Edit Distance Accuracy measure. This will be a Supplemental Figure in the Manuscript. 
+
+TKTK Figure out how to get label for color?
+TKTK decide if we like labeled or unlabeled facets, then change one of the graphs
+```{r}
+
+res_summ <- res_summ %>% 
+  dplyr::mutate(
+    n_groups = factor(n_groups),
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2))
+  ) 
+
+glimpse(res_summ)
+
+# Rename Facet variables for labelling purposes
+res_summ_rename <- res_summ %>% 
+  dplyr::rename(
+    Clusters = n_groups,
+    Group_Information = group_information_proportion)
+
+glimpse(res_summ_rename)
+
+# Density plots for visualization of the warning above
+res_summ_rename %>% 
+  dplyr::filter(accuracy_method == "SPCC") %>% 
+  ggplot() +
+  geom_density(aes(x = accuracy_group_measurements), fill = alpha("#F6955EFF", 0.65)) +
+  geom_density(aes(x = accuracy_individual_measurements), fill = alpha("#A8CDECFF", 0.65)) +
+  facet_grid(
+    Clusters ~ Group_Information,
+    scales = "free",
+    # label facets with variable name and value
+    labeller = label_both) +
+  labs(y = "Density", x = "Accuracy Score") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size=14),
+    axis.title = element_text(size=16,face="bold"),
+    # Change facet elements
+    strip.text.x = element_text (size = 14),
+    strip.text.y = element_text (size = 14),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+res_summ %>% 
+  dplyr::filter(accuracy_method == "edit") %>% 
+  ggplot() +
+  geom_density(aes(x = accuracy_group_measurements), fill = alpha("#F6955EFF", 0.65)) +
+  geom_density(aes(x = accuracy_individual_measurements), fill = alpha("#A8CDECFF", 0.65)) +
+  facet_grid(
+    n_groups ~ group_information_proportion,
+    scales = "free") +
+  labs(y = "Density", x = "Accuracy Score") +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size=14),
+    axis.title = element_text(size=16,face="bold"),
+    strip.text.x = element_text (size = 14),
+    strip.text.y = element_text (size = 14),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
 ```
 
