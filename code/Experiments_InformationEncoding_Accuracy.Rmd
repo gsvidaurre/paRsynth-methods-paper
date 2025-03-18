@@ -57,9 +57,9 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
@@ -118,8 +118,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ###################### Manually update in every new coding session ##################################
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -202,7 +202,7 @@ information <- data.table::rbindlist(pblapply(1:length(N), function(j){
   
 }))
 
-# View(information)
+View(information)
 
 # Then set other parameters for creating synthetic vocal identity signals
 # The length of the global header and tail should be the same across strings
@@ -314,7 +314,7 @@ system.time(
         cat(paste("Number of audio files = ", length(wavs), "\n"))
         
         
-        ###### Information recovery pipeline with traditional bioacoustics tools
+        ###### Information detection pipeline with traditional bioacoustics tools
         
         ### Step 5: Generate a selection table for the warbleR package
         # w <- 1 # testing

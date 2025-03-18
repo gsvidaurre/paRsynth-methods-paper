@@ -49,8 +49,8 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "/Users/summe/OneDrive/Desktop/" #Summer's path
 
 # Initialize the directory for analysis on your local computer
@@ -249,7 +249,11 @@ dim(edit_mat)
 zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
 zeroes
 
+hist(edit_mat[lower.tri(edit_mat)])
+
 # The code below replaces edit distance values of 0 off of the diagonal with a small number close to 0. The lowest non-zero value in the edit distance matrix is 1. Replace zeroes off of the diagonal with 1/10th of this value, or 0.1.
+
+# TKTK check that values of 0.1 don't influence downstream computations with the matrix. Check against setting these zeroes to 1...then check with Vanessa
 
 # Get the minimum non-zero similarity value in the matrix, which should be 1
 min_vals <- edit_mat[lower.tri(edit_mat)]
@@ -283,6 +287,9 @@ str(dist_mat)
 # Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is "low" stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
 iso_spcc <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
 str(iso_spcc)
+
+str(iso_spcc$points)
+View(iso_spcc$points)
 
 # Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
 mds_spcc <- data.frame(
@@ -383,6 +390,8 @@ glimpse(hulls)
 
 ```
 
+TKTK split these plots into panels by dataset
+
 Create a plot of both datasets with group-level polygons in SPCC acoustic space, this will be a supplementary figure.
 ```{r}
 
@@ -402,6 +411,7 @@ mds_df_all %>%
   # Also make sure that each label retains two decimal places even when there is a trailing zero
   # scale_x_continuous(limits = c(-0.5, 0.5), breaks = seq(-0.5, 0.5, 0.05), labels = sprintf("%.2f", round(seq(-0.5, 0.5, 0.05), 2))) +
   # scale_y_continuous(limits = c(-0.5, 0.5), breaks = seq(-0.5, 0.5, 0.05), labels = sprintf("%.2f", round(seq(-0.5, 0.5, 0.05), 2))) +
+  facet_wrap(~ dataset) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -454,6 +464,7 @@ mds_df_all %>%
   # Also make sure that each label retains two decimal places even when there is a trailing zero
   # scale_x_continuous(limits = c(-0.35, 0.4), breaks = seq(-0.35, 0.4, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0.4, 0.05), 2))) +
   # scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.05), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.05), 2))) +
+  facet_wrap(~ dataset) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),

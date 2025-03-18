@@ -11,17 +11,17 @@
 ########################################################################
 # for testing the function: create a demo dataframe
 
-k <- 10
-true_label <- c(rep(seq(1:k),10))
-inferred_label <- sample(c(rep(letters[1:k],10)))
-signal <- seq(1:length(true_label))
-
-df <- data.frame(signal,true_label,inferred_label)
-head(df)
-nrow(df)
-
-table(df$true_label)
-table(df$inferred_label)
+# k <- 10
+# true_label <- c(rep(seq(1:k),10))
+# inferred_label <- sample(c(rep(letters[1:k],10)))
+# signal <- seq(1:length(true_label))
+# 
+# df <- data.frame(signal,true_label,inferred_label)
+# head(df)
+# nrow(df)
+# 
+# table(df$true_label)
+# table(df$inferred_label)
 
 ########################################################################
 # how many unique sets of mappings are there between the true and inferred labels?
@@ -37,7 +37,7 @@ table(df$inferred_label)
 # when you have k true labels and k inferred labels
 # there are k! bipartite matchings that this code will compute an accuracy for
 # (draw the tree yourself and you'll see why it's a factorial)
-factorial(k)
+# factorial(k)
 # hot tip: check how big this number is before you run the code!
 
 # input: a dataframe with columns named true_label and inferred_label
