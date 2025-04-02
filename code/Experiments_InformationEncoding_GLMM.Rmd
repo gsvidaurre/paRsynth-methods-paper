@@ -1,0 +1,313 @@
+---
+title: "Information Encoding Experiments - GLMM"
+author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
+output: html_document
+date: "2025-02-26"
+---
+
+Purpose: TKTKTK
+The following code tests for effects using GLMs 
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+
+```
+
+Load packages and set cores.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# tktk update list
+# Initialize packages for data processing and analysis
+X <- c("devtools", "dplyr", "pbapply", "stringdist", "tidyverse",  "data.table", "ggpubr", "lme4", "performance", "broom", "sjPlot", "emmeans")
+
+# Install packages if they're not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
+# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
+# Install the paRsynth package from GitHub if you haven't installed it already
+# devtools::install_github("gsvidaurre/paRsynth")
+
+# Add paRsynth to the list of packages to load
+# X <- c(X, "paRsynth")
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+# Set cores for parallel processing
+cores <- parallel::detectCores() - 4
+
+```
+
+Initialize working directories for data and figures.
+```{r}
+
+###################### Manually update in every new coding session ##################################
+
+# Initialize a base path (we may need a separate base path per user)
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/home/gsvidaurre/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
+
+###################################################################################
+
+```
+
+```{r}
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_synthetic_experiments"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+data_dir <- "data"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+data_path <- file.path(path, analysis_dir, data_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(data_path)){ 
+  dir.create(data_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+figure_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figure_path <- file.path(path, analysis_dir, figure_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figure_path)){ 
+  dir.create(figure_path)
+}
+
+```
+
+Step 1: Load the data files from the Accuracy Calculations results. These files are the results from the "Experiments_InformationEncoding_Accuracy" script. These need to be manually downloaded from google drive and stored in the data folder first 
+```{r}
+
+files <- list.files(path = data_path, pattern = "Accuracy_")
+files
+
+res <- data.table::rbindlist(pblapply(1:length(files), function(n){
+  
+  return(read.csv(file.path(data_path, files[n])))
+  
+}), fill = TRUE)
+
+glimpse(res)
+
+```
+
+Step 2: TKTK work on description here: reorganizeing res to sum_res because we need to have all accuracy measures in 1 column, then checking for normality 
+```{r}
+
+# Start with data frame "res"
+glimpse(res)
+
+# Need to set up new data frame so that there is a separate column forlevel information and method information
+res_summ <- res %>%
+    #Make data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
+  ) %>%
+  # glimpse()
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>%
+  # Now, make IVs into factors
+dplyr::mutate(
+    group_information_proportion = factor(round(group_information_proportion, 2)),
+    accuracy_method = factor(accuracy_method),
+    n_groups = factor(n_groups),
+    accuracy_level = factor(accuracy_level)
+  )
+
+glimpse(res_summ)
+
+# Now check normality of two accuracy measures (Group and Individual) using 3 methods: density plot, QQ plot, and Shaprio Wilks Normality Test
+# First, accuracy_group_measurements
+print(ggpubr::ggdensity(res_summ$accuracy_measurements, 
+                  main = "Density plot of SPCC Group Accuracy", 
+                  xlab = "Accuracy"))
+print(ggpubr::ggqqplot(res_summ$accuracy_measurements))
+print(shapiro.test(res_summ$accuracy_measurements))
+# Density plot is left skewed and QQ plot is not aligned
+# 	Shapiro-Wilk normality test
+# data:  res_summ$accuracy_measurements
+# W = 0.93586, p-value = 5.891e-16
+# P value of <0.05 implies the data are significantly different from normal. NOT NORMALLY DISTRIBUTED
+
+
+```
+
+Step 3: GLM Model Selection
+
+Went with GLM because response variable wasn't normally distributed. Selected Gamma distribution, since our data are skewed left. 
+
+Fixed Factors:
+n_groups
+group_information_proportion
+accuracy_method
+accuracy_level
+
+2 way interactions
+n_groups*group_information_proportion
+n_groups*accuracy_method
+n_groups*accuracy_level
+group_information_proportion*accuracy_method
+group_information_proportion*accuracy_level
+accuracy_method*accuracy_level
+
+3 way interactions
+n_groups*group_information_proportion*accuracy_method
+n_groups*group_information_proportion*accuracy_level
+n_groups*accuracy_method*accuracy_level
+group_information_proportion*accuracy_method*accuracy_level
+
+4 way interaction
+n_groups*group_information_proportion*accuracy_method*accuracy_level
+
+```{r}
+# This is the full model, will all 2, 3, and 4 way interactions
+acc_mod_Full <- glm(accuracy_measurements ~ n_groups +
+                      group_information_proportion + 
+                      accuracy_method +
+                      accuracy_level +
+                      n_groups*group_information_proportion +
+                      n_groups*accuracy_method + 
+                      n_groups*accuracy_level +
+                      group_information_proportion*accuracy_method +
+                      group_information_proportion*accuracy_level +
+                      accuracy_method*accuracy_level +
+                      n_groups*group_information_proportion*accuracy_method +
+                      n_groups*group_information_proportion*accuracy_level + 
+                      n_groups*accuracy_method*accuracy_level +
+                      group_information_proportion*accuracy_method*accuracy_level +
+                      n_groups*group_information_proportion*accuracy_method*accuracy_level, 
+                    family = Gamma(link = "inverse"), 
+                    data = res_summ)
+
+# This is a reduce model, without the 4 way interaction (calling _3, because we include all 3 way interactions)
+acc_mod_3 <- glm(accuracy_measurements ~ n_groups +
+                      group_information_proportion + 
+                      accuracy_method +
+                      accuracy_level +
+                      n_groups*group_information_proportion +
+                      n_groups*accuracy_method + 
+                      n_groups*accuracy_level +
+                      group_information_proportion*accuracy_method +
+                      group_information_proportion*accuracy_level +
+                      accuracy_method*accuracy_level +
+                      n_groups*group_information_proportion*accuracy_method +
+                      n_groups*group_information_proportion*accuracy_level + 
+                      n_groups*accuracy_method*accuracy_level +
+                      group_information_proportion*accuracy_method*accuracy_level,
+                    family = Gamma(link = "inverse"), 
+                    data = res_summ)
+
+# This is a reduce model, without the 4 or 3 way interaction (calling _2, because we include all 2 way interactions)
+acc_mod_2 <- glm(accuracy_measurements ~ n_groups +
+                      group_information_proportion + 
+                      accuracy_method +
+                      accuracy_level +
+                      n_groups*group_information_proportion +
+                      n_groups*accuracy_method + 
+                      n_groups*accuracy_level +
+                      group_information_proportion*accuracy_method +
+                      group_information_proportion*accuracy_level +
+                      accuracy_method*accuracy_level,
+                    family = Gamma(link = "inverse"), 
+                    data = res_summ)
+
+# This is a reduce model with only main effects, called _1 because no interaction
+acc_mod_1 <- glm(accuracy_measurements ~ n_groups +
+                      group_information_proportion + 
+                      accuracy_method +
+                      accuracy_level,
+                    family = Gamma(link = "inverse"), 
+                    data = res_summ)
+
+# This gives you AIC scores for each model
+performance::compare_performance(acc_mod_Full, acc_mod_3, acc_mod_2, acc_mod_1, verbose = FALSE)
+
+# Adding rank = TRUE prodcues a composite index of model performance and sorts models from best to worst
+performance::compare_performance(acc_mod_Full, acc_mod_3, acc_mod_2, acc_mod_1, rank = TRUE, verbose = FALSE)
+
+# Because the model with all 3 way-interactions does best, I'm investigating if I can improve that model performance. n_groups*group_information_proportion*accuracy_method was the only 3 way interaction that wasn't significant, so I remove that from the model here. 
+acc_mod_3_1 <- glm(accuracy_measurements ~ n_groups +
+                      group_information_proportion + 
+                      accuracy_method +
+                      accuracy_level +
+                      n_groups*group_information_proportion +
+                      n_groups*accuracy_method + 
+                      n_groups*accuracy_level +
+                      group_information_proportion*accuracy_method +
+                      group_information_proportion*accuracy_level +
+                      accuracy_method*accuracy_level +
+                      n_groups*group_information_proportion*accuracy_level + 
+                      n_groups*accuracy_method*accuracy_level +
+                      group_information_proportion*accuracy_method*accuracy_level,
+                    family = Gamma(link = "inverse"), 
+                    data = res_summ)
+
+# This gives you AIC scores for each model
+performance::compare_performance(acc_mod_Full, acc_mod_3, acc_mod_2, acc_mod_1, acc_mod_3_1, verbose = FALSE)
+
+# Adding rank = TRUE prodcues a composite index of model performance and sorts models from best to worst
+performance::compare_performance(acc_mod_Full, acc_mod_3, acc_mod_2, acc_mod_1, acc_mod_3_1, rank = TRUE, verbose = FALSE)
+
+#That model is better, and all 3-way interaction are significant, so we stop model selection
+
+# making this into a tibble to easily share with co-authors
+acc_mod_3_1.tidy <- broom::tidy(acc_mod_3_1)
+
+# Getting a nice table to share with co-authors
+sjPlot::tab_model(acc_mod_3_1)
+
+# printing model summary
+print(summary(acc_mod_3_1))
+```
+
+Step 4: Investigating Interactions 
+
+```{r}
+
+# Investigating the n_groups*group_information_proportion*accuracy_level interaction. This investigates the interaction between n_groups and group_information_proportion across different levels of accuracy
+contrast(emmeans(acc_mod_3_1, ~ n_groups | group_information_proportion | accuracy_level), method = "pairwise")
+
+
+```
+
+TKTK left off here
+got the contrast function to work. The above code spits out comparisons between each level of group for each combinations of group info proportion and accuracy level. 
+
+Without contrast, I think the code will just give me the marginal means and confidence intervals. We should probably plot those. Since the four way interaction isn't significant, talk to Grace about plotting the 3 3-way interactions instead. 
+
+Supplemental materials should include tables of all estimated marginal means and compaisons? Not sure how to present this, maybe find example paper that investigates 3 way interaction?
+
