@@ -309,5 +309,6 @@ got the contrast function to work. The above code spits out comparisons between 
 
 Without contrast, I think the code will just give me the marginal means and confidence intervals. We should probably plot those. Since the four way interaction isn't significant, talk to Grace about plotting the 3 3-way interactions instead. 
 
-Supplemental materials should include tables of all estimated marginal means and compaisons? Not sure how to present this, maybe find example paper that investigates 3 way interaction?
+Supplemental materials should include tables of all estimated marginal means and comparisons? Not sure how to present this, maybe find example paper that investigates 3 way interaction?
 
+ALSO i needed to change the variables to factors to work in the contrast function, but now summary(model) doesn't give me the sig table i was looking at before (which is what I sent to Grace and is save in the file on github) - i need to figure out how to view the fixed effects table to see if general terms are significant or not. 
