@@ -155,4 +155,7 @@ eff_res_level_gg %>%
     strip.background = element_rect(color = "black", fill = "white")
   )
 
+# save as tiff file
+ggsave(filename = "EffSize_Level_PointRange", path = figure_path, width = 6, height = 6, device = "tiff", dpi = 700)
+
 ```

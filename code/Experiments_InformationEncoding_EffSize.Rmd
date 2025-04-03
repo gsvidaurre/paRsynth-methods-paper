@@ -229,8 +229,7 @@ eff_res_level %>%
 
 The warnings above mean that the distributions for the comparison throwing the warning are completely different from each other. To double check this is true, below we create density plots for each n_group and group info proportion combination for SPCC Accuracy measures and for Edit Distance Accuracy measure. This will be a Supplemental Figure in the Manuscript. 
 
-TKTK Figure out how to get label for color?
-TKTK decide if we like labeled or unlabeled facets, then change one of the graphs
+
 ```{r}
 
 res_summ <- res_summ %>% 
@@ -250,7 +249,7 @@ res_summ_rename <- res_summ %>%
 
 glimpse(res_summ_rename)
 
-# Density plots for visualization of the warning above
+# Density plots for visualization of the warning above for SPCC method
 res_summ_rename %>% 
   dplyr::filter(accuracy_method == "SPCC") %>% 
   ggplot() +
@@ -263,6 +262,8 @@ res_summ_rename %>%
     labeller = label_both) +
   labs(y = "Density", x = "Accuracy Score") +
   theme_bw() +
+    # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
   theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
@@ -275,17 +276,23 @@ res_summ_rename %>%
     strip.background = element_rect(color = "black", fill = "white")
   )
 
-res_summ %>% 
+# Print above plot as tiff
+ggsave(filename = "Supplimental_Density_SPCC", path = figure_path, width = 10, height = 10, device = "tiff", dpi = 700)
+
+# Make same plot but for edit distance
+res_summ_rename %>% 
   dplyr::filter(accuracy_method == "edit") %>% 
   ggplot() +
   geom_density(aes(x = accuracy_group_measurements), fill = alpha("#F6955EFF", 0.65)) +
   geom_density(aes(x = accuracy_individual_measurements), fill = alpha("#A8CDECFF", 0.65)) +
   facet_grid(
-    n_groups ~ group_information_proportion,
-    scales = "free") +
+    Clusters ~ Group_Information,
+    scales = "free",
+    # label facets with variable name and value
+    labeller = label_both) +
   labs(y = "Density", x = "Accuracy Score") +
   theme_bw() +
-  # Remove gridlines using theme() and change the background color of the strip labels
+    # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
   theme(
     panel.grid.major = element_blank(),
@@ -293,10 +300,13 @@ res_summ %>%
     panel.background = element_blank(),
     axis.text = element_text(size=14),
     axis.title = element_text(size=16,face="bold"),
+    # Change facet elements
     strip.text.x = element_text (size = 14),
     strip.text.y = element_text (size = 14),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
+# Print above plot as tiff
+ggsave(filename = "Supplimental_Density_edit", path = figure_path, width = 10, height = 10, device = "tiff", dpi = 700)
 ```
 

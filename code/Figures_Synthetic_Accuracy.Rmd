@@ -250,6 +250,9 @@ res_summ %>%
     strip.background = element_rect(color = "black", fill = "white")
   )
 
+# save as tiff file
+ggsave(filename = "AverageAccuracy_PointRange", path = figure_path, width = 8, height = 8, device = "tiff", dpi = 700)
+
 # This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
 
 ```
