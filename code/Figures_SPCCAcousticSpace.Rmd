@@ -354,7 +354,7 @@ glimpse(mds_edit)
 Calls from both datasets in the same universal acoustic space (SPCC). Start with aesthetics.
 ```{r}
 
-mds_df_all <- mds_spcc %>%
+mds_df_all_spcc <- mds_spcc %>%
   # Create a column that combines dataset and group
   dplyr::mutate(
     dataset_group = paste(dataset, group_ID, sep = "-"),
@@ -379,7 +379,7 @@ shps <- rep(c(19, 23), length(levels(mds_df_all$group_ID)))
 length(cols)
 length(shps)
 
-hulls <- plyr::ddply(mds_df_all, "dataset_group", function(x){
+hulls <- plyr::ddply(mds_df_all_spcc, "dataset_group", function(x){
   x[chull(x$X, x$Y), ]
 })
 
@@ -387,25 +387,28 @@ glimpse(hulls)
 
 ```
 
-Create plots of both datasets with group-level polygons in SPCC and edit distance acoustic space, these will be supplementary figures.
+Create plots of both datasets with group and individual-level polygons in SPCC and edit distance acoustic space. These will be supplementary figures: one per method with the group-level polygons figure on the top and individual-level polygons figure on the bottom.
+
+### Supplement: SPCC, both datasets, group-level polygons
+
 ```{r}
 
-mds_df_all %>% 
+mds_df_all_spcc %>% 
   ggplot(aes(x = X, y = Y)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = dataset_group), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(color = group_ID, shape = dataset), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = cols) +
-  xlab("") + ylab("") + 
+  xlab("") + ylab("") +  
   # The legend is currently on but should be modified downstream as needed
   guides(color = guide_legend(title = "Group ID", override.aes = list(size = 3)), shape = guide_legend(title = "Dataset", override.aes = list(size = 3)), fill = guide_legend(title = "Group ID", override.aes = list(size = 3))) +
   # Uncomment this line to remove the legend
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  # scale_x_continuous(limits = c(-0.5, 0.5), breaks = seq(-0.5, 0.5, 0.05), labels = sprintf("%.2f", round(seq(-0.5, 0.5, 0.05), 2))) +
-  # scale_y_continuous(limits = c(-0.5, 0.5), breaks = seq(-0.5, 0.5, 0.05), labels = sprintf("%.2f", round(seq(-0.5, 0.5, 0.05), 2))) +
+  scale_x_continuous(limits = c(-0.3, 0.4), breaks = seq(-0.3, 0.4, 0.1), labels = sprintf("%.2f", round(seq(-0.3, 0.4, 0.1), 2))) +
+  scale_y_continuous(limits = c(-0.3, 0.4), breaks = seq(-0.3, 0.4, 0.1), labels = sprintf("%.2f", round(seq(-0.3, 0.4, 0.1), 2))) +
   # facet_wrap(~ dataset) +
   theme_bw() +
   theme(
@@ -421,29 +424,32 @@ mds_df_all %>%
     legend.title = element_text(size = 8),
     legend.key.spacing = unit(0.15, "lines"),
     legend.box.spacing =  unit(0.1, "lines"),
-    plot.margin = margin(0, 3, -3, -3)
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt")
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_bothDatasets.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_bothDatasets_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 ```
+
+### Supplement: edit distance, both datasets, group-level polygons
 
 The same plot, but the edit distance.
 ```{r}
 
-mds_df_all <- mds_edit %>%
+mds_df_all_edit <- mds_edit %>%
   # Create a column that combines dataset and group
   dplyr::mutate(
     dataset_group = paste(dataset, group_ID, sep = "-"),
     dataset_group = factor(dataset_group)
   )
 
-hulls <- plyr::ddply(mds_df_all, "dataset_group", function(x){
+hulls <- plyr::ddply(mds_df_all_edit, "dataset_group", function(x){
   x[chull(x$X, x$Y), ]
 })
 
-mds_df_all %>% 
+mds_df_all_edit %>% 
   ggplot(aes(x = X, y = Y)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = dataset_group), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(color = group_ID, shape = dataset), size = 2, stroke = 0.5) +
@@ -457,8 +463,8 @@ mds_df_all %>%
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  # scale_x_continuous(limits = c(-0.35, 0.4), breaks = seq(-0.35, 0.4, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0.4, 0.05), 2))) +
-  # scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.05), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.05), 2))) +
+  scale_x_continuous(limits = c(-5, 4.5), breaks = seq(-5, 4.5, 1), labels = sprintf("%.2f", round(seq(-5, 4.5, 1), 2))) +
+  scale_y_continuous(limits = c(-4.5, 4), breaks = seq(-4.5, 4, 1), labels = sprintf("%.2f", round(seq(-4.5, 4, 1), 2))) +
   # facet_wrap(~ dataset) +
   theme_bw() +
   theme(
@@ -474,13 +480,88 @@ mds_df_all %>%
     legend.title = element_text(size = 8),
     legend.key.spacing = unit(0.15, "lines"),
     legend.box.spacing =  unit(0.1, "lines"),
-    plot.margin = margin(0, 3, -3, -3)
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt")
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_bothDatasets.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_bothDatasets_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 ```
+
+### Supplement: individual-level polygons
+
+TKTK fix these plots
+
+Start with aesthetics.
+```{r}
+
+# Get colors for groups from the same palette used for spectrograms in lexicons
+cols <- paletteer::paletteer_d("nationalparkcolors::Arches")
+cols
+
+# Colors by group (five)
+cols <- cols[1:length(levels(mds_df_all_spcc$group))]
+cols
+
+# Fills by unique individual
+levels(mds_df_all_spcc$unique_individuals)
+fills <- rep(cols, each = length(levels(mds_df_all_spcc$individual_ID)))
+
+# Shapes by individual within groups
+shps <- rep(c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_df_all_spcc$individual_ID)))
+
+```
+
+### Supplement: SPCC, both datasets, individual-level polygons
+
+```{r}
+
+hulls <- plyr::ddply(mds_df_all_spcc, "unique_individuals", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# glimpse(hulls)
+
+mds_df_all_spcc %>% 
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = dataset_group), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = unique_individuals, shape = unique_individuals), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  xlab("") + ylab("") +  
+  # The legend is currently on but should be modified downstream as needed
+  # guides(color = guide_legend(title = "Group ID", override.aes = list(size = 3)), shape = guide_legend(title = "Dataset", override.aes = list(size = 3)), fill = guide_legend(title = "Group ID", override.aes = list(size = 3))) +
+  # Uncomment this line to remove the legend
+  guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-0.3, 0.4), breaks = seq(-0.3, 0.4, 0.1), labels = sprintf("%.2f", round(seq(-0.3, 0.4, 0.1), 2))) +
+  scale_y_continuous(limits = c(-0.3, 0.4), breaks = seq(-0.3, 0.4, 0.1), labels = sprintf("%.2f", round(seq(-0.3, 0.4, 0.1), 2))) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.position = "top",
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 8),
+    legend.key.spacing = unit(0.15, "lines"),
+    legend.box.spacing =  unit(0.1, "lines"),
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt")
+  )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_bothDatasets_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+```
+
 
 # Main figures
 
@@ -562,9 +643,11 @@ mds_edit_grp %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3),
     legend.position = "top",
-    legend.key.spacing = unit(0.2, "lines")
+    legend.key.spacing = unit(0.2, "lines"),
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
 # Save this plot as an image file
@@ -610,9 +693,11 @@ mds_spcc_grp %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3),
     legend.position = "top",
-    legend.key.spacing = unit(0.2, "lines")
+    legend.key.spacing = unit(0.2, "lines"),
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
 # Save this plot as an image file
@@ -717,7 +802,9 @@ mds_edit_ind %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3)
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
 # Save this plot as an image file
@@ -749,8 +836,8 @@ mds_spcc_ind %>%
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  # scale_x_continuous(limits = c(2, 4.5), breaks = seq(2, 4.5, 1), labels = sprintf("%.2f", round(seq(2, 4.5, 1), 2))) +
-  # scale_y_continuous(limits = c(-4.1, 4), breaks = seq(-4, 4, 2), labels = sprintf("%.2f", round(seq(-4, 4, 2), 2))) +
+  scale_x_continuous(limits = c(0, 0.5), breaks = seq(0, 0.5, 0.1), labels = sprintf("%.2f", round(seq(0, 0.5, 0.1), 2))) +
+  scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.1), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.1), 2))) +
   theme_bw() +
   theme(
     legend.position = "top",
@@ -762,7 +849,9 @@ mds_spcc_ind %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3)
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
 # Save this plot as an image file
