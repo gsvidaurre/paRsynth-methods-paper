@@ -1,5 +1,6 @@
 ---
 title: "Spectrographic cross-correlation and acoustic space"
+author: Grace Smith-Vidaurre
 output: html_document
 date: "2024-11-20"
 ---
@@ -212,9 +213,7 @@ saveRDS(xc_mat, file.path(analysis_path, "xc_mat.RDS"))
 
 ```
 
-
-Step 8: Calculate the edit distance amongst all strings
-
+# Step 3: Calculate the edit distance amongst all strings
 ```{r}
 
 xc_mat <- readRDS(file.path(analysis_path, "xc_mat.RDS"))
@@ -249,17 +248,16 @@ dim(edit_mat)
 zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
 zeroes
 
-hist(edit_mat[lower.tri(edit_mat)])
+# hist(edit_mat[lower.tri(edit_mat)])
 
 # The code below replaces edit distance values of 0 off of the diagonal with a small number close to 0. The lowest non-zero value in the edit distance matrix is 1. Replace zeroes off of the diagonal with 1/10th of this value, or 0.1.
 
-# TKTK check that values of 0.1 don't influence downstream computations with the matrix. Check against setting these zeroes to 1...then check with Vanessa
-
-# Get the minimum non-zero similarity value in the matrix, which should be 1
+# Get the minimum non-zero similarity value in the matrix
 min_vals <- edit_mat[lower.tri(edit_mat)]
 
+# Then get the smallest non-zero value, which should be 1. Looks good
 sec_min_val <- min(min_vals[min_vals > 0])
-sec_min_val
+# sec_min_val
 
 # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of 1, the smallest non-zero value in this matrix
 edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
@@ -273,8 +271,7 @@ saveRDS(edit_mat, file.path(analysis_path, "edit_mat.RDS"))
 
 ```
 
-
-# Step 3: Reduce the dimensionality of the SPCC and edit distance matrices with multidimensional scaling.
+# Step 4: Reduce the dimensionality of the SPCC and edit distance matrices with multidimensional scaling.
 ```{r}
 
 xc_mat <- readRDS(file.path(analysis_path, "xc_mat.RDS"))
@@ -289,7 +286,7 @@ iso_spcc <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE
 str(iso_spcc)
 
 str(iso_spcc$points)
-View(iso_spcc$points)
+# View(iso_spcc$points)
 
 # Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
 mds_spcc <- data.frame(
@@ -390,9 +387,7 @@ glimpse(hulls)
 
 ```
 
-TKTK split these plots into panels by dataset
-
-Create a plot of both datasets with group-level polygons in SPCC acoustic space, this will be a supplementary figure.
+Create plots of both datasets with group-level polygons in SPCC and edit distance acoustic space, these will be supplementary figures.
 ```{r}
 
 mds_df_all %>% 
@@ -411,7 +406,7 @@ mds_df_all %>%
   # Also make sure that each label retains two decimal places even when there is a trailing zero
   # scale_x_continuous(limits = c(-0.5, 0.5), breaks = seq(-0.5, 0.5, 0.05), labels = sprintf("%.2f", round(seq(-0.5, 0.5, 0.05), 2))) +
   # scale_y_continuous(limits = c(-0.5, 0.5), breaks = seq(-0.5, 0.5, 0.05), labels = sprintf("%.2f", round(seq(-0.5, 0.5, 0.05), 2))) +
-  facet_wrap(~ dataset) +
+  # facet_wrap(~ dataset) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -464,7 +459,7 @@ mds_df_all %>%
   # Also make sure that each label retains two decimal places even when there is a trailing zero
   # scale_x_continuous(limits = c(-0.35, 0.4), breaks = seq(-0.35, 0.4, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0.4, 0.05), 2))) +
   # scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.05), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.05), 2))) +
-  facet_wrap(~ dataset) +
+  # facet_wrap(~ dataset) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -487,61 +482,77 @@ ggsave(filename = file.path(figures_path, "AcousticSpace_edit_bothDatasets.tiff"
 
 ```
 
-Group membership, two panels (convex hull polygons by group then individual). Start with aesthetics.
+# Main figures
+
+Group membership, two plots (SPCC and edit distance, one above the other) with convex hull polygons by group. Start with aesthetics.
 ```{r}
 
 # Get colors for groups from the same palette used for spectrograms in lexicons
 cols <- paletteer::paletteer_d("nationalparkcolors::Arches")
 cols
 
-mds_df_grp <- mds_df %>%
+# Combine MDS results from the SPCC and edit distance pipelines
+mds_spcc_grp <- mds_spcc %>%
+  # Create a column to indicate the method
+  dplyr::mutate(
+    method = "Spectrographic cross-correlation"
+  ) %>%
   # Filter by the group membership calls
   dplyr::filter(
     dataset == "Group Membership"
   )
-glimpse(mds_df_grp)
 
-levels(mds_df_grp$group_ID)
-levels(mds_df_grp$individual_ID)
-levels(mds_df_grp$unique_individuals)
+glimpse(mds_spcc_grp)
+
+mds_edit_grp <- mds_edit %>%
+  # Create a column to indicate the method
+  dplyr::mutate(
+    method = "Edit distance"
+  ) %>%
+  # Filter by the group membership calls
+  dplyr::filter(
+    dataset == "Group Membership"
+  )
+
+glimpse(mds_edit_grp)
+
+levels(mds_spcc_grp$group_ID)
+levels(mds_spcc_grp$individual_ID)
+levels(mds_spcc_grp$unique_individuals)
 
 # Colors by group (five)
-cols_grp <- cols[1:length(levels(mds_df_all$group))]
+cols_grp <- cols[1:length(levels(mds_spcc_grp$group))]
 
 # Shapes by individual within groups
-shps <- rep(c(0, 1, 2, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_df_grp$group_ID)))
+shps <- rep(c(0, 1, 2, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_spcc_grp$group_ID)))
 
 ```
 
-
-TKTK for continuing to update plots, consider the following: Add the edit distance as a panel to each main figure. So each main figure will be a lexicon for the given dataset (Group membership or Inidvidual identity), then there will be 2 acoustic space plots on the right: one generated using the edit distance and the other generated using SPCC. Consider dropping the individual-level polygons for group membership plots and vice versa, or keeping these in the supplement.
-
-Create the group membership plots.
+Create the group membership plots. Edit distance first with a legend.
 ```{r}
 
-# Panel A: Convex hull polygons per group
-
-hulls <- plyr::ddply(mds_df_grp, "group_ID", function(x){
+# Convex hull polygons per group
+hulls <- plyr::ddply(mds_edit_grp, "group_ID", function(x){
   x[chull(x$X, x$Y), ]
 })
 
 # glimpse(hulls)
 
-mds_df_grp %>%
+mds_edit_grp %>%
   ggplot(aes(x = X, y = Y, color = group_ID)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID, color = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = cols) +
+  scale_color_manual(values = cols_grp) +
+  scale_fill_manual(values = cols_grp) +
   xlab("") + ylab("") + 
-  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = guide_legend(title = "Group", override.aes = list(size = 3), order = 1)) +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
   # Uncomment this line to turn off the legend
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(-0.35, 0.4), breaks = seq(-0.35, 0.4, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0.4, 0.05), 2))) +
-  scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.05), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.05), 2))) +
+  scale_x_continuous(limits = c(-5, -1.8), breaks = seq(-5, -2, 1), labels = sprintf("%.2f", round(seq(-5, -2, 1), 2))) +
+  scale_y_continuous(limits = c(-4.5, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -558,35 +569,38 @@ mds_df_grp %>%
 
 # Save this plot as an image file
 # This is the image size that will be written without a legend
-# ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+# ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
-# This is the image size that will be written to create alegend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+# This is the image size that will be written to create a legend for the composite figure created in other software
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
-?theme
+```
 
-# Panel B: Convex hull polygons per individual
+SPCC next, no legend.
+```{r}
 
-# Regenerate the convex hull polygons by a different social level
-hulls <- plyr::ddply(mds_df_grp, "unique_individuals", function(x){
+# Convex hull polygons per group
+hulls <- plyr::ddply(mds_spcc_grp, "group_ID", function(x){
   x[chull(x$X, x$Y), ]
 })
 
 # glimpse(hulls)
 
-mds_df_grp %>%
-  ggplot(aes(x = X, y = Y)) + 
-  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
-  geom_point(aes(color = group_ID, shape = unique_individuals), size = 2, stroke = 0.5) +
+mds_spcc_grp %>%
+  ggplot(aes(x = X, y = Y, color = group_ID)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID, color = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fills) +
+  scale_color_manual(values = cols_grp) +
+  scale_fill_manual(values = cols_grp) +
   xlab("") + ylab("") + 
+  # guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = guide_legend(title = "Group", override.aes = list(size = 3), order = 1)) +
+  # Uncomment this line to turn off the legend
   guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
-  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  scale_x_continuous(limits = c(-0.3, 0), breaks = seq(-0.3, 0, 0.05), labels = sprintf("%.2f", round(seq(-0.3, 0, 0.05), 2))) +
+  scale_y_continuous(limits = c(-0.35, 0.25), breaks = seq(-0.35, 0.25, 0.1), labels = sprintf("%.2f", round(seq(-0.35, 0.25, 0.1), 2))) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -596,103 +610,106 @@ mds_df_grp %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3)
+    plot.margin = margin(0, 3, -3, -3),
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "lines")
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_GroupMembership_IndivPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+# This is the image size that will be written without a legend
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+# This is the image size that will be written to create a legend for the composite figure created in other software
+# ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
-Individual identity, two panels (convex hull polygons by group then individual). Start with aesthetics.
+Individual identity. Two plots (SPCC and edit distance) with convex hull polygons by individual. Start with aesthetics.
 ```{r}
 
-mds_df_ind <- mds_df %>%
+# Combine MDS results from the SPCC and edit distance pipelines
+mds_spcc_ind <- mds_spcc %>%
+  # Create a column to indicate the method
+  dplyr::mutate(
+    method = "Spectrographic cross-correlation"
+  ) %>% 
   # Filter by the group membership calls
   dplyr::filter(
     dataset == "Individual Identity"
   )
 
-levels(mds_df_ind$group_ID)
-levels(mds_df_ind$individual_ID)
-levels(mds_df_ind$unique_individuals)
+glimpse(mds_spcc_ind)
+
+mds_edit_ind <- mds_edit %>%
+  # Create a column to indicate the method
+  dplyr::mutate(
+    method = "Edit distance"
+  ) %>%
+  # Filter by the group membership calls
+  dplyr::filter(
+    dataset == "Individual Identity"
+  )
+
+glimpse(mds_edit_ind)
+
+levels(mds_spcc_ind$group_ID)
+levels(mds_spcc_ind$individual_ID)
+levels(mds_spcc_ind$unique_individuals)
 
 # Border colors by group (five)
-cols <- scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey5"), 0.65)
+# cols <- scales::alpha(c("navy", "orange", "forestgreen", "firebrick", "grey5"), 0.65)
 
-# Fill colors by individuals across groups. One color per group and individuals are coded in hues
-fills <- c(
-  paletteer_c("ggthemes::Blue", length(levels(mds_df_ind$individual_ID))),
-  paletteer_c("ggthemes::Brown", length(levels(mds_df_ind$individual_ID))),
-  paletteer_c("ggthemes::Green", length(levels(mds_df_ind$individual_ID))),
-  paletteer_c("ggthemes::Red", length(levels(mds_df_ind$individual_ID))),
-  paletteer_c("ggthemes::Gray", length(levels(mds_df_ind$individual_ID)))
-)
+# Get colors for groups from the same palette used for spectrograms in lexicons
+cols <- paletteer::paletteer_d("nationalparkcolors::Arches")
+cols
+
+# Colors by group (five) repeated per individual
+cols <- cols[1:length(levels(mds_spcc_grp$group))]
+cols
+
+# Fills by unique individual
+levels(mds_edit_ind$unique_individuals)
+fills <- rep(cols, each = 10)
 
 # Shapes by individual within groups
-shps <- rep(c(0, 1, 2, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_df_ind$group_ID)))
+shps <- rep(c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6), length(levels(mds_spcc_ind$group_ID)))
 
 ```
 
-Create the plots with polygons at the two social levels.
+TKTK fixed the polygons but need to add labels to strip legends and fix the legend falling off the edge in the image file.
+
+Edit distance first with a legend.
 ```{r}
 
-# Panel C: convex hull polygons by groups
-hulls <- plyr::ddply(mds_df_ind, "group_ID", function(x){
-  x[chull(x$X, x$Y), ]
-})
+# glimpse(mds_edit_ind)
 
-mds_df_ind %>%
-  ggplot(aes(x = X, y = Y)) + 
-  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
-  geom_point(aes(color = group_ID, shape = unique_individuals), size = 2, stroke = 0.5) +
-  scale_shape_manual(values = shps) +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = cols) +
-  xlab("") + ylab("") + 
-  guides(color = "none", shape = "none", fill = "none") +
-  # Specify the x and y-axis limits so that these are the same across plots
-  # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
-  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
-    strip.text.x = element_text(size = 12),
-    strip.text.y = element_text(size = 10),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.ticks = element_line(size = 0.25),
-    plot.margin = margin(0, 3, -3, -3)
-  )
-
-# Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_IndividualIdentity_GroupPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
-
-# Panel D: Convex hull polygons per individual within groups
-
-hulls <- plyr::ddply(mds_df_ind, "unique_individuals", function(x){
+hulls <- plyr::ddply(mds_edit_ind, "unique_individuals", function(x){
   x[chull(x$X, x$Y), ]
 })
 
 # glimpse(hulls)
 
-mds_df_ind %>%
+glimpse(mds_edit_ind)
+
+mds_edit_ind %>%
   ggplot(aes(x = X, y = Y)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
-  geom_point(aes(color = group_ID, shape = unique_individuals), size = 2, stroke = 0.5) +
+  geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
+  # facet_wrap(~ group_ID) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fills) +
   xlab("") + ylab("") + 
-  guides(color = "none", shape = "none", fill = "none") +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = guide_legend(title = "Group", override.aes = list(size = 3), order = 1)) +
+  # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
-  scale_y_continuous(limits = c(-0.15, 0.15), breaks = seq(-0.15, 0.15, 0.05), labels = sprintf("%.2f", round(seq(-0.15, 0.15, 0.05), 2))) +
+  scale_x_continuous(limits = c(2, 4.5), breaks = seq(2, 4.5, 1), labels = sprintf("%.2f", round(seq(2, 4.5, 1), 2))) +
+  scale_y_continuous(limits = c(-4.1, 4), breaks = seq(-4, 4, 2), labels = sprintf("%.2f", round(seq(-4, 4, 2), 2))) +
   theme_bw() +
   theme(
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "line"),
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 9),
     strip.text.x = element_text(size = 12),
@@ -704,6 +721,8 @@ mds_df_ind %>%
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_IndividualIdentity_IndivPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_IndividualIdentity_Legend.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 ```
+
+SPCC next without a legend.

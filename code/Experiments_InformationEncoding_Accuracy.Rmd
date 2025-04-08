@@ -202,7 +202,7 @@ information <- data.table::rbindlist(pblapply(1:length(N), function(j){
   
 }))
 
-View(information)
+# View(information)
 
 # Then set other parameters for creating synthetic vocal identity signals
 # The length of the global header and tail should be the same across strings
