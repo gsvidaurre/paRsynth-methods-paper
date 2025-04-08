@@ -726,3 +726,46 @@ ggsave(filename = file.path(figures_path, "AcousticSpace_edit_IndividualIdentity
 ```
 
 SPCC next without a legend.
+```{r}
+
+# glimpse(mds_edit_ind)
+
+hulls <- plyr::ddply(mds_spcc_ind, "unique_individuals", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# glimpse(hulls)
+
+mds_spcc_ind %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
+  # facet_wrap(~ group_ID) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fills) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = guide_legend(title = "Group", override.aes = list(size = 3), order = 1)) +
+  # guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits so that these are the same across plots
+  # Also make sure that each label retains two decimal places even when there is a trailing zero
+  # scale_x_continuous(limits = c(2, 4.5), breaks = seq(2, 4.5, 1), labels = sprintf("%.2f", round(seq(2, 4.5, 1), 2))) +
+  # scale_y_continuous(limits = c(-4.1, 4), breaks = seq(-4, 4, 2), labels = sprintf("%.2f", round(seq(-4, 4, 2), 2))) +
+  theme_bw() +
+  theme(
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "line"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.25),
+    plot.margin = margin(0, 3, -3, -3)
+  )
+
+# Save this plot as an image file
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+```
