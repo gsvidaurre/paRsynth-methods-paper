@@ -7,6 +7,14 @@ date: "2025-04-08"
 
 Purpose: Here we use build acoustic space plots for supplementary figures. Acoustic space plots are generated using multidimensional scaling coordinates from spectrographic cross-correlation and edit distance analyses.
 
+TKTK update figures such that main figures only include some groups and the supplement includes everything.
+SPCC group membership group polygons has bad legend...
+
+TKTK choose groups 2 and 3 for the main acoustic space plots for the group membership dataset.
+TKTK choose groups 1 and 2 for the main acoustic space plots for the individual identity dataset.
+Brittany will choose which spectrograms to include in the call catalogues for both datasets (2 individuals per group and 2-3 calls per individual).
+
+
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
