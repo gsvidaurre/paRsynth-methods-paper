@@ -186,11 +186,11 @@ mds_edit_grp %>%
 # ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 # This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
-SPCC next, no legend.
+SPCC next with a legend.
 ```{r}
 
 # Convex hull polygons per group
@@ -208,9 +208,9 @@ mds_spcc_grp %>%
   scale_color_manual(values = cols_grp) +
   scale_fill_manual(values = cols_grp) +
   xlab("") + ylab("") + 
-  # guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = guide_legend(title = "Group", override.aes = list(size = 3), order = 1)) +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group")) +
   # Uncomment this line to turn off the legend
-  guides(color = "none", shape = "none", fill = "none") +
+  # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(-0.3, 0), breaks = seq(-0.3, 0, 0.05), labels = sprintf("%.2f", round(seq(-0.3, 0, 0.05), 2))) +
@@ -233,10 +233,10 @@ mds_spcc_grp %>%
 
 # Save this plot as an image file
 # This is the image size that will be written without a legend
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+# ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 # This is the image size that will be written to create a legend for the composite figure created in other software
-# ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
@@ -324,7 +324,7 @@ mds_edit_ind %>%
   scale_color_manual(values = grp_cols) +
   scale_fill_manual(values = fills) +
   xlab("") + ylab("") + 
-  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = "none") +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = "none") +
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
@@ -347,11 +347,11 @@ mds_edit_ind %>%
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_IndividualIdentity_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_IndividualIdentity_IndividualPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
-SPCC next without a legend.
+SPCC next with a legend.
 ```{r}
 
 # glimpse(mds_edit_ind)
@@ -371,8 +371,8 @@ mds_spcc_ind %>%
   scale_color_manual(values = grp_cols) +
   scale_fill_manual(values = fills) +
   xlab("") + ylab("") + 
-  # guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", override.aes = list(size = 3), nrow = 1), fill = "none") +
-  guides(color = "none", shape = "none", fill = "none") +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = "none") +
+  # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(0, 0.5), breaks = seq(0, 0.5, 0.1), labels = sprintf("%.2f", round(seq(0, 0.5, 0.1), 2))) +
@@ -394,6 +394,6 @@ mds_spcc_ind %>%
   )
 
 # Save this plot as an image file
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons_Legend.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 ```

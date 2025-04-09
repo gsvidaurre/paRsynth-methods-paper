@@ -247,7 +247,7 @@ mds_spcc_grp %>%
   )
 
 # This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_IndividualPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
@@ -295,6 +295,7 @@ cols_grp
 
 # Shapes by individual within groups
 shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
+
 ```
 
 ## Edit distance, individual identity dataset and individual-level polygons
@@ -400,3 +401,15 @@ mds_spcc_ind %>%
 ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
+
+# Notes on supplementary figures
+
+These different image files shoud be used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group membership dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individual identity dataset.
+
+Supplementary figure plans (one for the group membership dataset, one for the individual identity dataset): 
+- Panel A should be edit distance, group-level polygons
+- Panel B should be SPCC, group-level polygons
+- Panel C should be edit distance, individual-level polygons
+- Panel D should be SPCC, individual-level polygons
+
+The code in this script and the script to generate acoustic space plots for main figures should specify the same axis limits and breaks across plots for the same dataset and similarity method, but this needs to be checked carefully when assembling the final composite figures. Each composite figure should only have a single legend at the top of the file, and shared x- and y-axis dimensions.
