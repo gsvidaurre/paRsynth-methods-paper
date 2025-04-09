@@ -8,7 +8,6 @@ date: "2025-04-08"
 Purpose: Here we use build acoustic space plots for supplementary figures. Acoustic space plots are generated using multidimensional scaling coordinates from spectrographic cross-correlation and edit distance analyses.
 
 TKTK update figures such that main figures only include some groups and the supplement includes everything.
-SPCC group membership group polygons has bad legend...
 
 TKTK choose groups 2 and 3 for the main acoustic space plots for the group membership dataset.
 TKTK choose groups 1 and 2 for the main acoustic space plots for the individual identity dataset.
@@ -412,7 +411,7 @@ ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity
 
 # Notes on supplementary figures
 
-These different image files shoud be used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group membership dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individual identity dataset.
+These different image files should be used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group membership dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individual identity dataset.
 
 Supplementary figure plans (one for the group membership dataset, one for the individual identity dataset): 
 - Panel A should be edit distance, group-level polygons

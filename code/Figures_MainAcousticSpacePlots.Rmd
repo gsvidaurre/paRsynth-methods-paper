@@ -5,7 +5,7 @@ output: html_document
 date: "2024-11-20"
 ---
 
-Purpose: Here we use build acoustic space plots for main figures. Acoustic space plots are generated using multidimensional scaling coordinates from spectrographic cross-correlation and edit distance analyses.
+Purpose: Here we use build acoustic space plots for main figures. Acoustic space plots are generated using multidimensional scaling coordinates from spectrographic cross-correlation and edit distance analyses. The plots below will display a subsample of groups for each the group membership and individual identity call datasets that we show in the first few main figures. For the group membership dataset, we will focus on groups 2 and 3, and for the individual identity dataset we will use groups 1 and 2. The supplementary figures will display all groups in each synthetic dataset.
 
 ```{r setup, include = FALSE}
 
@@ -132,25 +132,35 @@ glimpse(mds_edit_grp)
 levels(mds_spcc_grp$group_ID)
 levels(mds_spcc_grp$individual_ID)
 
-# Colors by group (five)
+# All colors by group (five)
 cols_grp <- cols[1:length(levels(mds_spcc_grp$group))]
 
-# Shapes by individual within groups
+# All shapes by individual within groups
 shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
+
+# Then filter colors for Groups 2 and 3 that will be used in the group membership plots below. Group 2 should be orange and Group 3 should be brown (dark purple or red). 
+cols_grp_filt <- cols_grp[grep(paste(paste("^", c("2", "3"), "$", sep = ""), collapse = "|"), levels(mds_spcc_grp$group_ID))]
+cols_grp_filt
 
 ```
 
 Create the group membership plots. Edit distance first with a legend.
 ```{r}
 
+# Filter the MDS coordinates by the two groups that will be shown in these plots
+mds_edit_grp_filt <- mds_edit_grp %>% 
+  dplyr::filter(group_ID %in% c(2, 3))
+
+glimpse(mds_edit_grp_filt)
+
 # Convex hull polygons per group
-hulls <- plyr::ddply(mds_edit_grp, "group_ID", function(x){
+hulls <- plyr::ddply(mds_edit_grp_filt, "group_ID", function(x){
   x[chull(x$X, x$Y), ]
 })
 
 # glimpse(hulls)
 
-mds_edit_grp %>%
+mds_edit_grp_filt %>%
   ggplot(aes(x = X, y = Y)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
@@ -186,21 +196,27 @@ mds_edit_grp %>%
 # ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 # This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Main_AcousticSpace_edit_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
 SPCC next with a legend.
 ```{r}
 
+# Filter the MDS coordinates by the two groups that will be shown in these plots
+mds_spcc_grp_filt <- mds_spcc_grp %>% 
+  dplyr::filter(group_ID %in% c(2, 3))
+
+glimpse(mds_spcc_grp_filt)
+
 # Convex hull polygons per group
-hulls <- plyr::ddply(mds_spcc_grp, "group_ID", function(x){
+hulls <- plyr::ddply(mds_spcc_grp_filt, "group_ID", function(x){
   x[chull(x$X, x$Y), ]
 })
 
 # glimpse(hulls)
 
-mds_spcc_grp %>%
+mds_spcc_grp_filt %>%
   ggplot(aes(x = X, y = Y)) + 
   geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
@@ -208,7 +224,7 @@ mds_spcc_grp %>%
   scale_color_manual(values = cols_grp) +
   scale_fill_manual(values = cols_grp) +
   xlab("") + ylab("") + 
-  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group")) +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
   # Uncomment this line to turn off the legend
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
@@ -236,9 +252,11 @@ mds_spcc_grp %>%
 # ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership.tiff"), width = 6, height = 4, units = "in", dpi = 300)
 
 # This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Main_AcousticSpace_SPCC_GroupMembership_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
+
+TKTK continue
 
 ## Individual identity dataset
 
