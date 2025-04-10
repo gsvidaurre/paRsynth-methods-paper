@@ -1,5 +1,6 @@
 ---
 title: "Create Synthetic Identity Signal Datasets"
+author: Grace Smith-Vidaurre
 output: html_document
 date: "2024-11-20"
 ---
@@ -120,7 +121,7 @@ Check out documentation for the paRsynth functions. These functions are written 
 ```{r}
 
 # Set the seed for reproducibility
-set.seed(888)
+set.seed(88)
 
 # These were the same amounts of group, individual, random, and global information as in synthetic experiments
 individual_information <- c(0, 2, 4, 6)
@@ -201,6 +202,7 @@ calls_parsons_frequencies <- frequency_anchors(
   frequency_shift = 1000
 )
 
+# TKTK there's an issue here in the Parsons code string
 glimpse(calls_parsons_frequencies)
 
 ```
@@ -219,7 +221,9 @@ synthetic_call_metadata_group <- write_audio(
   prefix = "GroupMembership"
 )
 
+# TKTK there's an issue here in the Parsons code string
 glimpse(synthetic_call_metadata_group)
+# View(synthetic_call_metadata_group)
 
 ```
 
