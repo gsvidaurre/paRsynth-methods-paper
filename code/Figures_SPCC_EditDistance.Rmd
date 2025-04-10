@@ -33,13 +33,6 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
-# Install the paRsynth package from GitHub if you haven't installed it already
-# remove.packages("paRsynth")
-# devtools::install_github("gsvidaurre/paRsynth")
-
-# Add paRsynth to the list of packages to load
-# X <- c(X, "paRsynth")
-
 # Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE))
 

@@ -38,13 +38,6 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
-# Install the paRsynth package from GitHub if you haven't installed it already
-# remove.packages("paRsynth")
-# devtools::install_github("gsvidaurre/paRsynth")
-
-# Add paRsynth to the list of packages to load
-# X <- c(X, "paRsynth")
-
 # Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE))
 
@@ -176,7 +169,7 @@ hulls <- plyr::ddply(mds_edit_grp, "unique_individuals", function(x){
 
 mds_edit_grp %>%
   ggplot(aes(x = X, y = Y)) + 
-  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols_grp) +
@@ -205,8 +198,9 @@ mds_edit_grp %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
-# This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership_IndividualPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
@@ -224,7 +218,7 @@ hulls <- plyr::ddply(mds_spcc_grp, "unique_individuals", function(x){
 
 mds_spcc_grp %>%
   ggplot(aes(x = X, y = Y)) + 
-  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols_grp) +
@@ -253,8 +247,9 @@ mds_spcc_grp %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
-# This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_IndividualPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
@@ -327,7 +322,7 @@ hulls <- plyr::ddply(mds_edit_ind, "group_ID", function(x){
 
 mds_edit_ind %>%
   ggplot(aes(x = X, y = Y)) + 
-  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols_grp) +
@@ -356,8 +351,9 @@ mds_edit_ind %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
-# This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_IndividualIdentity_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "AcousticSpace_edit_IndividualIdentity_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
@@ -375,7 +371,7 @@ hulls <- plyr::ddply(mds_spcc_ind, "group_ID", function(x){
 
 mds_spcc_ind %>%
   ggplot(aes(x = X, y = Y)) + 
-  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.2, linewidth = 0.2, show.legend = FALSE) +
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
   geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
   scale_shape_manual(values = shps) +
   scale_color_manual(values = cols_grp) +
@@ -404,8 +400,9 @@ mds_spcc_ind %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
-# This is the image size that will be written to create a legend for the composite figure created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity_GroupPolygons_Legend.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
