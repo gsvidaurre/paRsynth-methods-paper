@@ -7,16 +7,9 @@ date: "2025-04-08"
 
 Purpose: Here we use build acoustic space plots for supplementary figures. Acoustic space plots are generated using multidimensional scaling coordinates from spectrographic cross-correlation and edit distance analyses.
 
-TKTK update figures such that main figures only include some groups and the supplement includes everything.
-
-TKTK choose groups 2 and 3 for the main acoustic space plots for the group membership dataset.
-TKTK choose groups 1 and 2 for the main acoustic space plots for the individual identity dataset.
-Brittany will choose which spectrograms to include in the call catalogues for both datasets (2 individuals per group and 2-3 calls per individual).
-
-
 ```{r setup, include = FALSE}
 
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE)
 
 ```
 
@@ -38,8 +31,20 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
+```
+
+```{r load packages, eval = FALSE}
+
 # Load all of the packages specified above
-invisible(lapply(X, library, character.only = TRUE))
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
 
 ```
 
@@ -48,8 +53,8 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "/Users/summe/OneDrive/Desktop/" #Summer's path
 
 # Initialize the directory for analysis on your local computer
@@ -90,13 +95,27 @@ cores
 
 ```
 
+## Notes on supplementary figures
+
+These eight image files should be used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group membership dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individual identity dataset.
+
+Supplementary figure plans (one for the group membership dataset, one for the individual identity dataset): 
+- Panel A should be edit distance, group-level polygons
+- Panel B should be SPCC, group-level polygons
+- Panel C should be edit distance, individual-level polygons
+- Panel D should be SPCC, individual-level polygons
+
+The code in this script and the script to generate acoustic space plots for main figures should specify the same axis limits and breaks across plots for the same dataset and similarity method, but this needs to be checked carefully when assembling the final composite figures. Each composite figure should only have a single legend at the top of the file, and shared x- and y-axis dimensions.
+
+To generate a legend of the correct size for a composite figure, you can write out one large image file for each composite figure that is sized correctly for the legend, then crop the figure to include the legend only. You should also check that the legends all match across panels per figure before cropping out these legends per panel.
+
 # Generate low-dimensional acoustic space plots for supplementary figures
 
 Create a plot of calls from both datasets in the same universal acoustic space (edit distance or SPCC). This plot should have 4 panels: datasets plotted with polygons at both social levels.
 
 Create two plots (SPCC and edit distance) with convex hull polygons by group. These plots should be organized with edit distance on the top and SPCC on the bottom, so the edit distance plot will have a legend. These plots will be combined with a small collection of spectrograms in one main figure.
 
-## Group-level polygons
+## Group membership dataset
 
 Start with aesthetics.
 ```{r}
@@ -140,7 +159,8 @@ cols_grp
 
 # Fills by unique individual
 fills <- rep(cols_grp, each = length(levels(mds_spcc_grp$individual_ID)))
-fills
+length(fills)
+unique(fills)
 
 # Shapes by individual within groups
 shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
@@ -149,11 +169,107 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 
 ## Edit distance, group membership dataset and group-level polygons
 
-Use the same plot included in the main figure.
+Create the group membership plots. Edit distance first with a legend.
+```{r}
+
+# Convex hull polygons per group
+hulls <- plyr::ddply(mds_edit_grp, "group_ID", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+glimpse(hulls)
+
+mds_edit_grp %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols_grp) +
+  scale_fill_manual(values = cols_grp) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
+  # Uncomment this line to turn off the legend
+  # guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-4.75, -1.8), breaks = seq(-4.75, -2, 0.5), labels = sprintf("%.2f", round(seq(-4.75, -2, 0.5), 2))) +
+  scale_y_continuous(limits = c(-4.5, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "lines"),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
+  )
+
+```
+
+```{r, eval = FALSE}
+
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+
+```
 
 ## SPCC, group membership dataset and group-level polygons
 
-Use the same plot included in the main figure.
+SPCC next with a legend.
+```{r}
+
+# Convex hull polygons per group
+hulls <- plyr::ddply(mds_spcc_grp, "group_ID", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+# glimpse(hulls)
+
+mds_spcc_grp %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = group_ID), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(fill = group_ID, color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols_grp) +
+  scale_fill_manual(values = cols_grp) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
+  # Uncomment this line to turn off the legend
+  # guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(-0.3, -0.02), breaks = seq(-0.3, -0.02, 0.05), labels = sprintf("%.2f", round(seq(-0.3, -0.02, 0.05), 2))) +
+  scale_y_continuous(limits = c(-0.35, 0.25), breaks = seq(-0.35, 0.25, 0.1), labels = sprintf("%.2f", round(seq(-0.35, 0.25, 0.1), 2))) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "lines"),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
+  )
+
+```
+
+```{r, eval = FALSE}
+
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_GroupMembership_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+
+```
 
 ## Edit distance, group membership dataset and individual-level polygons
 
@@ -180,7 +296,7 @@ mds_edit_grp %>%
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(-5, -1.8), breaks = seq(-5, -2, 0.5), labels = sprintf("%.2f", round(seq(-5, -2, 0.5), 2))) +
+  scale_x_continuous(limits = c(-4.75, -1.8), breaks = seq(-4.75, -2, 0.5), labels = sprintf("%.2f", round(seq(-4.75, -2, 0.5), 2))) +
   scale_y_continuous(limits = c(-4.5, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
   theme_bw() +
   theme(
@@ -198,9 +314,13 @@ mds_edit_grp %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
+```
+
+```{r eval = FALSE}
+
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_GroupMembership_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_GroupMembership_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
@@ -229,7 +349,7 @@ mds_spcc_grp %>%
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(-0.3, 0), breaks = seq(-0.3, 0, 0.05), labels = sprintf("%.2f", round(seq(-0.3, 0, 0.05), 2))) +
+  scale_x_continuous(limits = c(-0.3, -0.02), breaks = seq(-0.3, -0.02, 0.05), labels = sprintf("%.2f", round(seq(-0.3, -0.02, 0.05), 2))) +
   scale_y_continuous(limits = c(-0.35, 0.25), breaks = seq(-0.35, 0.25, 0.1), labels = sprintf("%.2f", round(seq(-0.35, 0.25, 0.1), 2))) +
   theme_bw() +
   theme(
@@ -247,13 +367,17 @@ mds_spcc_grp %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
+```
+
+```{r eval = FALSE}
+
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_GroupMembership_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_GroupMembership_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
-## Individual-level polygons
+## Individual identity dataset
 
 Start with aesthetics.
 ```{r}
@@ -302,11 +426,104 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 
 ## Edit distance, individual identity dataset and individual-level polygons
 
-Use the same plot included in the main figure.
+Edit distance first with a legend.
+```{r}
+
+hulls <- plyr::ddply(mds_edit_ind, "unique_individuals", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+glimpse(hulls)
+
+mds_edit_ind %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols_grp) +
+  scale_fill_manual(values = fills) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = "none") +
+  # guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(2.25, 4.5), breaks = seq(2.25, 4.5, 0.5), labels = sprintf("%.2f", round(seq(2.25, 4.5, 0.5), 2))) +
+  scale_y_continuous(limits = c(-4.1, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
+  theme_bw() +
+  theme(
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "line"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
+  )
+
+```
+
+```{r, eval = FALSE}
+
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_IndividualIdentity_IndividualPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+
+```
 
 ## SPCC, individual identity dataset and individual-level polygons
 
-Use the same plot included in the main figure.
+SPCC next with a legend.
+```{r}
+
+hulls <- plyr::ddply(mds_spcc_ind, "unique_individuals", function(x){
+  x[chull(x$X, x$Y), ]
+})
+
+glimpse(hulls)
+
+mds_spcc_ind %>%
+  ggplot(aes(x = X, y = Y)) + 
+  geom_polygon(data = hulls, aes(x = X, y = Y, fill = unique_individuals), alpha = 0.4, linewidth = 0.2, show.legend = FALSE) +
+  geom_point(aes(color = group_ID, shape = individual_ID), size = 2, stroke = 0.5) +
+  # facet_wrap(~ group_ID) +
+  scale_shape_manual(values = shps) +
+  scale_color_manual(values = cols_grp) +
+  scale_fill_manual(values = fills) +
+  xlab("") + ylab("") + 
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = "none") +
+  # guides(color = "none", shape = "none", fill = "none") +
+  # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
+  scale_x_continuous(limits = c(0, 0.38), breaks = seq(0, 0.38, 0.1), labels = sprintf("%.2f", round(seq(0, 0.38, 0.1), 2))) +
+  scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.1), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.1), 2))) +
+  theme_bw() +
+  theme(
+    legend.position = "top",
+    legend.key.spacing = unit(0.2, "line"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 9),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    # margin() arguments: top, right, bottom, left
+    plot.margin = margin(0, 3, -3, -3, unit = "pt"),
+    legend.margin = margin(2, -3, -5, -3, unit = "pt")
+  )
+
+```
+
+```{r, eval = FALSE}
+
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff"), width = 6, height = 4, units = "in", dpi = 300)
+
+```
 
 ## Edit distance, individual identity dataset and group-level polygons
 
@@ -333,8 +550,8 @@ mds_edit_ind %>%
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(2, 4.5), breaks = seq(2, 4.5, 0.5), labels = sprintf("%.2f", round(seq(2, 4.5, 0.5), 2))) +
-  scale_y_continuous(limits = c(-4.1, 4), breaks = seq(-4, 4, 2), labels = sprintf("%.2f", round(seq(-4, 4, 2), 2))) +
+  scale_x_continuous(limits = c(2.25, 4.5), breaks = seq(2.25, 4.5, 0.5), labels = sprintf("%.2f", round(seq(2.25, 4.5, 0.5), 2))) +
+  scale_y_continuous(limits = c(-4.1, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
@@ -351,9 +568,13 @@ mds_edit_ind %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
+```
+
+```{r eval = FALSE}
+
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_edit_IndividualIdentity_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_IndividualIdentity_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
@@ -382,7 +603,7 @@ mds_spcc_ind %>%
   # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits so that these are the same across plots
   # Also make sure that each label retains two decimal places even when there is a trailing zero
-  scale_x_continuous(limits = c(0, 0.5), breaks = seq(0, 0.5, 0.1), labels = sprintf("%.2f", round(seq(0, 0.5, 0.1), 2))) +
+  scale_x_continuous(limits = c(0, 0.38), breaks = seq(0, 0.38, 0.1), labels = sprintf("%.2f", round(seq(0, 0.38, 0.1), 2))) +
   scale_y_continuous(limits = c(-0.25, 0.35), breaks = seq(-0.25, 0.35, 0.1), labels = sprintf("%.2f", round(seq(-0.25, 0.35, 0.1), 2))) +
   theme_bw() +
   theme(
@@ -400,20 +621,12 @@ mds_spcc_ind %>%
     legend.margin = margin(2, -3, -5, -3, unit = "pt")
   )
 
-# Save this plot as an image file
-# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "AcousticSpace_SPCC_IndividualIdentity_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
-
 ```
 
-# Notes on supplementary figures
+```{r eval = FALSE}
 
-These different image files should be used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group membership dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individual identity dataset.
+# Save this plot as an image file
+# This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_IndividualIdentity_GroupPolygons.tiff"), width = 8, height = 4, units = "in", dpi = 300)
 
-Supplementary figure plans (one for the group membership dataset, one for the individual identity dataset): 
-- Panel A should be edit distance, group-level polygons
-- Panel B should be SPCC, group-level polygons
-- Panel C should be edit distance, individual-level polygons
-- Panel D should be SPCC, individual-level polygons
-
-The code in this script and the script to generate acoustic space plots for main figures should specify the same axis limits and breaks across plots for the same dataset and similarity method, but this needs to be checked carefully when assembling the final composite figures. Each composite figure should only have a single legend at the top of the file, and shared x- and y-axis dimensions.
+```
