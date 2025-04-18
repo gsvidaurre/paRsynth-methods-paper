@@ -44,8 +44,11 @@ Initialize working directories for data on your local machine.
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
+
+# Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -196,42 +199,19 @@ The image files were uploaded to a shared Google Drive folder that also contains
 
 # Step 4: Select Spectrograms to use, read them
 
-We need calls from two datasets: the dataset with more group level information and the dataset with more individual information. For each dataset, we need vocalizations from two sample groups. We will sample from 2 individuals in those two groups, and samples 2 vocalizations per individual. In total, we need 8 vocalizations per dataset, 16 vocalizations total.
+We need to select files that match the groups chosen for the acoustic space plots. 
 
-Brittany chose the following:
+For the Group Information Dataset, we need to choose 2 calls from 2 individuals from Group 2 and Group 3
 
-Group information dataset:
-
-Group 1: Individual 1 (calls 1 and 3), Individual 3 (calls 1 and 3)
 Group 2: Individual 4 (calls 1 and 2), Individual 6 (calls 1 and 2)
+Group 3: Individual 1 (calls 3 and 4), Individual 4 (calls 1 and 4)
 
-Individual information Dataset:
-Group 4: Individual 6 (calls 2 and 4), Individual 10 (calls 1 and 3)
-Group 5: Individual 9 (calls 4 and 5), Individual 10 (calls 4 and 5)
+For the Individual Information Dataset, we need to to choose 2 calls from 2 individuals from Group 1 and Group 2
 
-The audio file names for the group level dataset are:
+Group 1: Individual 1 (calls 2 and 3), Individual 3 (calls 1 and 2)
+Group 2: Individual 1 (calls 3 and 5), Indivodual 2 (calls 1 and 2)
 
-GroupMembership_Group1_Indiv1_Call1
-GroupMembership_Group1_Indiv1_Call3
-GroupMembership_Group1_Indiv3_Call1
-GroupMembership_Group1_Indiv3_Call3
-
-GroupMembership_Group2_Indiv4_Call1
-GroupMembership_Group2_Indiv4_Call2
-GroupMembership_Group2_Indiv6_Call1
-GroupMembership_Group2_Indiv6_Call2
-
-The audio file names for the individual level dataset are:
-
-IndividualIdentity_Group4_Indiv6_Call2
-IndividualIdentity_Group4_Indiv6_Call4
-IndividualIdentity_Group4_Indiv10_Call1
-IndividualIdentity_Group4_Indiv10_Call3
-
-IndividualIdentity_Group5_Indiv9_Call4
-IndividualIdentity_Group5_Indiv9_Call5
-IndividualIdentity_Group5_Indiv10_Call4
-IndividualIdentity_Group5_Indiv10_Call5
+Make sure to move the selected files to the "lexicon" folder before proceeding with this code. 
 
 #Step 5: Read the spectrogram image files back in for resizing to make publication quality
 
@@ -261,7 +241,7 @@ gray_colors <- reverse.gray.colors.2(12)
 
 # Next, iterate over audio files to generate 1 high quality spectrogram and image file per vocalization 
 
-# w <- 1 # freeze loop in the first iteration (test by running code inside of the curly brackets of the function)
+w <- 1 # freeze loop in the first iteration (test by running code inside of the curly brackets of the function)
 
 # invisible() silences the output of lapply() printed to the console (but not output from ggspectro())
 invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
@@ -277,10 +257,10 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
     geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
     
     # Control the x-axis aesthetics
-    scale_x_continuous(limits = c(0.05, 0.95), breaks = seq(0.1, 0.9, 0.2), labels = seq(0.1, 0.9, 0.2), expand = c(0, 0)) +
+    scale_x_continuous(limits = c(0.08, 0.33), breaks = seq(0.1, 0.3, 0.05), labels = seq(0.1, 0.3, 0.05), expand = c(0, 0)) +
     
     # Control the y-axis aesthetics
-    scale_y_continuous(limits = c(0, 12), breaks = seq(0, 12, 2), labels = seq(0, 12, 2), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, 9), breaks = seq(0, 8, 2), labels = seq(0, 8, 2), expand = c(0, 0)) +
     
     # We want spectrograms to be in grayscale
     # Change the values of limits to change how colors are assigned across amplitude bins
@@ -314,7 +294,7 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
   # Substitute the ".wav" extension with the image file extension we will use, with gsub()
   # gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
   # The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
-  ggsave(filename = file.path(figures_path, gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w])), units = "in", width = 2, height = 2, dpi = 300)
+  ggsave(filename = file.path(figures_path, gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w])), units = "in", width = 1.4, height = 1.4, dpi = 600)
   
 }))
 
@@ -336,16 +316,6 @@ cols
 # Generate a list of audio or image file names that will be used to add colored borders by group and individual within a group. This list has 4 vectors, 1 vector for each individual. We will need 2 group colors and 2 hues within each group color. We will append the pattern ".jpeg" for the file extension to the name of each vocalization in the loop below
 img_list <- list(
   
-  # Group 1, Individual 1
-  c(
-    "GroupMembership_Group1_Indiv1_Call1",
-    "GroupMembership_Group1_Indiv1_Call3"
-  ),
-  # Group 1, Individual 3
-  c(
-    "GroupMembership_Group1_Indiv3_Call1",
-    "GroupMembership_Group1_Indiv3_Call3"
-  ),
   # Group 2, Individual 4
   c(
     "GroupMembership_Group2_Indiv4_Call1",
@@ -355,6 +325,16 @@ img_list <- list(
   c(
     "GroupMembership_Group2_Indiv6_Call1",
     "GroupMembership_Group2_Indiv6_Call2"
+  ),
+  # Group 3, Individual 1
+  c(
+    "GroupMembership_Group3_Indiv1_Call3",
+    "GroupMembership_Group3_Indiv1_Call4"
+  ),
+  # Group 3, Individual 4
+  c(
+    "GroupMembership_Group3_Indiv4_Call1",
+    "GroupMembership_Group3_Indiv4_Call4"
   )
 )
 
@@ -377,32 +357,32 @@ str(img_list)
 
 # Using scales::alpha(cols[1], alpha = 0.25) to set a lighter color for the second individual per group did not work, it seems that image_border() doesn't discriminate between the original color and the transparent version. We used the rgb values of the original color per palette to make a darker version of each color so as to better discriminate unique individuals in the lexicon. These colors should also be added to acoustic space plots.
 dark_col1 <- rgb(
-    (col2rgb(cols[1]) - 80)[["red", 1]],
-    (col2rgb(cols[1]) - 80)[["green", 1]],
-    (col2rgb(cols[1]) - 80)[["blue", 1]],
-    maxColorValue = 255
-  )
-
-dark_col2 <- rgb(
     (col2rgb(cols[2]) - 80)[["red", 1]],
     (col2rgb(cols[2]) - 80)[["green", 1]],
     (col2rgb(cols[2]) - 80)[["blue", 1]],
     maxColorValue = 255
   )
 
+light_col <- rgb(
+    (col2rgb(cols[3]) + 80)[["red", 1]],
+    (col2rgb(cols[3]) + 80)[["green", 1]],
+    (col2rgb(cols[3]) + 80)[["blue", 1]],
+    maxColorValue = 255
+  )
+
 cols_indivs <- c(
   
-  # Group 1, Individual 1
+  # Group 2, Individual 4
   dark_col1,
   
-  # Group 1, Individual 3
-  scales::alpha(cols[1], alpha = 1),
-  
-  # Group 2, Individual 4
-  dark_col2,
-  
   # Group 2, Individual 6
-  scales::alpha(cols[2], alpha = 0.25)
+  scales::alpha(cols[2], alpha = 1),
+  
+  # Group 3, Individual 1
+  scales::alpha(cols[3], alpha = 0.25),
+  
+  # Group 3, Individual 4
+  light_col
 )
 
 cols_indivs
@@ -427,7 +407,7 @@ invisible(pblapply(1:length(img_list), function(i){
     # Add a colored border to the spectrogram object called "img" while making sure we're pulling the correct color and hue for this individual. Also specify the width of the border which appear to be in pixels, change those numbers passed to geometry to change the size of the border
     
     # Save the updated spectrogram with the colored border to a new spectrogram image file that has an updated name
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(figures_path, paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
     
   })
   
@@ -445,25 +425,25 @@ cols
 # Generate a list of audio or image file names that will be used to add colored borders by group and individual within a group. This list has 4 vectors, 1 vector for each individual. We will need 2 group colors and 2 hues within each group color. We will append the pattern ".jpeg" for the file extension to the name of each vocalization in the loop below
 img_list <- list(
   
-  # Group 4, Individual 6
+  # Group 1, Individual 1
   c(
-    "IndividualIdentity_Group4_Indiv6_Call2",
-    "IndividualIdentity_Group4_Indiv6_Call4"
+    "IndividualIdentity_Group1_Indiv1_Call2",
+    "IndividualIdentity_Group1_Indiv1_Call3"
   ),
-  # Group 4, Individual 10
+  # Group 1, Individual 3
   c(
-    "IndividualIdentity_Group4_Indiv10_Call1",
-    "IndividualIdentity_Group4_Indiv10_Call3"
+    "IndividualIdentity_Group1_Indiv3_Call1",
+    "IndividualIdentity_Group1_Indiv3_Call2"
   ),
-  # Group 5, Individual 9
+  # Group 2, Individual 1
   c(
-    "IndividualIdentity_Group5_Indiv9_Call4",
-    "IndividualIdentity_Group5_Indiv9_Call5"
+    "IndividualIdentity_Group2_Indiv1_Call3",
+    "IndividualIdentity_Group2_Indiv1_Call5"
   ),
-  # Group 5, Individual 10
+  # Group 2, Individual 2
   c(
-    "IndividualIdentity_Group5_Indiv10_Call4",
-    "IndividualIdentity_Group5_Indiv10_Call5"
+    "IndividualIdentity_Group2_Indiv2_Call1",
+    "IndividualIdentity_Group2_Indiv2_Call2"
   )
 )
 
@@ -489,16 +469,16 @@ dark_col2 <- rgb(
 
 cols_indivs <- c(
   
-  # Group 4, Individual 6
+  # Group 1, Individual 1
   dark_col1,
   
-  # Group 4, Individual 10
+  # Group 1, Individual 3
   scales::alpha(cols[1], alpha = 1),
   
-  # Group 5, Individual 9
+  # Group 2, Individual 1
   dark_col2,
   
-  # Group 5, Individual 10
+  # Group 2, Individual 2
   scales::alpha(cols[2], alpha = 0.25)
 )
 
@@ -522,7 +502,7 @@ invisible(pblapply(1:length(img_list), function(i){
     # Add a colored border to the spectrogram object called "img" while making sure we're pulling the correct color and hue for this individual. Also specify the width of the border which appear to be in pixels, change those numbers passed to geometry to change the size of the border
     
     # Save the updated spectrogram with the colored border to a new spectrogram image file that has an updated name
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(figures_path, paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_3", paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
     
   })
   

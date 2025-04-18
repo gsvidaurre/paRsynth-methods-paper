@@ -5,9 +5,9 @@ output: html_document
 date: "2025-02-26"
 ---
 
-Purpose: The following code was designed to calculate Cliff's Delta Effect Size for (1) SPCC v Edit distance accuracy measures across all Social Environment x Group Information Proportion X Information Level conditions and (2) Group vs Individual Information level accuracy measures across all Social Environment X Group Information Proportion X Method conditions. Before calculating these effect sizes, we check the distribution of our accuracy measures. They are not normally distributed, so we opt to calculate Cliff's Delta as the effect size.
+Purpose: The following code was designed to calculate Cliff's Delta Effect Size for Group vs Individual Information level accuracy measures across all Social Environment X Group Information Proportion X Method conditions. Before calculating these effect sizes, we check the distribution of our accuracy measures. They are not normally distributed, so we opt to calculate Cliff's Delta as the effect size.
 
-Effect Sizes are calculated in Steps 3 and 4. This code saves the data table with all the Cliff's Delta values, 95% Confidence Intervals and effect size magnitudes. Magnitude is assessed through the effsize package, which uses thresholds provided in Romano, 2006. (|d|<0.147 "negligible", |d|<0.33 "small", |d|<0.474 "medium", otherwise "large")
+Effect Sizes are calculated in Steps 3. This code saves the data table with all the Cliff's Delta values, 95% Confidence Intervals and effect size magnitudes. Magnitude is assessed through the effsize package, which uses thresholds provided in Romano, 2006. (|d|<0.147 "negligible", |d|<0.33 "small", |d|<0.474 "medium", otherwise "large")
 
 These tables will be included in the manuscript and will be called in future figure scripts to plot average effect size values for each type of comparison. 
 
@@ -35,14 +35,6 @@ invisible(lapply(1:length(X), function(x){
     install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
   }
 }))
-
-# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
-# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
-# Install the paRsynth package from GitHub if you haven't installed it already
-# devtools::install_github("gsvidaurre/paRsynth")
-
-# Add paRsynth to the list of packages to load
-# X <- c(X, "paRsynth")
 
 # Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE))
@@ -107,15 +99,17 @@ if(!dir.exists(figure_path)){
 Step 1: Load the data files from the Accuracy Calculations results. These files are the results from the "Experiments_InformationEncoding_Accuracy" script. These need to be manually downloaded from google drive and stored in the data folder first 
 ```{r}
 
+# Read in outputs from the TKTK code that generated accuracy scores
 files <- list.files(path = data_path, pattern = "Accuracy_")
-files
 
+# Combine these files into one datatable called "res" 
 res <- data.table::rbindlist(pblapply(1:length(files), function(n){
   
   return(read.csv(file.path(data_path, files[n])))
   
 }), fill = TRUE)
 
+# View the datatable "res"
 glimpse(res)
 
 ```
@@ -126,37 +120,43 @@ Step 2: Checking the normality of the accuracy measures (summed by level) before
 # Start with data frame "res"
 glimpse(res)
 
-# Need to set up new data frame so that there is a separate column for information level information, Same steps as in Step 3, just recovery Level information instead of Method
+# To check the distribution of our accuracy measures, we need to set up new data the has separate columns for group and individual accuracy measures and saves the information about method (SPCC or edit distance) in another column
+# To do tihs, we will create a table called "res_summ"
 res_summ <- res %>%
     #Make data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
-    # Select all of the columns that start with the pattern "accuracy"
+    # Select all of the columns that start with the pattern "accuracy", take the column names and move them to a column called "accuracy_type" and the values to a column called "accuracy_measurements"
     cols = names(.)[grep("^accuracy", names(.))],
     names_to = "accuracy_type",
     values_to = "accuracy_measurements"
   ) %>% 
-  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  # Create new columns that extract information in "accuracy_type" about the method used to calculate accuracy and the social level at which accuracy was calculated
   dplyr::mutate(
     # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
     accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
   ) %>%
-  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  # Then use "separate" to extract the information that we want. The "NA" in "into" allows us to drop information that we don't want to retain
   tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
-  # Now, recover "level" as separate columns with pivot wider
+  # Now, recover "level" as separate columns with pivot wider. 
   pivot_wider(
     names_from = accuracy_level, 
     values_from = accuracy_measurements,
     names_glue = "accuracy_{accuracy_level}_measurements"
   ) 
 
+# end with the new data table, "res_summ"
 glimpse(res_summ)
 
-# Now check normality of two accuracy measures (Group and Individual) using 3 methods: density plot, QQ plot, and Shaprio Wilks Normality Test
-# First, accuracy_group_measurements
+# Now check distribution  of two accuracy measures (Group and Individual) using 3 methods: density plot, QQ plot, and Shaprio Wilks Normality Test
+
+# First, check the distribution of accuracy_group_measurements
+# Create a density plot for all values in "accuracy_group_measurements". Normally distributed data would follow a bell-shaped curve here. Our density plot does not appear to be normally distributed.
 print(ggpubr::ggdensity(res_summ$accuracy_group_measurements, 
                   main = "Density plot of SPCC Group Accuracy", 
                   xlab = "Accuracy"))
+# Create a qq plot. Normally distributed data would follow the trend line on the qq plot, but our data deviates from this line.
 print(ggpubr::ggqqplot(res_summ$accuracy_group_measurements))
+# perform a Shapiro Wilk's test for normality
 print(shapiro.test(res_summ$accuracy_group_measurements))
 # Density plot is left skewed and QQ plot is not aligned
 # 	Shapiro-Wilk normality test
@@ -164,7 +164,7 @@ print(shapiro.test(res_summ$accuracy_group_measurements))
 # W = 0.92249, p-value = 8.049e-12
 # P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
 
-# Second, accuracy_individual_measurements
+# Now repeat the steps above, but for "accuracy_individual_measurements"
 print(ggpubr::ggdensity(res_summ$accuracy_individual_measurements, 
                   main = "Density plot of SPCC Group Accuracy", 
                   xlab = "Accuracy"))
@@ -185,7 +185,7 @@ Step 3: Calculating Effect Sizes for Group vs Individual Accuracy for all Social
 # Start with data frame "res_sum" created above
 glimpse(res_summ)
 
-# Calculate effect sizes of the difference between levels per treatment combination
+# Calculate effect sizes of the difference between levels per treatment combination, and save these results to a table called "eff_res_level"
 eff_res_level <- res_summ %>% 
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
@@ -198,6 +198,8 @@ eff_res_level <- res_summ %>%
     eff_CI_lower = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["lower"]],
     eff_magnitude = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["magnitude"]]
   ) 
+
+# This code prints the following warning message, which we investigate below:
 
 # Warning message:
 # There were 60 warnings in `dplyr::reframe()`.
@@ -227,11 +229,12 @@ eff_res_level %>%
 .
 ```
 
+Step 4: Investigating warnings and creating supplemental figures
+
 The warnings above mean that the distributions for the comparison throwing the warning are completely different from each other. To double check this is true, below we create density plots for each n_group and group info proportion combination for SPCC Accuracy measures and for Edit Distance Accuracy measure. This will be a Supplemental Figure in the Manuscript. 
 
-
 ```{r}
-
+# take the datatable "res_summ" and alter it so that "n_groups" is a factor
 res_summ <- res_summ %>% 
   dplyr::mutate(
     n_groups = factor(n_groups),
@@ -239,22 +242,29 @@ res_summ <- res_summ %>%
     group_information_proportion = factor(round(group_information_proportion, 2))
   ) 
 
+# confirm those changes were made by glimpsing the new "res_summ"
 glimpse(res_summ)
 
-# Rename Facet variables for labelling purposes
+# Rename Facet variables for labeling purposes
 res_summ_rename <- res_summ %>% 
   dplyr::rename(
     Clusters = n_groups,
     Group_Information = group_information_proportion)
 
+# confirm those changes were made by glimpsing the new "res_summ_rename"
 glimpse(res_summ_rename)
 
-# Density plots for visualization of the warning above for SPCC method
+# Create density plots for visualization of the warning above for SPCC method
 res_summ_rename %>% 
+  # filter "res_summ_rename" so that we are only using SPCC values
   dplyr::filter(accuracy_method == "SPCC") %>% 
+  # use ggplot to create density plots
   ggplot() +
+  # create a density plot for the Group measurements
   geom_density(aes(x = accuracy_group_measurements), fill = alpha("#F6955EFF", 0.65)) +
+  # create another density plot onto of the first that is for Individual Measurments
   geom_density(aes(x = accuracy_individual_measurements), fill = alpha("#A8CDECFF", 0.65)) +
+  # Create a grid off all the density plots
   facet_grid(
     Clusters ~ Group_Information,
     scales = "free",
@@ -288,19 +298,15 @@ res_summ_rename %>%
   facet_grid(
     Clusters ~ Group_Information,
     scales = "free",
-    # label facets with variable name and value
     labeller = label_both) +
   labs(y = "Density", x = "Accuracy Score") +
   theme_bw() +
-    # Remove gridlines using theme() and change the background color of the strip labels
-  # Place legend on the top
   theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
     axis.text = element_text(size=14),
     axis.title = element_text(size=16,face="bold"),
-    # Change facet elements
     strip.text.x = element_text (size = 14),
     strip.text.y = element_text (size = 14),
     strip.background = element_rect(color = "black", fill = "white")
