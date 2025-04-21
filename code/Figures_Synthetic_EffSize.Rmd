@@ -51,6 +51,9 @@ Initialize working directories for data and figures.
 # path <- "~/Desktop" # Grace's path
 path <- "C:/Users/britt/Desktop" #Brittany's path
 
+# Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+
 ###################################################################################
 
 ```
@@ -156,6 +159,6 @@ eff_res_level_gg %>%
   )
 
 # save as tiff file
-ggsave(filename = "EffSize_Level_PointRange", path = figure_path, width = 6, height = 6, device = "tiff", dpi = 700)
+ggsave(filename = file.path(git_path, "Fig_5", "EffSize_Level_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
 ```
