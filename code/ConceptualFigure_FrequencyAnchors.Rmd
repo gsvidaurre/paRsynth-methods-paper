@@ -20,7 +20,7 @@ Load packages and set paths.
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "tidyverse", "data.table")
+X <- c("devtools", "dplyr", "tidyverse", "data.table", "gganimate")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -52,13 +52,13 @@ Initialize working directories for data on your local machine.
 ```{r}
 
 # Initialize a base path (this will need to be different per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" # Britt's path
+path <- "C:/Users/britt/Desktop" # Britt's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-git_path <- "/Users/gracesmith-vidaurre/Desktop/GitHub_repos"
+git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
+# git_path <- "/Users/gracesmith-vidaurre/Desktop/GitHub_repos"
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -71,11 +71,11 @@ if(!dir.exists(analysis_path)){
   dir.create(analysis_path)
 }
 
-# Specify a folder inside the analysis directory where images for figures will be written out/read in
-figures_dir <- "paRsynth-methods-paper/figures"
+# Specify a folder inside the analysis directory where data will be written out/read in
+figure_dir <- "figures"
 
 # Combine the base path, the analysis directory, and the data directory into a single path
-figures_path <- file.path(git_path, figures_dir)
+figure_path <- file.path(path, analysis_dir, figure_dir)
 
 ```
 
@@ -134,19 +134,28 @@ glimpse(freq_anchors)
 # Make a graphic of the frequency anchors plus a line through them
 freq_anchors %>% 
   ggplot(aes(x = time, y = freq_anchors/1000)) +
-  geom_point(size = 3, color = scales::alpha("navy", 0.9)) +
-  geom_line(color = scales::alpha("navy", 0.5), linetype = "dotted", linewidth = 1) +
+  geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dashed", linewidth = 2) +
+  # Turn on the line below for the animation of the graph, turn off for the static version
+  geom_point(aes(group = seq_along(time)), size = 8, color = scales::alpha("#F6955EFF")) +
+  # Turn on the line below for the static graph image, turn off for animated version
+  # geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
   xlab("Time (s)") +
   ylab("Frequency (kHz)") +
   theme_bw() +
   theme(
     panel.grid.minor = element_blank(),
     panel.grid.major = element_blank(),
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14)
-  )
+    # axis.title = element_text(size = 16),
+    axis.text = element_text(size = 16),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  # The line below animates the plot, turn off for static image (make sure to remove the + from the line above too!)
+  gganimate::transition_reveal(time)
 
 # We will use this image file and it may need to be resized
-ggsave(file.path(figure_path, "conceputalFigure_frequencyAnchorsLine.png"), units = "in", width = 5, height = 3, dpi = 300)
-
+# use the ggsave line to save the static plot, as the anim_save line to save the animated plot
+# this sizing is for use in a powerpoint presentation
+# ggsave(file.path(figure_path, "Concept_FreqAnch.png"), units = "in", width = 5, height = 4.6, dpi = 600)
+anim_save(file.path(figure_path, "Concept_FreqAnch_GIF.gif"), units = "in", width = 4.6, height = 4.6, dpi = 600)
 ```

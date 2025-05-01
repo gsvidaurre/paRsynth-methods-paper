@@ -162,3 +162,74 @@ eff_res_level_gg %>%
 ggsave(filename = file.path(git_path, "Fig_5", "EffSize_Level_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
 ```
+
+For MSU_EEB_2025 Conference: Breaking out social condition in seperate graphs
+Plotting Group vs Individual Effect Sizes for all Social x Info Proportion x Method combinations
+```{r}
+# Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment at each information level 
+
+# Load in data file 
+eff_res_level <- read.csv(file.path(data_path, "effect_sizes_byLevel.csv"))
+
+glimpse(eff_res_level)
+
+# Setting up for plotting
+eff_res_level_gg <- eff_res_level %>%
+# Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
+# mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+dplyr::mutate(
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2)),
+    # convert accuracy_level to factor
+    accuracy_method = factor(accuracy_method),
+    # Convert n_groups to a factor
+    n_groups = factor(n_groups)
+  )
+
+# there should be 32 rows in eff_res and 6 colums, but I can't get the results of eff size to save as columns  
+glimpse(eff_res_level_gg)  
+
+# defining colors, fill colors and shapes
+# cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+cols <- c("#A8CDECFF", "#F6955EFF")
+fillcols <- scales::alpha(cols, alpha = 0.2) # only use if you want fill colors to be slightly transparent
+shps <- c(21, 22, 24, 25) 
+
+# Renaming the Accuracy Information Level labels
+method_labs <- c("SPCC", "Edit Distance")
+names(method_labs) <- c("SPCC", "edit")
+
+# Now to make plots of the effect size estimates and the CIs
+eff_res_level_gg %>% 
+  # dplyr::filter(accuracy_method == "SPCC") saving this here for now, may need to break out plots 
+  ggplot(aes(x = group_information_proportion, y = eff_delta, color = accuracy_method, fill = accuracy_method, shape = accuracy_method)) +
+  geom_hline(aes(yintercept = 0), color = "grey") +
+  geom_hline(aes(yintercept = .474), linetype = "longdash", color = "grey") +
+  geom_hline(aes(yintercept = -.474), linetype = "longdash", color = "grey") +
+  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
+  facet_grid(~n_groups) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = cols) +
+  scale_shape_manual(values = shps) +
+  guides(color = guide_legend(title = "Accuracy Method", override.aes = list(size = .6)), fill = guide_legend(title = "Accuracy Method"),
+         shape = guide_legend(title = "Accuracy Method")) +
+  labs(y = "Average Cliff's Detla and 95% CI", x = "Proportion of Group Information") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size=14),
+    axis.title = element_text(size=16,face="bold"),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text.x = element_text (size = 14, face = "bold"),
+    strip.text.y = element_text (size = 14, face = "bold"),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+# save as tiff file
+ggsave(filename = file.path(git_path, "EffSize_Clus_PointRange.tiff"), width = 7.7, height = 6.6, units = "in", dpi = 300)
+
+```
