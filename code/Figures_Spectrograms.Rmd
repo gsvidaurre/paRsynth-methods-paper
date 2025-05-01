@@ -295,7 +295,6 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
   # gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
   # The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
   ggsave(filename = file.path(figures_path, gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w])), units = "in", width = 1.4, height = 1.4, dpi = 600)
-  
 }))
 
 ```
@@ -407,7 +406,10 @@ invisible(pblapply(1:length(img_list), function(i){
     # Add a colored border to the spectrogram object called "img" while making sure we're pulling the correct color and hue for this individual. Also specify the width of the border which appear to be in pixels, change those numbers passed to geometry to change the size of the border
     
     # Save the updated spectrogram with the colored border to a new spectrogram image file that has an updated name
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+    # magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+    
+    # saving thick versions of the figures for presentations
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
     
   })
   
@@ -502,8 +504,10 @@ invisible(pblapply(1:length(img_list), function(i){
     # Add a colored border to the spectrogram object called "img" while making sure we're pulling the correct color and hue for this individual. Also specify the width of the border which appear to be in pixels, change those numbers passed to geometry to change the size of the border
     
     # Save the updated spectrogram with the colored border to a new spectrogram image file that has an updated name
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_3", paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
-    
+    # magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_3", paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
+        
+    # saving thick versions of the figures for presentations
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
   })
   
 }))
