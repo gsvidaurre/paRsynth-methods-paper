@@ -163,8 +163,8 @@ ggsave(filename = file.path(git_path, "Fig_5", "EffSize_Level_PointRange.tiff"),
 
 ```
 
-For MSU_EEB_2025 Conference: Breaking out social condition in seperate graphs
-Plotting Group vs Individual Effect Sizes for all Social x Info Proportion x Method combinations
+For MSU_EEB_2025 Conference: Filtering to only show n_groups = 4
+Plotting Group vs Individual Effect Sizes for all Info Proportion x Method combinations
 ```{r}
 # Effect Size Comparisons (between SPCC and Edit Distance) for each social X information proportion treatment at each information level 
 
@@ -201,13 +201,13 @@ names(method_labs) <- c("SPCC", "edit")
 
 # Now to make plots of the effect size estimates and the CIs
 eff_res_level_gg %>% 
-  # dplyr::filter(accuracy_method == "SPCC") saving this here for now, may need to break out plots 
+  dplyr::filter(n_groups == 4) %>% 
   ggplot(aes(x = group_information_proportion, y = eff_delta, color = accuracy_method, fill = accuracy_method, shape = accuracy_method)) +
   geom_hline(aes(yintercept = 0), color = "grey") +
   geom_hline(aes(yintercept = .474), linetype = "longdash", color = "grey") +
   geom_hline(aes(yintercept = -.474), linetype = "longdash", color = "grey") +
-  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
-  facet_grid(~n_groups) +
+  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), size = 2, linewidth = 1.5, stroke = .85, position = position_dodge(width = .5)) +
+  # facet_grid(~n_groups) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = cols) +
   scale_shape_manual(values = shps) +
@@ -230,6 +230,6 @@ eff_res_level_gg %>%
   )
 
 # save as tiff file
-ggsave(filename = file.path(git_path, "EffSize_Clus_PointRange.tiff"), width = 7.7, height = 6.6, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "EffSize_PointRange_Class4.tiff"), width = 7.7, height = 6.6, units = "in", dpi = 300)
 
 ```
