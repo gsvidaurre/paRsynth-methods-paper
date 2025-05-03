@@ -198,6 +198,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
 # use the ggsave line to save the static plot, as the anim_save line to save the animated plot
 # this sizing is for use in a powerpoint presentation
 # ggsave(file.path(figure_path, "Concept_FreqAnch.png"), units = "in", width = 5, height = 4.6, dpi = 600)
-gganimate::animate(Freq_anch_plot, units = "in", height = 4.6, width = 4.6, res = 150)
+# this take several minutes to process and save on Britt's laptop, just FYI!
+gganimate::animate(Freq_anch_plot, units = "in", height = 3.5, width = 12.25, res = 300)
 gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch_GIF.gif"))
 ```

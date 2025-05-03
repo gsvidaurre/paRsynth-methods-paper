@@ -259,3 +259,122 @@ ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange.tiff"), width 
 # This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
 
 ```
+
+
+Updates for MSU EEB presentation - just display classes = 4 condition, put edit and spcc on the same plot
+```{r}
+
+# Average Accuracy Measures by Encoding treatment and social condition
+
+# TKTK check that the number of rows matches the number of treatments and iterations
+# TKTK 4 social and 4 information treatments by 10 iterations should be 160 rows
+glimpse(res)
+
+# Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
+
+res_summ <- res %>% 
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  # glimpse()
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>% 
+  # Once a data frame is grouped, you can calculate summary statistics by each group
+  dplyr::summarise(
+    mean_accuracy = mean(accuracy_measurements),
+    # Calculate the 95% CI measurements and extract the upper 95% CI value
+    upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
+    lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
+  ) %>% 
+  # Make sure to ungroup before plotting, and the columns used for grouping will be retained
+  ungroup() %>%
+  # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
+    n_groups = factor(n_groups),
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2))
+  )
+
+# There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows
+glimpse(res_summ)
+
+# The levels for the social condition treatment column looks good
+levels(res_summ$n_groups)
+
+# Looks good
+unique(res_summ$accuracy_method)
+unique(res_summ$accuracy_level)
+
+# Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
+# paletteer_d("nationalparkcolors::Arches")
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+# Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
+
+cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+fillcols <- scales::alpha(cols, alpha = 0.2)
+shps <- c(21, 22, 24, 25) # Also encode social conditions by shape. See the points function for options
+
+# Need to make named character vectors to relabel facet text
+# Renaming the Accuracy Method labels
+method_labs <- c("Edit Distance", "SPCC")
+names(method_labs) <- c("edit", "SPCC")
+
+# Renaming the Accuracy Information Level labels
+level_labs <- c("Group Information", "Individual Information")
+names(level_labs) <- c("group", "individual")
+
+#making this in case we want to make the facet background a very very light grey
+ngrey <- scales::alpha("grey", .2)
+
+# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
+res_summ %>% 
+  dplyr::filter(n_groups == 4) %>% 
+  dplyr::filter(accuracy_method == "edit") %>% 
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
+  # Can also use facet_grid()
+  # facet_wrap(accuracy_level ~ accuracy_method) +
+  facet_grid(
+    rows = vars(accuracy_level),
+    labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
+  ) +
+  labs(y = "Average Accurary", x = "Proportion of Group Information") +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size=14),
+    axis.title = element_text(size=16,face="bold"),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text.x = element_text (size = 14, face = "bold"),
+    strip.text.y = element_text (size = 14, face = "bold"),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+# save as tiff file
+ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange_class4_edit.tiff"), width = 5.4, height = 6.4, units = "in", dpi = 300)
+
+# This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
+
+```
+
