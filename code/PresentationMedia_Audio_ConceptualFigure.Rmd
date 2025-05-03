@@ -5,7 +5,7 @@ output: html_document
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
-Purpose: This script uses the synthetic call metadata to create a conceptual graphic of frequency anchors for the paRsynth pipeline. This figure is used for talks and potentially for the manuscript.
+Purpose: This script uses the synthetic call metadata to create slowed down audio files as well as a conceptual graphic of frequency anchors for the paRsynth pipeline. Slowed down audio files and the conceptual figure will be used for presentations. The conceptual figure may be used for the manuscript.
 
 ```{r setup, include = FALSE}
 
@@ -86,6 +86,48 @@ synthetic_call_metadata <- read.csv(file.path(analysis_path, "synthetic_call_met
 glimpse(synthetic_call_metadata)
 
 ```
+
+TKTK
+
+# Synthetic calls at quarter speed
+
+Produce calls that are slowed down so that frequency modulation patterns are easier to hear by the human ear.
+```{r}
+
+speed <- 0.25 # quarter time, 1/4 full speed
+
+wav_nms <- paste(paste("IndividualSignatures_Group1", paste("Ind", c(1, 2, 4), sep = ""), "Call1", sep = "_"), ".wav", sep = "")
+
+wav_nms
+
+# First find these .wav files and write them out with shorter names. These will be uploaded to a shared Google Drive folder that people can navigate to through a QR code
+# w <- 1
+invisible(pblapply(1:length(wav_nms), function(w){
+  
+  tmp_wav <- readWave(file.path(path, data_dir, wav_nms[w]))
+  
+  writeWave(tmp_wav, file.path(path, data_dir, paste(paste("Individual", w, sep = "_"), ".wav", sep = "")))
+  
+}))
+
+# Next, write out slowed down (1/4 full speed) versions of each file, also with shorter names. These will be uploaded to the same shared Google Drive folder as the full speed audio files.
+
+speed <- 0.25
+
+invisible(pblapply(1:length(wav_nms), function(w){
+  
+  tmp_wav <- readWave(file.path(path, data_dir, wav_nms[w]))
+
+  tmp_wav@samp.rate <- tmp_wav@samp.rate * speed
+  
+  writeWave(tmp_wav, file.path(path, data_dir, paste(paste("Individual", w, "quarterSpeed", sep = "_"), ".wav", sep = "")))
+  
+}))
+
+```
+
+
+## Conceptual figure of frequency anchors
 
 Choose a single call for talk slides: get the character string and also the vector of frequency anchors.
 ```{r}
