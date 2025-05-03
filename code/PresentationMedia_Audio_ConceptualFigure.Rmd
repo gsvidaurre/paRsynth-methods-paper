@@ -52,13 +52,13 @@ Initialize working directories for data on your local machine.
 ```{r}
 
 # Initialize a base path (this will need to be different per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" # Britt's path
+# path <- "C:/Users/britt/Desktop" # Britt's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-# git_path <- "/Users/gracesmith-vidaurre/Desktop/GitHub_repos"
+# git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
+git_path <- "/Users/gracesmith-vidaurre/Desktop/GitHub_repos"
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -69,6 +69,17 @@ analysis_path <- file.path(path, analysis_dir)
 # Create the data directory if it doesn't already exist on your computer
 if(!dir.exists(analysis_path)){ 
   dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where audio will be written out/read in
+audio_dir <- "audio"
+
+# Combine the base path, the analysis directory, and the audio directory into a single path
+audio_path <- file.path(path, analysis_dir, audio_dir)
+
+# Create the audio directory if it doesn't already exist on your computer
+if(!dir.exists(audio_path)){ 
+  dir.create(audio_path)
 }
 
 # Specify a folder inside the analysis directory where data will be written out/read in
@@ -87,45 +98,45 @@ glimpse(synthetic_call_metadata)
 
 ```
 
-TKTK
-
 # Synthetic calls at quarter speed
 
-Produce calls that are slowed down so that frequency modulation patterns are easier to hear by the human ear.
+Produce calls that are slowed down so that frequency modulation patterns are easier to hear by the human ear. Choose the same calls use for the group membership dataset generated for a main figure (see script `Figures_Spectrograms.Rmd`).
+```{r}
+
+wav_nms <- c(
+  "GroupMembership_Group2_Indiv4_Call1",
+  "GroupMembership_Group2_Indiv4_Call2",
+  "GroupMembership_Group2_Indiv6_Call1",
+  "GroupMembership_Group2_Indiv6_Call2",
+  "GroupMembership_Group3_Indiv1_Call3",
+  "GroupMembership_Group3_Indiv1_Call4",
+  "GroupMembership_Group3_Indiv4_Call1",
+  "GroupMembership_Group3_Indiv4_Call4"
+)
+
+```
+
 ```{r}
 
 speed <- 0.25 # quarter time, 1/4 full speed
 
-wav_nms <- paste(paste("IndividualSignatures_Group1", paste("Ind", c(1, 2, 4), sep = ""), "Call1", sep = "_"), ".wav", sep = "")
+# Add the file extension to the audio file names
+wav_nms_ext <- paste(wav_nms, ".wav", sep = "")
+wav_nms_ext
 
-wav_nms
-
-# First find these .wav files and write them out with shorter names. These will be uploaded to a shared Google Drive folder that people can navigate to through a QR code
+# First find these .wav files and write them out with shorter names to the figures path, since these will be used as media. Then upload these files to Google Drive
 # w <- 1
 invisible(pblapply(1:length(wav_nms), function(w){
   
-  tmp_wav <- readWave(file.path(path, data_dir, wav_nms[w]))
+  tmp_wav <- readWave(file.path(audio_path, wav_nms_ext[w]))
   
-  writeWave(tmp_wav, file.path(path, data_dir, paste(paste("Individual", w, sep = "_"), ".wav", sep = "")))
-  
-}))
-
-# Next, write out slowed down (1/4 full speed) versions of each file, also with shorter names. These will be uploaded to the same shared Google Drive folder as the full speed audio files.
-
-speed <- 0.25
-
-invisible(pblapply(1:length(wav_nms), function(w){
-  
-  tmp_wav <- readWave(file.path(path, data_dir, wav_nms[w]))
-
   tmp_wav@samp.rate <- tmp_wav@samp.rate * speed
   
-  writeWave(tmp_wav, file.path(path, data_dir, paste(paste("Individual", w, "quarterSpeed", sep = "_"), ".wav", sep = "")))
+  writeWave(tmp_wav, file.path(figure_path, paste(paste(wav_nms[w], "quarterSpeed", sep = "_"), ".wav", sep = "")))
   
 }))
 
 ```
-
 
 ## Conceptual figure of frequency anchors
 
