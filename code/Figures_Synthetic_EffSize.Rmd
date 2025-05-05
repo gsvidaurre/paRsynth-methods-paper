@@ -48,11 +48,12 @@ Initialize working directories for data and figures.
 # Initialize a base path (we may need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "~/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 
 ###################################################################################
 
