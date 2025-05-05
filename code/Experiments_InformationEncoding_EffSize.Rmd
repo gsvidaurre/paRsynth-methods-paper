@@ -52,8 +52,8 @@ Initialize working directories for data and figures.
 # Initialize a base path (we may need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "~/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
@@ -100,7 +100,7 @@ Step 1: Load the data files from the Accuracy Calculations results. These files 
 ```{r}
 
 # Read in outputs from the TKTK code that generated accuracy scores
-files <- list.files(path = data_path, pattern = "Accuracy_")
+files <- list.files(path = data_path, pattern = "^Accuracy_")
 
 # Combine these files into one datatable called "res" 
 res <- data.table::rbindlist(pblapply(1:length(files), function(n){
@@ -146,6 +146,10 @@ res_summ <- res %>%
 
 # end with the new data table, "res_summ"
 glimpse(res_summ)
+
+```
+
+```{r}
 
 # Now check distribution  of two accuracy measures (Group and Individual) using 3 methods: density plot, QQ plot, and Shaprio Wilks Normality Test
 
