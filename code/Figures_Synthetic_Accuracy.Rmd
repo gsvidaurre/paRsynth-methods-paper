@@ -145,8 +145,8 @@ If updating, please save plot as "Accuracy_Average_Pointrange"
 
 # Average Accuracy Measures by Encoding treatment and social condition
 
-# TKTK check that the number of rows matches the number of treatments and iterations
-# TKTK 4 social and 4 information treatments by 10 iterations should be 160 rows
+# Check that the number of rows matches the number of treatments and iterations
+# 4 social and 4 information treatments by 10 iterations should be 160 rows, looks good
 glimpse(res)
 
 # Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
@@ -188,7 +188,7 @@ res_summ <- res %>%
     group_information_proportion = factor(round(group_information_proportion, 2))
   )
 
-# There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows
+# There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows, looks good
 glimpse(res_summ)
 
 # The levels for the social condition treatment column looks good
@@ -205,38 +205,42 @@ unique(res_summ$accuracy_level)
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
 fillcols <- scales::alpha(cols, alpha = 0.2)
-shps <- c(21, 22, 24, 25) # Also encode social conditions by shape. See the points function for options
+shps <- c(21, 24) # Encode accuracy method by shape. See the points function for options
 
 # Need to make named character vectors to relabel facet text
 # Renaming the Accuracy Method labels
-method_labs <- c("Edit Distance", "SPCC")
-names(method_labs) <- c("edit", "SPCC")
+class_labs <- c("Classes: 2", "Classes: 4", "Classes: 6", "Classes: 8")
+names(class_labs) <- c("2", "4", "6", "8")
 
 # Renaming the Accuracy Information Level labels
-level_labs <- c("Group Information", "Individual Information")
+level_labs <- c("Group-level accuracy", "Individual-level accuracy")
 names(level_labs) <- c("group", "individual")
 
-#making this in case we want to make the facet background a very very light grey
-ngrey <- scales::alpha("grey", .2)
+# Aaking this in case we want to make the facet background a very very light grey
+ngrey <- scales::alpha("grey", 0.2)
 
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
 res_summ %>% 
-  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = n_groups, fill = n_groups, shape = n_groups)) +
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = n_groups, fill = n_groups, shape = accuracy_method)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
-  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, position = position_dodge(width = 0.5), size = 1) +
   # Can also use facet_grid()
   # facet_wrap(accuracy_level ~ accuracy_method) +
+  # facet_grid(
+  #   accuracy_level ~ accuracy_method,
+  #   labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
+  # ) +
   facet_grid(
-    accuracy_level ~ accuracy_method,
-    labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
+    accuracy_level ~ n_groups,
+    labeller = labeller(accuracy_level = level_labs, n_groups = class_labs)
   ) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Number of Original Classes", override.aes = list(size = .6)), fill = guide_legend(title = "Number of Original Classes"),
-         shape = guide_legend(title = "Number of Original Classes")) +
-  labs(y = "Average Accurary", x = "Proportion of Group Information") +
+  guides(color = guide_legend(title = "Original classes", override.aes = list(size = 0.8)), fill = guide_legend(title = "Original classes"),
+         shape = guide_legend(title = "Method", order = 1, override.aes = list(size = 0.8))) +
+  labs(y = "Average accuracy", x = "Proportion of group information") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
@@ -244,14 +248,14 @@ res_summ %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size=14),
-    axis.title = element_text(size=16,face="bold"),
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
     legend.position = "top",
     legend.title = element_text(size = 16),
     legend.text = element_text(size = 14),
-    strip.text.x = element_text (size = 14, face = "bold"),
-    strip.text.y = element_text (size = 14, face = "bold"),
-    strip.background = element_rect(color = "black", fill = "white")
+    strip.text.x = element_text (size = 14, face = "plain"),
+    strip.text.y = element_text (size = 14, face = "plain"),
+    strip.background = element_rect(color = "black", fill = ngrey)
   )
 
 # save as tiff file
@@ -468,9 +472,9 @@ glimpse(eff_res)
 
 # Setting up for plotting
 eff_res_level_gg <- eff_res_level %>%
-# Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
-# mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
-dplyr::mutate(
+  # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
     # Convert the x-axis column to factor to control axis ticks
     group_information_proportion = factor(round(group_information_proportion, 2)),
     # convert accuracy_level to factor
