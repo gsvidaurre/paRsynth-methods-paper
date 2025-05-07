@@ -135,7 +135,7 @@ glimpse(freq_anchors)
 Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dashed", linewidth = 2) +
   # Turn on the line below for the animation of the graph, turn off for the static version
-  geom_point(aes(group = seq_along(time)), size = 8, color = scales::alpha("#F6955EFF")) +
+  geom_point(aes(group = seq_along(time)), shape = 21, size = 8, color = scales::alpha("#F6955EFF")) +
   # Turn on the line below for the static graph image, turn off for animated version
   # geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
   xlab("Time (s)") +
@@ -155,7 +155,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
 # We will use this image file and it may need to be resized
 # use the ggsave line to save the static plot, as the anim_save line to save the animated plot
 # this sizing is for use in a powerpoint presentation
-# ggsave(file.path(figure_path, "Concept_FreqAnch.png"), units = "in", width = 5, height = 4.6, dpi = 600)
+# ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 5, height = 4.6, dpi = 600)
 gganimate::animate(Freq_anch_plot, units = "in", height = 4.6, width = 4.6, res = 150)
 gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch_GIF.gif"))
 ```
