@@ -196,7 +196,7 @@ mds_edit_grp %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(linewidth = 0.25),
@@ -215,7 +215,7 @@ mds_edit_grp %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
 
@@ -248,7 +248,7 @@ mds_spcc_grp %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(linewidth = 0.25),
@@ -267,7 +267,7 @@ mds_spcc_grp %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_GroupMembership_GroupPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
 
@@ -301,7 +301,7 @@ mds_edit_grp %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     strip.text.x = element_text(size = 12),
     strip.text.y = element_text(size = 10),
     panel.grid.major = element_blank(),
@@ -320,7 +320,7 @@ mds_edit_grp %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_GroupMembership_IndividualPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_GroupMembership_IndividualPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
 
@@ -354,7 +354,7 @@ mds_spcc_grp %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     strip.text.x = element_text(size = 12),
     strip.text.y = element_text(size = 10),
     panel.grid.major = element_blank(),
@@ -373,7 +373,7 @@ mds_spcc_grp %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_GroupMembership_IndividualPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_GroupMembership_IndividualPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
 
@@ -453,7 +453,7 @@ mds_edit_ind %>%
     legend.position = "top",
     legend.key.spacing = unit(0.2, "line"),
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(linewidth = 0.25),
@@ -470,7 +470,7 @@ mds_edit_ind %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_IndividualIdentity_IndividualPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_IndividualIdentity_IndividualPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
 
@@ -504,7 +504,7 @@ mds_spcc_ind %>%
     legend.position = "top",
     legend.key.spacing = unit(0.2, "line"),
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(linewidth = 0.25),
@@ -521,7 +521,7 @@ mds_spcc_ind %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
 
@@ -555,7 +555,7 @@ mds_edit_ind %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     strip.text.x = element_text(size = 12),
     strip.text.y = element_text(size = 10),
     panel.grid.major = element_blank(),
@@ -574,7 +574,7 @@ mds_edit_ind %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_IndividualIdentity_GroupPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_edit_IndividualIdentity_GroupPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
 
@@ -608,7 +608,7 @@ mds_spcc_ind %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 10),
     strip.text.x = element_text(size = 12),
     strip.text.y = element_text(size = 10),
     panel.grid.major = element_blank(),
@@ -627,6 +627,6 @@ mds_spcc_ind %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_IndividualIdentity_GroupPolygons.tiff"), width = 3.75, height = 4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Suppl_AcousticSpace_SPCC_IndividualIdentity_GroupPolygons.tiff"), width = 3.535, height = 3.771, units = "in", dpi = 300)
 
 ```
