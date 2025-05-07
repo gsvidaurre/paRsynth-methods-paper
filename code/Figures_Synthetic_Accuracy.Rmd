@@ -21,7 +21,7 @@ rm(list = ls())
 
 # tktk update list 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "ggpubr", "paletteer", "effsize")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "Rmisc", "warbleR", "stringdist", "ggpubr", "paletteer", "effsize")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -56,11 +56,12 @@ Initialize working directories for data and figures.
 # Initialize a base path (we may need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "~/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 
 ###################################################################################
 
@@ -106,7 +107,7 @@ if(!dir.exists(figure_path)){
 Load files
 ```{r}
 
-files <- list.files(path = data_path, pattern = "Accuracy_")
+files <- list.files(path = data_path, pattern = "^Accuracy_")
 files
 
 res <- data.table::rbindlist(pblapply(1:length(files), function(n){
@@ -140,6 +141,132 @@ sapply(res %>%
 The following code creates a data frame from "res" called "res_sum", which is used to create plots of average accuracy for SPCC and Edit methods by Group Info Proportion and Social Environment Treatments. Plots are separate for information level (group or individual)
 
 If updating, please save plot as "Accuracy_Average_Pointrange"
+```{r}
+
+# Average Accuracy Measures by Encoding treatment and social condition
+
+# Check that the number of rows matches the number of treatments and iterations
+# 4 social and 4 information treatments by 10 iterations should be 160 rows, looks good
+glimpse(res)
+
+# Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
+
+res_summ <- res %>% 
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>% 
+  # View()
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>% 
+  # Once a data frame is grouped, you can calculate summary statistics by each group
+  dplyr::summarise(
+    mean_accuracy = mean(accuracy_measurements),
+    # Calculate the 95% CI measurements and extract the upper 95% CI value
+    upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
+    lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
+  ) %>% 
+  # Make sure to ungroup before plotting, and the columns used for grouping will be retained
+  ungroup() %>%
+  # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
+    n_groups = factor(n_groups),
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2))
+  )
+
+# There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows, looks good
+glimpse(res_summ)
+
+# The levels for the social condition treatment column looks good
+levels(res_summ$n_groups)
+
+# Looks good
+unique(res_summ$accuracy_method)
+unique(res_summ$accuracy_level)
+
+# Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
+# paletteer_d("nationalparkcolors::Arches")
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+# Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
+
+cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+fillcols <- scales::alpha(cols, alpha = 0.2)
+shps <- c(21, 24) # Encode accuracy method by shape. See the points function for options
+
+# Need to make named character vectors to relabel facet text
+# Renaming the Accuracy Method labels
+class_labs <- c("Classes: 2", "Classes: 4", "Classes: 6", "Classes: 8")
+names(class_labs) <- c("2", "4", "6", "8")
+
+# Renaming the Accuracy Information Level labels
+level_labs <- c("Group-level accuracy", "Individual-level accuracy")
+names(level_labs) <- c("group", "individual")
+
+# Aaking this in case we want to make the facet background a very very light grey
+ngrey <- scales::alpha("grey", 0.2)
+
+# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
+res_summ %>% 
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = n_groups, fill = n_groups, shape = accuracy_method)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, position = position_dodge(width = 0.5), size = 1) +
+  # Can also use facet_grid()
+  # facet_wrap(accuracy_level ~ accuracy_method) +
+  # facet_grid(
+  #   accuracy_level ~ accuracy_method,
+  #   labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
+  # ) +
+  facet_grid(
+    accuracy_level ~ n_groups,
+    labeller = labeller(accuracy_level = level_labs, n_groups = class_labs)
+  ) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols) +
+  scale_shape_manual(values = shps) +
+  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
+  guides(color = guide_legend(title = "Original classes", override.aes = list(size = 0.8)), fill = guide_legend(title = "Original classes"),
+         shape = guide_legend(title = "Method", order = 1, override.aes = list(size = 0.8))) +
+  labs(y = "Average accuracy", x = "Proportion of group information") +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text.x = element_text (size = 14, face = "plain"),
+    strip.text.y = element_text (size = 14, face = "plain"),
+    strip.background = element_rect(color = "black", fill = ngrey)
+  )
+
+# save as tiff file
+ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+
+# This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
+
+```
+
+
+Updates for MSU EEB presentation - just display classes = 4 condition, put edit and spcc on the same plot
 ```{r}
 
 # Average Accuracy Measures by Encoding treatment and social condition
@@ -220,21 +347,17 @@ ngrey <- scales::alpha("grey", .2)
 
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
 res_summ %>% 
-  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = n_groups, fill = n_groups, shape = n_groups)) +
+  dplyr::filter(n_groups == 4) %>% 
+  dplyr::filter(accuracy_method == "edit") %>% 
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
   # Can also use facet_grid()
   # facet_wrap(accuracy_level ~ accuracy_method) +
   facet_grid(
-    accuracy_level ~ accuracy_method,
+    rows = vars(accuracy_level),
     labeller = labeller(accuracy_level = level_labs, accuracy_method = method_labs)
   ) +
-  scale_color_manual(values = cols) +
-  scale_fill_manual(values = fillcols) +
-  scale_shape_manual(values = shps) +
-  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Number of Original Classes", override.aes = list(size = .6)), fill = guide_legend(title = "Number of Original Classes"),
-         shape = guide_legend(title = "Number of Original Classes")) +
   labs(y = "Average Accurary", x = "Proportion of Group Information") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
@@ -254,8 +377,177 @@ res_summ %>%
   )
 
 # save as tiff file
-ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange_class4_edit.tiff"), width = 5.4, height = 6.4, units = "in", dpi = 300)
 
 # This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
+
+```
+
+MSU EEB presentation: Make a plot of the accuracy values for the edit distance on a single panel, as main results but also in a format that can be used to walk people through the effect size calculations.
+```{r}
+
+glimpse(res_summ)
+
+res_summ %>%
+  # Filter by edit distance accuracy values for 4 classes
+  dplyr::filter(
+    accuracy_method == "edit",
+    n_groups == 4
+  ) %>%
+  # Capitalize the group and individual level labels
+  dplyr::mutate(
+    accuracy_level = gsub("group", "Group", accuracy_level),
+    accuracy_level = gsub("individual", "Individual", accuracy_level)
+  ) %>% 
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, shape = 21, size = 1) +
+  labs(y = "Average Accuracy", x = "Proportion of Group Information") +
+  scale_y_continuous(limits = c(0, 1.05)) +
+  scale_fill_manual(values = c("white", "gray")) +
+  guides(fill = guide_legend(title = "Accuracy Level")) +
+  theme_bw() +
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_edit.tiff"), width = 5.4, height = 4.4, units = "in", dpi = 300)
+
+```
+
+
+MSU EEB presentation: Make a plot of the accuracy values for the edit distance on a single panel, as main results but also in the same format as above.
+```{r}
+
+res_summ %>%
+  # Filter by SPCC accuracy values for 4 classes
+  dplyr::filter(
+    accuracy_method == "SPCC",
+    n_groups == 4
+  ) %>%
+  # Capitalize the group and individual level labels
+  dplyr::mutate(
+    accuracy_level = gsub("group", "Group", accuracy_level),
+    accuracy_level = gsub("individual", "Individual", accuracy_level)
+  ) %>% 
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, shape = 21, size = 1) +
+  labs(y = "Average Accuracy", x = "Proportion of Group Information") +
+  scale_y_continuous(limits = c(0, 1.05)) +
+  scale_fill_manual(values = c("white", "gray")) +
+  guides(fill = guide_legend(title = "Accuracy Level")) +
+  theme_bw() +
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_SPCC.tiff"), width = 5.4, height = 4.4, units = "in", dpi = 300)
+
+```
+
+MSU EEB presentation: Make effect size plots by method using the same colors as above. This code relies on a different script that writes out the effect size data.
+```{r}
+
+eff_res <- read.csv(file.path(data_path, "effect_sizes_byLevel.csv"))
+glimpse(eff_res)
+
+# Setting up for plotting
+eff_res_level_gg <- eff_res_level %>%
+  # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2)),
+    # convert accuracy_level to factor
+    accuracy_method = factor(accuracy_method),
+    # Convert n_groups to a factor
+    n_groups = factor(n_groups)
+  )
+
+eff_res_level_gg %>%
+  # Filter by edit distance accuracy values for 4 classes
+  dplyr::filter(
+    accuracy_method == "edit",
+    n_groups == 4
+  ) %>%
+  ggplot(aes(x = group_information_proportion, y = eff_delta)) +
+  geom_hline(aes(yintercept = 0), color = "grey") +
+  geom_hline(aes(yintercept = 0.474), linetype = "longdash", color = "grey") +
+  geom_hline(aes(yintercept = -0.474), linetype = "longdash", color = "grey") +
+  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = 0.85, stroke = 0.85, shape = 24, color = "black", fill = "white", size = 1) +
+  labs(y = "Average Cliff's Delta and 95% CI", x = "Proportion of Group Information") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text.x = element_text (size = 14, face = "bold"),
+    strip.text.y = element_text (size = 14, face = "bold"),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+# save as tiff file
+ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_edit.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+
+
+```
+
+Same effect size plot but with SPCC data.
+```{r}
+
+eff_res_level_gg %>%
+  # Filter by edit distance accuracy values for 4 classes
+  dplyr::filter(
+    accuracy_method == "SPCC",
+    n_groups == 4
+  ) %>%
+  ggplot(aes(x = group_information_proportion, y = eff_delta)) +
+  geom_hline(aes(yintercept = 0), color = "grey") +
+  geom_hline(aes(yintercept = 0.474), linetype = "longdash", color = "grey") +
+  geom_hline(aes(yintercept = -0.474), linetype = "longdash", color = "grey") +
+  geom_pointrange(aes(ymin = eff_CI_lower, ymax = eff_CI_upper), linewidth = 0.85, stroke = 0.85, shape = 24, color = "black", fill = "white", size = 1) +
+  labs(y = "Average Cliff's Delta and 95% CI", x = "Proportion of Group Information") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16),
+    legend.position = "top",
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text.x = element_text (size = 14, face = "bold"),
+    strip.text.y = element_text (size = 14, face = "bold"),
+    strip.background = element_rect(color = "black", fill = "white")
+  )
+
+# save as tiff file
+ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_SPCC.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+
 
 ```

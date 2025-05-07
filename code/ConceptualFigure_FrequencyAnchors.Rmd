@@ -133,13 +133,14 @@ glimpse(freq_anchors)
 
 # Make a graphic of the frequency anchors plus a line through them
 Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
-  geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dashed", linewidth = 2) +
+  geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
   # Turn on the line below for the animation of the graph, turn off for the static version
   geom_point(aes(group = seq_along(time)), shape = 21, size = 8, color = scales::alpha("#F6955EFF")) +
   # Turn on the line below for the static graph image, turn off for animated version
-  # geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
+    # geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
   xlab("Time (s)") +
   ylab("Frequency (kHz)") +
+  scale_y_continuous(limits = c(0, 7)) +
   theme_bw() +
   theme(
     panel.grid.minor = element_blank(),
@@ -158,4 +159,32 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
 # ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 5, height = 4.6, dpi = 600)
 gganimate::animate(Freq_anch_plot, units = "in", height = 4.6, width = 4.6, res = 150)
 gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch_GIF.gif"))
+
+
+# resizing for thumnail
+Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
+  geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = .8) +
+  # Turn on the line below for the animation of the graph, turn off for the static version
+  geom_point(aes(group = seq_along(time)), size = 1.25, color = scales::alpha("#F6955EFF")) +
+  # Turn on the line below for the static graph image, turn off for animated version
+    # geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
+  xlab("Time (s)") +
+  ylab("Frequency (kHz)") +
+  scale_y_continuous(limits = c(0, 7)) +
+  theme_bw() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    # axis.title = element_text(size = 16),
+    axis.text = element_text(size = 8),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  # The line below animates the plot, turn off for static image (make sure to remove the + from the line above too!)
+  gganimate::transition_reveal(time)
+
+# resizing for small tumbnail
+gganimate::animate(Freq_anch_plot, units = "in", height = 2, width = 2.1, res = 300)
+gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch_GIF_thumbnail.gif"))
+
 ```
