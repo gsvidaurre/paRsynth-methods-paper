@@ -56,12 +56,12 @@ Initialize working directories for data and figures.
 # Initialize a base path (we may need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "~/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 
 ###################################################################################
 
@@ -408,15 +408,18 @@ res_summ %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(), 
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none", 
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
-ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_edit.tiff"), width = 5.4, height = 4.4, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_edit.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 ```
 
@@ -448,15 +451,18 @@ res_summ %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(), 
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none", 
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
-ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_SPCC.tiff"), width = 5.4, height = 4.4, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_SPCC.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 ```
 
@@ -467,7 +473,7 @@ eff_res <- read.csv(file.path(data_path, "effect_sizes_byLevel.csv"))
 glimpse(eff_res)
 
 # Setting up for plotting
-eff_res_level_gg <- eff_res_level %>%
+eff_res_level_gg <- eff_res %>%
 # Reorganize social_envt_treatment, so that legend scale goes in order from Sparse to Dense
 # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
 dplyr::mutate(
@@ -496,18 +502,21 @@ eff_res_level_gg %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(), 
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none", 
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.text.x = element_text (size = 14, face = "bold"),
     strip.text.y = element_text (size = 14, face = "bold"),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
 # save as tiff file
-ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_edit.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_edit.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 
 ```
@@ -532,18 +541,21 @@ eff_res_level_gg %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(), 
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none", 
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.text.x = element_text (size = 14, face = "bold"),
     strip.text.y = element_text (size = 14, face = "bold"),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
 # save as tiff file
-ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_SPCC.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_SPCC.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 
 ```
