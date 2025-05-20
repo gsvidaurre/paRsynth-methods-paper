@@ -19,7 +19,7 @@ Load packages and set cores.
 # Clean the global environment
 rm(list = ls())
 
-# tktk update list 
+# tktk update list
 # Initialize packages for data processing and analysis
 X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "Rmisc", "warbleR", "stringdist", "ggpubr", "paletteer", "effsize")
 
@@ -57,11 +57,11 @@ Initialize working directories for data and figures.
 path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 
 ###################################################################################
 
@@ -76,7 +76,7 @@ analysis_dir <- "paRsynth_synthetic_experiments"
 analysis_path <- file.path(path, analysis_dir)
 
 # Create the data directory if it doesn't already exist on your computer
-if(!dir.exists(analysis_path)){ 
+if(!dir.exists(analysis_path)){
   dir.create(analysis_path)
 }
 
@@ -87,7 +87,7 @@ data_dir <- "data"
 data_path <- file.path(path, analysis_dir, data_dir)
 
 # Create the data directory if it doesn't already exist on your computer
-if(!dir.exists(data_path)){ 
+if(!dir.exists(data_path)){
   dir.create(data_path)
 }
 
@@ -98,7 +98,7 @@ figure_dir <- "figures"
 figure_path <- file.path(path, analysis_dir, figure_dir)
 
 # Create the data directory if it doesn't already exist on your computer
-if(!dir.exists(figure_path)){ 
+if(!dir.exists(figure_path)){
   dir.create(figure_path)
 }
 
@@ -111,9 +111,9 @@ files <- list.files(path = data_path, pattern = "^Accuracy_")
 files
 
 res <- data.table::rbindlist(pblapply(1:length(files), function(n){
-  
+
   return(read.csv(file.path(data_path, files[n])))
-  
+
 }), fill = TRUE)
 
 glimpse(res)
@@ -121,16 +121,16 @@ glimpse(res)
 # View(res)
 
 # Check that there are no accuracy values above 1, looks good
-sapply(res %>% 
-         dplyr::select(names(.)[grep("accuracy", names(.))]), 
+sapply(res %>%
+         dplyr::select(names(.)[grep("accuracy", names(.))]),
        function(X){
          any(X > 1)
        }
 )
 
 # Check that there are no accuracy values below 0, looks good
-sapply(res %>% 
-         dplyr::select(names(.)[grep("accuracy", names(.))]), 
+sapply(res %>%
+         dplyr::select(names(.)[grep("accuracy", names(.))]),
        function(X){
          any(X < 0)
        }
@@ -151,14 +151,14 @@ glimpse(res)
 
 # Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
 
-res_summ <- res %>% 
+res_summ <- res %>%
   # Make the data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
     # Select all of the columns that start with the pattern "accuracy"
     cols = names(.)[grep("^accuracy", names(.))],
     names_to = "accuracy_type",
     values_to = "accuracy_measurements"
-  ) %>% 
+  ) %>%
   # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
   dplyr::mutate(
     tmp = accuracy_type,
@@ -166,18 +166,18 @@ res_summ <- res %>%
     tmp = gsub(pattern = "_mean", replace = "", tmp)
   ) %>%
   # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
-  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>% 
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>%
   # View()
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
-  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>% 
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>%
   # Once a data frame is grouped, you can calculate summary statistics by each group
   dplyr::summarise(
     mean_accuracy = mean(accuracy_measurements),
     # Calculate the 95% CI measurements and extract the upper 95% CI value
     upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
     lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
-  ) %>% 
+  ) %>%
   # Make sure to ungroup before plotting, and the columns used for grouping will be retained
   ungroup() %>%
   # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
@@ -200,7 +200,7 @@ unique(res_summ$accuracy_level)
 
 # Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
 # paletteer_d("nationalparkcolors::Arches")
-#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF
 # Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
@@ -220,7 +220,7 @@ names(level_labs) <- c("group", "individual")
 ngrey <- scales::alpha("grey", 0.2)
 
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
-res_summ %>% 
+res_summ %>%
   ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = accuracy_method, fill = accuracy_method, shape = accuracy_method)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.5, stroke = 0.5, position = position_dodge(width = 0.5), size = 0.75) +
@@ -301,7 +301,7 @@ res_density_values <- res %>%
     cols = names(.)[grep("^accuracy", names(.))],
     names_to = "accuracy_type",
     values_to = "accuracy_measurements"
-  ) %>% 
+  ) %>%
   # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
   dplyr::mutate(
     tmp = accuracy_type,
@@ -315,20 +315,20 @@ glimpse(res_density_values)
 
 # Generate means for vertical dashed lines
 means <- res_density_values %>%
-  dplyr::filter(n_groups %in% c(2, 8)) %>% 
-  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>% 
+  dplyr::filter(n_groups %in% c(2, 8)) %>%
+  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>%
   dplyr::summarize(
     mean_val = mean(accuracy_measurements)
-  ) %>% 
+  ) %>%
   dplyr::select(
     accuracy_level, accuracy_method, n_groups, group_information_proportion, mean_val
-  ) %>% 
+  ) %>%
   ungroup()
 
 glimpse(means)
 
 # Use the means to generate coordinates for where bars to indicate effect size calculations should start and end
-bar_coords <- means %>% 
+bar_coords <- means %>%
   pivot_wider(
     values_from = "mean_val",
     names_from = "accuracy_level"
@@ -344,8 +344,8 @@ glimpse(res_density_values)
 res_density_values %>%
   dplyr::filter(n_groups %in% c(2, 8)) %>%
   # Leads to too many labels
-  # inner_join(eff_res %>% 
-               # dplyr::filter(n_groups %in% c(2, 8)), by = c("accuracy_method", "n_groups", "group_information_proportion")) %>% 
+  # inner_join(eff_res %>%
+               # dplyr::filter(n_groups %in% c(2, 8)), by = c("accuracy_method", "n_groups", "group_information_proportion")) %>%
   # glimpse()
   ggplot(aes(x = accuracy_measurements)) +
   geom_density(data = res_density_values %>%
@@ -432,7 +432,7 @@ res_density_values <- res %>%
     cols = names(.)[grep("^accuracy", names(.))],
     names_to = "accuracy_type",
     values_to = "accuracy_measurements"
-  ) %>% 
+  ) %>%
   # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
   dplyr::mutate(
     tmp = accuracy_type,
@@ -446,15 +446,15 @@ glimpse(res_density_values)
 
 # Generate means
 means <- res_density_values %>%
-  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>% 
+  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>%
   dplyr::summarize(
     mean_val = mean(accuracy_measurements)
-  ) %>% 
+  ) %>%
   dplyr::select(
     accuracy_level, accuracy_method, n_groups, group_information_proportion, mean_val
   )
 
-res_density_values %>% 
+res_density_values %>%
   ggplot(aes(x = accuracy_measurements)) +
   geom_density(data = res_density_values %>%
                  dplyr::filter(accuracy_level == "group"), color = cols[1], fill = fillcols[1]) +
@@ -513,14 +513,14 @@ glimpse(res)
 
 # Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
 
-res_summ <- res %>% 
+res_summ <- res %>%
   # Make the data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
     # Select all of the columns that start with the pattern "accuracy"
     cols = names(.)[grep("^accuracy", names(.))],
     names_to = "accuracy_type",
     values_to = "accuracy_measurements"
-  ) %>% 
+  ) %>%
   # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
   dplyr::mutate(
     tmp = accuracy_type,
@@ -528,18 +528,18 @@ res_summ <- res %>%
     tmp = gsub(pattern = "_mean", replace = "", tmp)
   ) %>%
   # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
-  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level")) %>%
   # glimpse()
   # Group by the columns that have information about each experimental treatment
   # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
-  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>% 
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>%
   # Once a data frame is grouped, you can calculate summary statistics by each group
   dplyr::summarise(
     mean_accuracy = mean(accuracy_measurements),
     # Calculate the 95% CI measurements and extract the upper 95% CI value
     upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
     lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
-  ) %>% 
+  ) %>%
   # Make sure to ungroup before plotting, and the columns used for grouping will be retained
   ungroup() %>%
   # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
@@ -562,7 +562,7 @@ unique(res_summ$accuracy_level)
 
 # Then, make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
 # paletteer_d("nationalparkcolors::Arches")
-#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF
 # Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
@@ -582,9 +582,9 @@ names(level_labs) <- c("group", "individual")
 ngrey <- scales::alpha("grey", .2)
 
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
-res_summ %>% 
-  dplyr::filter(n_groups == 4) %>% 
-  dplyr::filter(accuracy_method == "edit") %>% 
+res_summ %>%
+  dplyr::filter(n_groups == 4) %>%
+  dplyr::filter(accuracy_method == "edit") %>%
   ggplot(aes(x = group_information_proportion, y = mean_accuracy)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .85, stroke = .85, position = position_dodge(width = .5)) +
@@ -634,7 +634,7 @@ res_summ %>%
   dplyr::mutate(
     accuracy_level = gsub("group", "Group", accuracy_level),
     accuracy_level = gsub("individual", "Individual", accuracy_level)
-  ) %>% 
+  ) %>%
   ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, shape = 21, size = 1) +
@@ -648,15 +648,18 @@ res_summ %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none",
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
-ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_edit.tiff"), width = 5.4, height = 4.4, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_edit.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 ```
 
@@ -674,7 +677,7 @@ res_summ %>%
   dplyr::mutate(
     accuracy_level = gsub("group", "Group", accuracy_level),
     accuracy_level = gsub("individual", "Individual", accuracy_level)
-  ) %>% 
+  ) %>%
   ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, shape = 21, size = 1) +
@@ -688,15 +691,18 @@ res_summ %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none",
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
-ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_SPCC.tiff"), width = 5.4, height = 4.4, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_Accuracy_class4_SPCC.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 ```
 
@@ -736,18 +742,21 @@ eff_res_level_gg %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none",
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.text.x = element_text (size = 14, face = "bold"),
     strip.text.y = element_text (size = 14, face = "bold"),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
 # save as tiff file
-ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_edit.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_edit.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 
 ```
@@ -772,18 +781,21 @@ eff_res_level_gg %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 14),
-    axis.title = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none",
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
     strip.text.x = element_text (size = 14, face = "bold"),
     strip.text.y = element_text (size = 14, face = "bold"),
     strip.background = element_rect(color = "black", fill = "white")
   )
 
 # save as tiff file
-ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_SPCC.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_SPCC.tiff"), width = 6, height = 2.9, units = "in", dpi = 300)
 
 
 ```
