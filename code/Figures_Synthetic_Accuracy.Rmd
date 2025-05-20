@@ -54,9 +54,9 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
@@ -261,43 +261,118 @@ ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange.tiff"), width 
 
 ```
 
-Make a plot that could be a main figure in the manuscript to highlight how effect sizes were calculated.
+Make a plot that could be a main figure in the manuscript to highlight how effect sizes were calculated. Density plots of the accuracy distributions to highlight how effect sizes were calculated.
+
+Make one main figure that has class sizes of 2 and 8 only. Make 2 supplementary figures of all classes but edit distance and SPCC only.
+
+Main figure.
 ```{r}
+
+eff_res <- read.csv(file.path(data_path, "effect_sizes_byLevel.csv"))
+glimpse(eff_res)
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
 fillcols <- scales::alpha(cols, alpha = 0.2)
-shps <- c(21, 24) # Encode accuracy method by shape. See the points function for options
+shps <- c(21, 24) # Encode accuracy level. See the points function for options
 
 # Need to make named character vectors to relabel facet text
 # Renaming the Accuracy Method labels
-method_labs <- c("Edit distance", "Spectrographic cross-correlation")
+class_labs <- c("Classes: 2", "Classes: 8")
+names(class_labs) <- c("2", "8")
+
+# Need to make named character vectors to relabel facet text
+# Renaming the Accuracy Method labels
+method_labs <- c("Edit", "SPCC")
 names(method_labs) <- c("edit", "SPCC")
 
-# Renaming the Accuracy Information Level labels
-level_labs <- c("Group-level accuracy", "Individual-level accuracy")
-names(level_labs) <- c("group", "individual")
+prop_labs <- c("Proportion of group information: 0", "0.33", "0.67", "1")
+names(prop_labs) <- unique(res$group_information_proportion)
 
 # Aaking this in case we want to make the facet background a very very light grey
 ngrey <- scales::alpha("grey", 0.2)
 
+glimpse(res)
+
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
-res_summ %>% 
-  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = accuracy_method, fill = accuracy_method, shape = accuracy_level)) +
-  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
-  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.5, stroke = 0.5, position = position_dodge(width = 0.5), size = 0.75) +
+res_density_values <- res %>%
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_")
+
+glimpse(res_density_values)
+
+# Generate means for vertical dashed lines
+means <- res_density_values %>%
+  dplyr::filter(n_groups %in% c(2, 8)) %>% 
+  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>% 
+  dplyr::summarize(
+    mean_val = mean(accuracy_measurements)
+  ) %>% 
+  dplyr::select(
+    accuracy_level, accuracy_method, n_groups, group_information_proportion, mean_val
+  ) %>% 
+  ungroup()
+
+glimpse(means)
+
+# Use the means to generate coordinates for where bars to indicate effect size calculations should start and end
+bar_coords <- means %>% 
+  pivot_wider(
+    values_from = "mean_val",
+    names_from = "accuracy_level"
+  )
+
+glimpse(bar_coords)
+
+glimpse(eff_res)
+
+# Need to join the effect size results with the accuracy results
+glimpse(res_density_values)
+
+res_density_values %>%
+  dplyr::filter(n_groups %in% c(2, 8)) %>%
+  # Leads to too many labels
+  # inner_join(eff_res %>% 
+               # dplyr::filter(n_groups %in% c(2, 8)), by = c("accuracy_method", "n_groups", "group_information_proportion")) %>% 
+  # glimpse()
+  ggplot(aes(x = accuracy_measurements)) +
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(n_groups %in% c(2, 8)) %>%
+                 dplyr::filter(accuracy_level == "group"), color = cols[1], fill = fillcols[1]) +
+  geom_vline(data = means %>%
+               dplyr::filter(accuracy_level == "group"), aes(xintercept = mean_val), color = cols[1], linetype = "dashed") +
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(n_groups %in% c(2, 8)) %>%
+                 dplyr::filter(accuracy_level == "individual"), color = cols[2], fill = fillcols[2]) +
+  geom_vline(data = means %>%
+               dplyr::filter(accuracy_level == "individual"), aes(xintercept = mean_val), color = cols[2], linetype = "dashed") +
+  geom_segment(data = bar_coords, aes(x = group, xend = individual, y = 40, yend = 40), linewidth = 2) +
   facet_grid(
-    accuracy_method ~ n_groups,
-    labeller = labeller(accuracy_level = level_labs, n_groups = class_labs)
+    accuracy_method ~ n_groups ~ group_information_proportion,
+    scales = "fixed",
+    labeller = labeller(accuracy_method = method_labs, n_groups = class_labs, group_information_proportion = prop_labs)
   ) +
-  # facet_grid(~ ) +
-  scale_y_continuous(limits = c(0, 1.05)) +
+  # Not working...
+  geom_text(aes(label = eff_delta, y = 40)) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Original classes", override.aes = list(size = 0.8)), fill = guide_legend(title = "Original classes"),
-         shape = guide_legend(title = "Method", order = 1, override.aes = list(size = 0.8))) +
-  labs(y = "Average accuracy", x = "Proportion of group information") +
+  guides(color = guide_legend(title = "Method", override.aes = list(size = 0.8)), fill = guide_legend(title = "Method"),
+         shape = guide_legend(title = "Accuracy level", order = 1, override.aes = list(size = 0.8))) +
+  labs(y = "Density", x = "Accuracy measurements") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
@@ -305,27 +380,126 @@ res_summ %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 11),
-    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 11),
     legend.position = "top",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
     legend.margin = margin(t = 0, r = 0, b = -0.25, l = 0, unit = "line"),
-    strip.text.x = element_text (size = 11, face = "plain"),
-    strip.text.y = element_text (size = 11, face = "plain"),
+    strip.text.x = element_text (size = 10, face = "plain"),
+    strip.text.y = element_text (size = 10, face = "plain"),
     strip.background = element_rect(color = "black", fill = ngrey)
   )
 
 # save as tiff file
-# ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
 
 # This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
 
 ```
 
 
-```
+Supplementary figures.
+```{r}
 
+cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+fillcols <- scales::alpha(cols, alpha = 0.2)
+shps <- c(21, 24) # Encode accuracy level. See the points function for options
+
+# Need to make named character vectors to relabel facet text
+# Renaming the Accuracy Method labels
+class_labs <- c("Classes: 2", "4", "6", "8")
+names(class_labs) <- c("2", "4", "6", "8")
+
+# Need to make named character vectors to relabel facet text
+# Renaming the Accuracy Method labels
+method_labs <- c("Edit", "SPCC")
+names(method_labs) <- c("edit", "SPCC")
+
+prop_labs <- c("Proportion of group information: 0", "0.33", "0.67", "1")
+names(prop_labs) <- unique(res$group_information_proportion)
+
+# Aaking this in case we want to make the facet background a very very light grey
+ngrey <- scales::alpha("grey", 0.2)
+
+glimpse(res)
+
+# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
+res_density_values <- res %>%
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_")
+
+glimpse(res_density_values)
+
+# Generate means
+means <- res_density_values %>%
+  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>% 
+  dplyr::summarize(
+    mean_val = mean(accuracy_measurements)
+  ) %>% 
+  dplyr::select(
+    accuracy_level, accuracy_method, n_groups, group_information_proportion, mean_val
+  )
+
+res_density_values %>% 
+  ggplot(aes(x = accuracy_measurements)) +
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(accuracy_level == "group"), color = cols[1], fill = fillcols[1]) +
+  geom_vline(data = means %>%
+               dplyr::filter(accuracy_level == "group"), aes(xintercept = mean_val), color = cols[1], linetype = "dashed") +
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(accuracy_level == "individual"), color = cols[2], fill = fillcols[2]) +
+  geom_vline(data = means %>%
+               dplyr::filter(accuracy_level == "individual"), aes(xintercept = mean_val), color = cols[2], linetype = "dashed") +
+  facet_grid(
+    accuracy_method ~ n_groups ~ group_information_proportion,
+    scales = "free",
+    labeller = labeller(accuracy_method = method_labs, n_groups = class_labs, group_information_proportion = prop_labs)
+  ) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols) +
+  scale_shape_manual(values = shps) +
+  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
+  guides(color = guide_legend(title = "Method", override.aes = list(size = 0.8)), fill = guide_legend(title = "Method"),
+         shape = guide_legend(title = "Accuracy level", order = 1, override.aes = list(size = 0.8))) +
+  labs(y = "Density", x = "Accuracy measurements") +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    legend.position = "top",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.margin = margin(t = 0, r = 0, b = -0.25, l = 0, unit = "line"),
+    strip.text.x = element_text (size = 10, face = "plain"),
+    strip.text.y = element_text (size = 10, face = "plain"),
+    strip.background = element_rect(color = "black", fill = ngrey)
+  )
+
+# save as tiff file
+ggsave(filename = file.path(git_path, "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
+
+# This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
+
+```
 
 
 Updates for MSU EEB presentation - just display classes = 4 condition, put edit and spcc on the same plot
