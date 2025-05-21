@@ -157,14 +157,12 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   # The line below animates the plot, turn off for static image (make sure to remove the + from the line above too!)
   # gganimate::transition_reveal(time)
 
-Freq_anch_plot
-
 # We will use this image file and it may need to be resized
 # use the ggsave line to save the static plot, as the anim_save line to save the animated plot
 # this sizing is for use in a powerpoint presentation
 # ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 5, height = 4.6, dpi = 600)
 # This sizing is being used by Summer for creation of manuscript figure
-ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 4, height = 2.6, dpi = 600)
+ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 4, height = 2.5, dpi = 600)
 # gganimate::animate(Freq_anch_plot, units = "in", height = 4.6, width = 4.6, res = 150)
 # gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch_GIF.gif"))
 
