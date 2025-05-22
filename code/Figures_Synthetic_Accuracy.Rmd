@@ -111,9 +111,9 @@ files <- list.files(path = data_path, pattern = "^Accuracy_")
 files
 
 res <- data.table::rbindlist(pblapply(1:length(files), function(n){
-
+  
   return(read.csv(file.path(data_path, files[n])))
-
+  
 }), fill = TRUE)
 
 glimpse(res)
@@ -272,7 +272,7 @@ eff_res <- read.csv(file.path(data_path, "effect_sizes_byLevel.csv"))
 glimpse(eff_res)
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
-fillcols <- scales::alpha(cols, alpha = 0.8)
+fillcols <- scales::alpha(cols, alpha = 1)
 shps <- c(21, 24) # Encode accuracy level. See the points function for options
 
 # Need to make named character vectors to relabel facet text
@@ -289,7 +289,7 @@ prop_labs <- c("Proportion of\n group information: 0", "0.33", "0.67", "1")
 names(prop_labs) <- unique(res$group_information_proportion)
 
 # Aaking this in case we want to make the facet background a very very light grey
-ngrey <- scales::alpha("grey", 0.2)
+ngrey <- scales::alpha("grey", 0.1)
 
 glimpse(res)
 
@@ -309,7 +309,12 @@ res_density_values <- res %>%
     tmp = gsub(pattern = "_mean", replace = "", tmp)
   ) %>%
   # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
-  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_")
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>% 
+  # Change social level labels to be capitalized
+  dplyr::mutate(
+    accuracy_level = gsub("group", "Group", accuracy_level),
+    accuracy_level = gsub("individual", "Individual", accuracy_level)
+  )
 
 glimpse(res_density_values)
 
@@ -327,15 +332,6 @@ means <- res_density_values %>%
 
 glimpse(means)
 
-# Use the means to generate coordinates for where bars to indicate effect size calculations should start and end
-bar_coords <- means %>%
-  pivot_wider(
-    values_from = "mean_val",
-    names_from = "accuracy_level"
-  )
-
-glimpse(bar_coords)
-
 # Make labels of the effect size value and the 95% CI
 glimpse(eff_res)
 
@@ -345,40 +341,68 @@ eff_res_label <- eff_res %>%
   dplyr::mutate(
     eff_label = paste(c(sprintf("%.02f", round(eff_delta, 2)), " (", paste(c(sprintf("%.02f", round(eff_CI_lower, 2)), sprintf("%.02f", round(eff_CI_upper, 2))), collapse = ", "), ")"), collapse = "")
   ) %>% 
+  # Add a label to create bolded text for large effect sizes (>= 0.474)
+  dplyr::mutate(
+    eff_magnitude = ifelse(abs(eff_delta) >= 0.474, "large", "not large"),
+    eff_fontface = ifelse(abs(eff_delta) >= 0.474, "bold", "plain")
+  ) %>% 
   ungroup()
 
 glimpse(eff_res_label)
 
+# Use the means to generate coordinates for where bars to indicate effect size calculations should start and end
+bar_coords <- means %>%
+  pivot_wider(
+    values_from = "mean_val",
+    names_from = "accuracy_level"
+  ) %>% 
+  # Add information for coloring these bars by which information had greater accuracy
+  dplyr::mutate(
+    stronger_encoding = ifelse(Group > Individual, "Group", "Individual")
+  ) %>% 
+  # Join with the effect size results to get information about which of these bars or segments correspond to large effect sizes
+  inner_join(
+    eff_res_label %>% 
+      dplyr::select(accuracy_method, group_information_proportion, n_groups, eff_magnitude),
+    by = c("accuracy_method", "group_information_proportion", "n_groups")
+  )
+
+glimpse(bar_coords)
+
 res_density_values %>%
   dplyr::filter(n_groups %in% c(2, 8)) %>%
   ggplot() +
+  # Density curves for group level (blue)
   geom_density(data = res_density_values %>%
                  dplyr::filter(n_groups %in% c(2, 8)) %>%
-                 dplyr::filter(accuracy_level == "group"), color = fillcols[1], fill = fillcols[1], aes(x = accuracy_measurements)) +
-  # Add a mean line using geom_segment to control height
+                 dplyr::filter(accuracy_level == "Group"), color = scales::alpha(fillcols[1], 0), fill = scales::alpha(fillcols[1], 0.65), aes(x = accuracy_measurements)) +
+  # Add a mean line using geom_segment to control height: mean line for group level
   geom_segment(data = means %>%
-                dplyr::filter(accuracy_level == "group"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.5, color = fillcols[1], linetype = "dashed") +
+                 dplyr::filter(accuracy_level == "Group"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.75, color = fillcols[1], linetype = "dashed") +
+  # Density curves for individual level (orange)
   geom_density(data = res_density_values %>%
                  dplyr::filter(n_groups %in% c(2, 8)) %>%
-                 dplyr::filter(accuracy_level == "individual"), color = fillcols[2], fill = fillcols[2], aes(x = accuracy_measurements)) +
-    geom_segment(data = means %>%
-                dplyr::filter(accuracy_level == "individual"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.5, color = fillcols[2], linetype = "dashed") +
-  geom_segment(data = bar_coords, aes(x = group, xend = individual, y = 40, yend = 40), linewidth = 2) +
+                 dplyr::filter(accuracy_level == "Individual"), color = scales::alpha(fillcols[2], 0), fill = scales::alpha(fillcols[2], 0.65), aes(x = accuracy_measurements)) +
+  # Add a mean line using geom_segment to control height: mean line for individual level
+  geom_segment(data = means %>%
+                 dplyr::filter(accuracy_level == "Individual"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.75, color = fillcols[2], linetype = "dashed") +
+  # Add horizontal bars or segments between the means of each density curve that represent each effect size calculation. These bars are colored by the social level with higher accuracy, and the transparency folows the strength of the effect size (large effect sizes are more opaque)
+  geom_segment(data = bar_coords, aes(x = Group, xend = Individual, y = 40, yend = 40, color = stronger_encoding, alpha = eff_magnitude), linewidth = 2) +
   facet_grid(
     n_groups ~ accuracy_method ~ group_information_proportion,
     scales = "fixed",
     labeller = labeller(accuracy_method = method_labs, n_groups = class_labs, group_information_proportion = prop_labs)
   ) +
-  # Add the effect size values plus the 95% CIs
-  geom_text(data = eff_res_label, aes(label = eff_label, y = 50, x = 0.65), size = 3) +
-  scale_y_continuous(limits = c(0, 53)) +
+  # Add the effect size values plus the 95% CIs. Add bolded text for large effect sizes
+  geom_text(data = eff_res_label, aes(label = eff_label, y = 50, x = 0.65, fontface = eff_fontface), size = 3) +
+  scale_y_continuous(limits = c(0, 55)) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
+  scale_alpha_manual(values = c(1, 0.5)) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Method", override.aes = list(size = 0.8)), fill = guide_legend(title = "Method"),
-         shape = guide_legend(title = "Accuracy level", order = 1, override.aes = list(size = 0.8))) +
-  labs(y = "Density", x = "Accuracy measurements") +
+  guides(color = guide_legend(title = "Social level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Social level"), alpha = "none") +
+  labs(y = "Density of accuracy values at either social social", x = "Accuracy measurements") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
