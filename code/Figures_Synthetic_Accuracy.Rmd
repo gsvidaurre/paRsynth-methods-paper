@@ -272,7 +272,7 @@ eff_res <- read.csv(file.path(data_path, "effect_sizes_byLevel.csv"))
 glimpse(eff_res)
 
 cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
-fillcols <- scales::alpha(cols, alpha = 0.8)
+fillcols <- scales::alpha(cols, alpha = 1)
 shps <- c(21, 24) # Encode accuracy level. See the points function for options
 
 # Need to make named character vectors to relabel facet text
@@ -289,7 +289,7 @@ prop_labs <- c("Proportion of\n group information: 0", "0.33", "0.67", "1")
 names(prop_labs) <- unique(res$group_information_proportion)
 
 # Aaking this in case we want to make the facet background a very very light grey
-ngrey <- scales::alpha("grey", 0.2)
+ngrey <- scales::alpha("grey", 0.1)
 
 glimpse(res)
 
@@ -375,17 +375,17 @@ res_density_values %>%
   # Density curves for group level (blue)
   geom_density(data = res_density_values %>%
                  dplyr::filter(n_groups %in% c(2, 8)) %>%
-                 dplyr::filter(accuracy_level == "Group"), color = fillcols[1], fill = fillcols[1], aes(x = accuracy_measurements)) +
+                 dplyr::filter(accuracy_level == "Group"), color = scales::alpha(fillcols[1], 0), fill = scales::alpha(fillcols[1], 0.65), aes(x = accuracy_measurements)) +
   # Add a mean line using geom_segment to control height: mean line for group level
   geom_segment(data = means %>%
-                 dplyr::filter(accuracy_level == "Group"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.5, color = fillcols[1], linetype = "dashed") +
+                 dplyr::filter(accuracy_level == "Group"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.75, color = fillcols[1], linetype = "dashed") +
   # Density curves for individual level (orange)
   geom_density(data = res_density_values %>%
                  dplyr::filter(n_groups %in% c(2, 8)) %>%
-                 dplyr::filter(accuracy_level == "Individual"), color = fillcols[2], fill = fillcols[2], aes(x = accuracy_measurements)) +
+                 dplyr::filter(accuracy_level == "Individual"), color = scales::alpha(fillcols[2], 0), fill = scales::alpha(fillcols[2], 0.65), aes(x = accuracy_measurements)) +
   # Add a mean line using geom_segment to control height: mean line for individual level
   geom_segment(data = means %>%
-                 dplyr::filter(accuracy_level == "Individual"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.5, color = fillcols[2], linetype = "dashed") +
+                 dplyr::filter(accuracy_level == "Individual"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.75, color = fillcols[2], linetype = "dashed") +
   # Add horizontal bars or segments between the means of each density curve that represent each effect size calculation. These bars are colored by the social level with higher accuracy, and the transparency folows the strength of the effect size (large effect sizes are more opaque)
   geom_segment(data = bar_coords, aes(x = Group, xend = Individual, y = 40, yend = 40, color = stronger_encoding, alpha = eff_magnitude), linewidth = 2) +
   facet_grid(
@@ -395,14 +395,14 @@ res_density_values %>%
   ) +
   # Add the effect size values plus the 95% CIs. Add bolded text for large effect sizes
   geom_text(data = eff_res_label, aes(label = eff_label, y = 50, x = 0.65, fontface = eff_fontface), size = 3) +
-  scale_y_continuous(limits = c(0, 53)) +
+  scale_y_continuous(limits = c(0, 55)) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
   scale_alpha_manual(values = c(1, 0.5)) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
   guides(color = guide_legend(title = "Social level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Social level"), alpha = "none") +
-  labs(y = "Density", x = "Accuracy measurements") +
+  labs(y = "Density of accuracy values at either social social", x = "Accuracy measurements") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
