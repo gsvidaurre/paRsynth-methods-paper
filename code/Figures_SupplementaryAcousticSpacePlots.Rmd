@@ -2,7 +2,7 @@
 title: 'Supplementary figures: Acoustic space plots'
 author: Grace Smith-Vidaurre
 output: html_document
-date: "2025-04-08"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
 Purpose: Here we use build acoustic space plots for supplementary figures. Acoustic space plots are generated using multidimensional scaling coordinates from spectrographic cross-correlation and edit distance analyses.

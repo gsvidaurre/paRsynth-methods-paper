@@ -2,7 +2,7 @@
 title: "Information Encoding Experiments - Effect Size Calculations"
 author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
 output: html_document
-date: "2025-02-26"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
 Purpose: The following code was designed to calculate Cliff's Delta Effect Size for Group vs Individual Information level accuracy measures across all Social Environment X Group Information Proportion X Method conditions. Before calculating these effect sizes, we check the distribution of our accuracy measures. They are not normally distributed, so we opt to calculate Cliff's Delta as the effect size.

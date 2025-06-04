@@ -2,7 +2,7 @@
 title: "Create Synthetic Identity Signal Datasets"
 author: Grace Smith-Vidaurre
 output: html_document
-date: "2024-11-20"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
 Purpose: Here we generate synthetic vocal identity signal datasets with more group than individual information, and more individual than group information. In each dataset, information at these two social levels is encoded in frequency modulation patterns. We use functions from the `paRsynth` package to create character strings, Parsons code strings, and frequency anchors that encode information at these two social levels. We then use the `soundgen` package to create synthetic audio files with the encoded information, and the `warbleR` package to create spectrograms. The resulting audio files, selection table spreadsheet are uploaded to a shared location for subsequent analysis and figures.

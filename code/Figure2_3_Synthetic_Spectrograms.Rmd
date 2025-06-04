@@ -2,7 +2,7 @@
 title: "Generate spectrogram image files"
 author: Grace Smith-Vidaurre
 output: html_document
-date: "2024-11-20"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
 Purpose: Here we generate spectrogram image files for two synthetic datasets of vocal identity signals with more group than individual information an vice versa. We use the `warbleR` package to generate spectrograms. These original spectrogram image files can be read back into R for further modification (e.g. resizing, adding color borders) prior to creating composite figures of lexicons in Inkscape.

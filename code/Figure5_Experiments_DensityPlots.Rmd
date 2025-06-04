@@ -2,7 +2,7 @@
 title: "Information Encoding Experiments - Accuracy Figures"
 author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
 output: html_document
-date: "2024-07-08"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
 Purpose: The following code was designed to create figures for the manuscript. This figure uses output from the script "Experiments_InformationEncoding_Accuracy". The following code creates a data frame which is used to create plots of average accuracy for SPCC and Edit methods by Group Info Proportion and Social Environment Treatments. Plots are separate for information level (group or individual).

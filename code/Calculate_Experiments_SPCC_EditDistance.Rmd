@@ -2,7 +2,7 @@
 title: "Spectrographic cross-correlation, edit distance"
 author: Grace Smith-Vidaurre
 output: html_document
-date: "2025-04-08"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
 Purpose: Here we use the `warbleR` package to run spectrographic cross-correlation (SPCC) and generate figures of acoustic variation in two dimensional acoustic space. We perform these analyses for synthetic vocal identity signal datasets that contain more group than individual information, and more individual than group information, respectively.
