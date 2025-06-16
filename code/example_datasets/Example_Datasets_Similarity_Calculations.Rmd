@@ -181,6 +181,8 @@ If the `temperature` argument used by `soundgen` is set to 0 (for no stochastici
 
 Here SPCC is performed across both synthetic vocalization datasets, so that the acoustic space shown below will be a universal space across figures.
 
+TKTK need to update this code to fix the bandpass filter to upp_freq
+
 ```{r}
 
 # When generating the synthetic vocalizations, increasing the temperature from 0 to 0.025 reduced the number of ones off of the diagonal to 1. I just increased temperature to 0.05 and there was still a single 1 off of the diagonal
