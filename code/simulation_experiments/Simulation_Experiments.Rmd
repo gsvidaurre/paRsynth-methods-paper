@@ -57,9 +57,9 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+# path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
@@ -118,8 +118,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ###################### Manually update in every new coding session ##################################
 
 # Brittany's path should include "GitHub/paRsynth"
-# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -178,9 +178,9 @@ N <- c(2, 4, 6, 8)
 # Number of symbols that we are using in Parsons code
 symbols <- 3
 
-# Create a data frame that combines information about information encoding at each social level with the different social conditions
+# Create a data frame that shows all experimental treatment combinations
 # i <- 1
-information <- data.table::rbindlist(pblapply(1:length(N), function(j){
+experimental_treatements <- data.table::rbindlist(pblapply(1:length(N), function(j){
   
   tmp2 <- data.table::rbindlist(lapply(1:length(individual_information), function(i){
     
@@ -202,7 +202,7 @@ information <- data.table::rbindlist(pblapply(1:length(N), function(j){
   
 }))
 
-# View(information)
+# View(experimental_treatements)
 
 # Then set other parameters for creating synthetic vocal identity signals
 # The length of the global header and tail should be the same across strings
@@ -225,7 +225,6 @@ iteratns <- 10
 # n <- 1 # replicates or iterations
 
 # Iterate over the social conditions and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
-
 system.time(
   
   # Iterate over group, individual, and call number treatments
@@ -288,9 +287,9 @@ system.time(
         
         # glimpse(calls_parsons_frequencies)
         
-        # Find the maximum frequency anchor and set an upper frequency 2 kH above this for spectrographic cross-correlation
+        # Find the maximum frequency anchor and set an upper frequency 0.5 kH above this for spectrographic cross-correlation
         freq_cols <- calls_parsons_frequencies[, grep("^Freq", names(calls_parsons_frequencies))]
-        upp_freq <- max(sapply(freq_cols, max)) + 2000
+        upp_freq <- (max(sapply(freq_cols, max))/1000) + 0.5
         
         ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with paRsynth and the soundgen package
         
@@ -752,39 +751,5 @@ system.time(
 )
 
 # 4 social conditions, 4 information encoding treatments with 10 iterations each and new accuracy measurements on 03 Mar 2025: 21h 35m 28s
-
-```
-
-Checking the accuracy results.
-```{r}
-
-files <- list.files(path = data_path, pattern = "Accuracy_")
-files
-
-res <- data.table::rbindlist(pblapply(1:length(files), function(n){
-  
-  return(read.csv(file.path(data_path, files[n])))
-  
-}), fill = TRUE)
-
-glimpse(res)
-
-# View(res)
-
-# Check that there are no accuracy values above 1, looks good
-sapply(res %>% 
-         dplyr::select(names(.)[grep("accuracy", names(.))]), 
-       function(X){
-         any(X > 1)
-       }
-)
-
-# Check that there are no accuracy values below 0, looks good
-sapply(res %>% 
-         dplyr::select(names(.)[grep("accuracy", names(.))]), 
-       function(X){
-         any(X < 0)
-       }
-)
 
 ```
