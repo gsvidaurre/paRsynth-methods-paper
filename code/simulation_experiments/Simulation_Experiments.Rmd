@@ -455,7 +455,7 @@ system.time(
         
         if(zeroes > 0){
           
-          # Get the minimum non-zero similarity value in the matrix
+          # Get the minimum non-zero similarity value in the matrix, this should always be 1
           min_vals <- edit_mat[lower.tri(edit_mat)]
           
           sec_min_val <- min(min_vals[min_vals > 0])
@@ -463,7 +463,7 @@ system.time(
           # Initialize a record of what was changed to save to the final results
           zero_notes <- paste(round(zeroes, 8), "% of all edit distance cells or", length(which(edit_mat[lower.tri(edit_mat)] == 0)), "unique comparisons off of the diagonal had an original edit distance value of 0 and were changed to the next minimum edit distance value of", round(sec_min_val/10, 8), sep = " ")
           
-          # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to the next highest similarity value in this matrix
+          # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of the next smallest non-zero value (1)
           edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
           edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
           
