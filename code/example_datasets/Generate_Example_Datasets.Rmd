@@ -1,5 +1,5 @@
 ---
-title: "Create Synthetic Identity Signal Datasets"
+title: "Create Synthetic Vocal Identity Signal Datasets"
 author: Grace Smith-Vidaurre
 output: html_document
 date: "`r format(Sys.time(), '%d %B, %Y')`"
@@ -197,12 +197,12 @@ calls_parsons_frequencies <- frequency_anchors(
   group_id_col = "Group", 
   individual_id_col = "Individual", 
   call_id_col = "Call_ID",
-  call_string_col = "Call", 
+  call_string_col = "Call",
+  section_transition = "starting_frequency",
   starting_frequency = 4000, 
   frequency_shift = 1000
 )
 
-# TKTK there's an issue here in the Parsons code string
 glimpse(calls_parsons_frequencies)
 
 ```
@@ -221,9 +221,7 @@ synthetic_call_metadata_group <- write_audio(
   prefix = "GroupMembership"
 )
 
-# TKTK there's an issue here in the Parsons code string
 glimpse(synthetic_call_metadata_group)
-# View(synthetic_call_metadata_group)
 
 ```
 
@@ -299,7 +297,8 @@ calls_parsons_frequencies <- frequency_anchors(
   group_id_col = "Group", 
   individual_id_col = "Individual", 
   call_id_col = "Call_ID",
-  call_string_col = "Call", 
+  call_string_col = "Call",
+  section_transition = "starting_frequency",
   starting_frequency = 4000, 
   frequency_shift = 1000
 )

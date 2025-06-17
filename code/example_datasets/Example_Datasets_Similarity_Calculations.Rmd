@@ -1,5 +1,5 @@
 ---
-title: "Spectrographic cross-correlation, edit distance"
+title: "Similarity and distance measurements for example datasets"
 author: Grace Smith-Vidaurre
 output: html_document
 date: "`r format(Sys.time(), '%d %B, %Y')`"
@@ -102,12 +102,16 @@ glimpse(synthetic_call_metadata)
 cores <- parallel::detectCores() - 4
 cores
 
-# Find the maximum frequency anchor value across all vocalizations
+# Find the maximum frequency anchor value across all vocalizations in kHz
 freq_cols <- synthetic_call_metadata[, grepl("Frequency", names(synthetic_call_metadata))]
 glimpse(freq_cols)
 
-max_freq <- max(sapply(freq_cols, max))
-max_freq
+max_freq <- max(sapply(freq_cols, max))/1000
+max_freq # 7 kHz
+
+# Set an upper frequency with 0.5 kHz of buffer above the maximum frequency of vocalizations in the dataset. This will be used as the upper limit of the bandpass filter in spectrographic cross-correlation.
+upp_freq <- max_freq + 0.5
+upp_freq # 7.5 kHz
 
 ```
 
@@ -180,19 +184,16 @@ unique(sel_tbl$sampling_rate)
 If the `temperature` argument used by `soundgen` is set to 0 (for no stochasticity in sound generation), then you will need to filter out any calls that have duplicated strings prior to running cross-correlation. Otherwise you will have values of 1 outside of the diagonal representing comparisons among calls of exactly the same structure or duplicates, and multidimensional scaling will fail.
 
 Here SPCC is performed across both synthetic vocalization datasets, so that the acoustic space shown below will be a universal space across figures.
-
-TKTK need to update this code to fix the bandpass filter to upp_freq
-
 ```{r}
 
-# When generating the synthetic vocalizations, increasing the temperature from 0 to 0.025 reduced the number of ones off of the diagonal to 1. I just increased temperature to 0.05 and there was still a single 1 off of the diagonal
-# (max_freq/1000): The maximum frequency in the bandwidth argument was 7 kHz, add 2 kHz for a buffer
-xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, 9), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = audio_path)
+# In preliminary analyses, when generating the synthetic vocalizations, increasing the temperature from 0 to 0.025 and then 0.05 reduced the number of ones off of the diagonal to 1 but didn't completely eliminate them.
+xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, upp_freq), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = audio_path)
 
 str(xc_mat)
 dim(xc_mat)
 
 # Checking, get the percentage of unique values that are negative
+# In preliminary analyses, using the "continuous_trajectory" option to create frequency anchors led to more structural variation in the synthetic datasets, and also a small number of negative values in the SPCC matrix, consistent with the idea that SPCC yields negative values when comparing vocalizations that are very structurally different
 neg_values <- length(xc_mat[xc_mat < 0]) / (dim(xc_mat)[1] * dim(xc_mat)[2])
 neg_values # No negative values, looks good
 
@@ -241,7 +242,7 @@ dim(edit_mat)
 
 # Check for values of 0 off of the diagonal. This will happen by chance when the exact same strings are generated within an individual (even with the random variation, and especially when there are few characters devoted to encoding random variation for within-individual variation).
 zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
-zeroes
+zeroes # [1] 0.1616, 404 comparisons (202 unique)
 
 # hist(edit_mat[lower.tri(edit_mat)])
 
@@ -252,9 +253,9 @@ min_vals <- edit_mat[lower.tri(edit_mat)]
 
 # Then get the smallest non-zero value, which should be 1. Looks good
 sec_min_val <- min(min_vals[min_vals > 0])
-# sec_min_val
+# sec_min_val [1] 1
 
-# Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of 1, the smallest non-zero value in this matrix
+# Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of 1, which will now be the smallest non-zero value in this matrix
 edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
 edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
 
@@ -279,6 +280,9 @@ str(dist_mat)
 # Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is "low" stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
 iso_spcc <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
 str(iso_spcc)
+
+# Stress of the final solution was under 5%
+round(iso_spcc$stress, 2) # 1.85 %
 
 str(iso_spcc$points)
 # View(iso_spcc$points)
@@ -319,6 +323,9 @@ str(dist_mat)
 # Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is "low" stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
 iso_edit <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
 str(iso_edit)
+
+# Stress of the final solution was under 5%
+round(iso_edit$stress, 2) # 3.96 %
 
 # Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
 mds_edit <- data.frame(

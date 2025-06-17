@@ -69,7 +69,7 @@ path <- "~/Desktop" # Grace's path
 ```{r}
 
 # Initialize the directory for analysis on your local computer
-analysis_dir <- "paRsynth_synthetic_experiments"
+analysis_dir <- "paRsynth_simulation_experiments"
 
 # Combine the base path and the data directory into a single path
 analysis_path <- file.path(path, analysis_dir)
@@ -283,7 +283,7 @@ system.time(
           call_string_col = "Call",
           starting_frequency = 4000, 
           frequency_shift = 1000, 
-          section_transition = "continuous_trajectory"
+          section_transition = "starting_frequency"
         )
         
         # glimpse(calls_parsons_frequencies)

@@ -1,5 +1,5 @@
 ---
-title: "Generate spectrogram image files"
+title: "Generate spectrogram image files for example datasets"
 author: Grace Smith-Vidaurre
 output: html_document
 date: "`r format(Sys.time(), '%d %B, %Y')`"
@@ -43,9 +43,9 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+# path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
