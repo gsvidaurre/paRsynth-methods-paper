@@ -53,13 +53,14 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "/Users/summe/OneDrive/Desktop/" #Summer's path
+path <- "/Users/summe/OneDrive/Desktop" #Summer's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 # git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-git_path <- file.path(path, "GitHub_repos") # Grace's path
+# git_path <- file.path(path, "GitHub_repos") # Grace's path
+git_path <- file.path(path, "github_repo") # Summer's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
