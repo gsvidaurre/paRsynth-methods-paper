@@ -54,14 +54,14 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "C:/Users/britt/Desktop" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 
 ###################################################################################
 
@@ -221,20 +221,19 @@ ngrey <- scales::alpha("grey", 0.2)
 
 # Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
 res_summ %>%
-  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = accuracy_method, fill = accuracy_method, shape = accuracy_method)) +
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = accuracy_level, fill = accuracy_level, shape = accuracy_level)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.5, stroke = 0.5, position = position_dodge(width = 0.5), size = 0.75) +
   facet_grid(
-    accuracy_level ~ n_groups,
-    labeller = labeller(accuracy_level = level_labs, n_groups = class_labs)
+    accuracy_method ~ n_groups
   ) +
   scale_y_continuous(limits = c(0, 1.05)) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
   scale_shape_manual(values = shps) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
-  guides(color = guide_legend(title = "Method", override.aes = list(size = 0.8)), fill = guide_legend(title = "Method"),
-         shape = guide_legend(title = "Method")) +
+  guides(color = guide_legend(title = "Cluster Level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Cluster Level"),
+         shape = guide_legend(title = "Cluster Level")) +
   labs(y = "Average accuracy", x = "Proportion of group information") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
