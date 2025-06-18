@@ -20,7 +20,7 @@ Load packages and set paths.
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "tidyverse", "data.table", "gganimate")
+X <- c("devtools", "dplyr", "tidyverse", "data.table", "gganimate", "tuneR")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -60,7 +60,7 @@ path <- "/Users/summe/OneDrive/Desktop" #Summer's path
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 # git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
 # git_path <- "/Users/gracesmith-vidaurre/Desktop/GitHub_repos"
-git_path <- "/Users/summe/OneDrive/Desktop/github_repo" #Summer's path
+git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper/figures" #Summer's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -68,17 +68,22 @@ analysis_dir <- "paRsynth_methods_synthetic_dataset"
 # Combine the base path and the data directory into a single path
 analysis_path <- file.path(path, analysis_dir)
 
+# Specify a folder inside the analysis directory where audio will be written out/read in
+audio_dir <- "audio"
+
+# Combine the base path, the analysis directory, and the audio directory into a single path
+audio_path <- file.path(path, analysis_dir, audio_dir)
+
 # Create the data directory if it doesn't already exist on your computer
 if(!dir.exists(analysis_path)){ 
   dir.create(analysis_path)
 }
 
-# Specify a folder inside the analysis directory where data will be written out/read in
-figure_dir <- "figures"
+# Specify a folder inside the github directory where data will be written out/read in
+figure_dir <- "Fig_1"
 
 # Combine the base path, the analysis directory, and the data directory into a single path
-figure_path <- file.path(path, analysis_dir, figure_dir)
-
+figure_path <- file.path(git_path, figure_dir)
 ```
 
 Read in the synthetic call metadata.
@@ -147,7 +152,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
     panel.grid.minor = element_blank(),
     panel.grid.major = element_blank(),
     # axis.title = element_text(size = 16),
-    axis.text = element_text(size = 16),
+    axis.text = element_text(size = 12),
     axis.title.x = element_blank(),
     axis.title.y = element_blank()
   ) # 
@@ -161,3 +166,63 @@ ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 6.
 
 
 ```
+
+Finally, make a spectrogram of the audio file that corresponds with the call used for this figure
+```{r}
+
+# Set color palette for spectrograms
+gray_colors <- reverse.gray.colors.2(12)
+
+# Read in the audio file, return a wave object
+  tmp_wav <- tuneR::readWave(file.path(audio_path, "GroupMembership_Group1_Indiv1_Call1.wav"))
+  # str(tmp_wav)
+  
+  # Use ggspectro to generate a spectrogram
+  gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
+    
+    # Plot amplitude values or cells in the spectrogram. Interpolation needs to be TRUE and sit outside of the aes() call to smoothen the otherwise very pixelated appearance of the raster
+    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
+    
+    # Control the x-axis aesthetics
+    scale_x_continuous(limits = c(0.08, 0.33), breaks = seq(0.1, 0.3, 0.05), labels = seq(0.1, 0.3, 0.05), expand = c(0, 0)) +
+    
+    # Control the y-axis aesthetics
+    scale_y_continuous(limits = c(0, 9), breaks = seq(0, 8, 2), labels = seq(0, 8, 2), expand = c(0, 0)) +
+    
+    # We want spectrograms to be in grayscale
+    # Change the values of limits to change how colors are assigned across amplitude bins
+    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-35, 10)) +
+    # Create axis labels
+    xlab("Time (s)") +
+    ylab("Frequency (kHz)") +
+    # Use the theme function above to modify the overall plot aesthetics
+    theme(
+      # Use element_blank() to remove grid lines
+      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent"),
+      panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
+      axis.line = element_line(linewidth = 0.15),
+      legend.position = "none",
+      plot.background = element_rect(fill = "white"),
+      # Control the white space around the figure in the resulting image file
+      plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "lines"), # top, right, bottom, left
+      # Uncomment next line to turn off the axis titles, which should remove titles for all 3 axes, including amplitude and the amplitude scale bar
+      # axis.title = element_blank(),
+      # Control the size of the x and y-axis text 
+      axis.text = element_text(size = 12, color = "black", vjust = 0),
+      # Control the size of the axis tick lines
+      axis.ticks = element_line(color = "black", linewidth = 0.15)
+    )
+  
+  # When plots are created inside of an apply loop, you must save the plot as an abject and then explicitly print it so that the plot appears in the graphics device
+  print(gg)
+  
+  # Once the plot is generated in the graphics device, you can save as an an image file on your computer using ggsave()
+  # Substitute the ".wav" extension with the image file extension we will use, with gsub()
+  # gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
+  # The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
+  ggsave(filename = file.path(figure_path, "GroupMembership_Group1_Indiv1_Call1.tiff"), units = "in", width = 6.57, height = 3, dpi = 600)
+```
+

@@ -110,11 +110,14 @@ cores
 
 These eight image files should be used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group membership dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individual identity dataset.
 
+###################################################################
+######## NEED TO UPDATE
 Supplementary figure plans (one for the group membership dataset, one for the individual identity dataset): 
 - Panel A should be edit distance, group-level polygons
 - Panel B should be SPCC, group-level polygons
 - Panel C should be edit distance, individual-level polygons
 - Panel D should be SPCC, individual-level polygons
+#####################################################################
 
 The code in this script and the script to generate acoustic space plots for main figures should specify the same axis limits and breaks across plots for the same dataset and similarity method, but this needs to be checked carefully when assembling the final composite figures. Each composite figure should only have a single legend at the top of the file, and shared x- and y-axis dimensions.
 
@@ -200,7 +203,7 @@ mds_edit_grp %>%
   xlab("") + ylab("") + 
   guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
   # Uncomment this line to turn off the legend
-   guides(color = "none", shape = "none", fill = "none") +
+  guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(-4.75, -1.8), breaks = seq(-4.75, -1.75, 0.5), labels = sprintf("%.2f", round(seq(-4.75, -1.75, 0.5), 2))) +
   scale_y_continuous(limits = c(-4.5, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
