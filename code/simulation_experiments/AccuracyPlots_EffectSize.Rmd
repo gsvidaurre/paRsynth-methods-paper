@@ -25,7 +25,7 @@ rm(list = ls())
 
 # tktk update list
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "pbapply", "stringdist", "tidyverse",  "data.table", "ggpubr", "effsize", "paletter")
+X <- c("devtools", "dplyr", "pbapply", "stringdist", "tidyverse",  "data.table", "ggpubr", "effsize", "paletteer")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -65,7 +65,7 @@ git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # B
 ```{r}
 
 # Initialize the directory for analysis on your local computer
-analysis_dir <- "paRsynth_synthetic_experiments"
+analysis_dir <- "paRsynth_simulation_experiments"
 
 # Combine the base path and the data directory into a single path
 analysis_path <- file.path(path, analysis_dir)
@@ -192,6 +192,7 @@ levels(res_summ_acc$n_groups)
 # Looks good
 unique(res_summ_acc$accuracy_method)
 unique(res_summ_acc$accuracy_level)
+
 ```
 
 ## Plot accuracy scores
