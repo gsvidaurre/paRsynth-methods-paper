@@ -20,7 +20,7 @@ Load packages and set paths.
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "tidyverse", "data.table", "gganimate", "tuneR")
+X <- c("devtools", "dplyr", "tidyverse", "data.table", "gganimate", "tuneR", "warbleR")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -132,7 +132,7 @@ freq_anchors <- data.frame(
   freq_anchors = frequency_anchors,
   # The timestamps should be evenly spaced across the duration of the call, which is the soundgen default
   # We generated calls in the first script that had 200 ms duration
-  time = round(seq(0, 0.2, 0.2/(length(frequency_anchors) - 1)), 3)
+  time = round(seq(0.1, 0.3, 0.2/(length(frequency_anchors) - 1)), 3)
 )
 
 # X-axis is time, y-axis is frequency
@@ -142,8 +142,8 @@ glimpse(freq_anchors)
 Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   # geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
   geom_line(color = "grey24", linetype = "dotted", linewidth = 1) +
-  geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
-  geom_point(size = 3, shape = 19, color = "black") +
+  geom_point(size = 5, shape = 21, color = "black", fill = "grey60", stroke = 1.2) +
+  #geom_point(size = 3, shape = 19, color = "grey56") +
   xlab("Time (s)") +
   ylab("Frequency (kHz)") +
   scale_y_continuous(limits = c(0, 6.2)) +
@@ -174,55 +174,49 @@ Finally, make a spectrogram of the audio file that corresponds with the call use
 gray_colors <- reverse.gray.colors.2(12)
 
 # Read in the audio file, return a wave object
-  tmp_wav <- tuneR::readWave(file.path(audio_path, "GroupMembership_Group1_Indiv1_Call1.wav"))
-  # str(tmp_wav)
+tmp_wav <- tuneR::readWave(file.path(audio_path, "GroupMembership_Group1_Indiv1_Call1.wav"))
+# str(tmp_wav)
+
+# Use ggspectro to generate a spectrogram
+gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
   
-  # Use ggspectro to generate a spectrogram
-  gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
-    
-    # Plot amplitude values or cells in the spectrogram. Interpolation needs to be TRUE and sit outside of the aes() call to smoothen the otherwise very pixelated appearance of the raster
-    geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
-    
-    # Control the x-axis aesthetics
-    scale_x_continuous(limits = c(0.08, 0.33), breaks = seq(0.1, 0.3, 0.05), labels = seq(0.1, 0.3, 0.05), expand = c(0, 0)) +
-    
-    # Control the y-axis aesthetics
-    scale_y_continuous(limits = c(0, 9), breaks = seq(0, 8, 2), labels = seq(0, 8, 2), expand = c(0, 0)) +
-    
-    # We want spectrograms to be in grayscale
-    # Change the values of limits to change how colors are assigned across amplitude bins
-    scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-35, 10)) +
-    # Create axis labels
-    xlab("Time (s)") +
-    ylab("Frequency (kHz)") +
-    # Use the theme function above to modify the overall plot aesthetics
-    theme(
-      # Use element_blank() to remove grid lines
-      panel.grid.major.y = element_blank(),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_rect(fill = "transparent"),
-      panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
-      axis.line = element_line(linewidth = 0.15),
-      legend.position = "none",
-      plot.background = element_rect(fill = "white"),
-      # Control the white space around the figure in the resulting image file
-      plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "lines"), # top, right, bottom, left
-      # Uncomment next line to turn off the axis titles, which should remove titles for all 3 axes, including amplitude and the amplitude scale bar
-      # axis.title = element_blank(),
-      # Control the size of the x and y-axis text 
-      axis.text = element_text(size = 12, color = "black", vjust = 0),
-      # Control the size of the axis tick lines
-      axis.ticks = element_line(color = "black", linewidth = 0.15)
-    )
+  # Plot amplitude values or cells in the spectrogram. Interpolation needs to be TRUE and sit outside of the aes() call to smoothen the otherwise very pixelated appearance of the raster
+  geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
   
-  # When plots are created inside of an apply loop, you must save the plot as an abject and then explicitly print it so that the plot appears in the graphics device
-  print(gg)
+  # Control the x-axis aesthetics
+  scale_x_continuous(limits = c(0.08, 0.33), breaks = seq(0.1, 0.3, 0.05), labels = seq(0.1, 0.3, 0.05), expand = c(0, 0)) +
   
-  # Once the plot is generated in the graphics device, you can save as an an image file on your computer using ggsave()
-  # Substitute the ".wav" extension with the image file extension we will use, with gsub()
-  # gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
-  # The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
-  ggsave(filename = file.path(figure_path, "GroupMembership_Group1_Indiv1_Call1.tiff"), units = "in", width = 6.57, height = 3, dpi = 600)
+  # Control the y-axis aesthetics
+  scale_y_continuous(limits = c(0, 9), breaks = seq(0, 8, 2), labels = seq(0, 8, 2), expand = c(0, 0)) +
+  
+  # We want spectrograms to be in grayscale
+  # Change the values of limits to change how colors are assigned across amplitude bins
+  scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-35, 10)) +
+  # Use the theme function above to modify the overall plot aesthetics
+  theme(
+    # Use element_blank() to remove grid lines
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
+    axis.line = element_line(linewidth = 0.15),
+    legend.position = "none",
+    plot.background = element_rect(fill = "white"),
+    # Control the white space around the figure in the resulting image file
+    plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "lines"), # top, right, bottom, left
+    # Turn off the axis titles, which should remove titles for all 3 axes, including amplitude and the amplitude scale bar
+    axis.title = element_blank(),
+    # Control the size of the x and y-axis text 
+    axis.text = element_text(size = 12, color = "black", vjust = 0),
+    # Control the size of the axis tick lines
+    axis.ticks = element_line(color = "black", linewidth = 0.15)
+  )
+
+# Once the plot is generated in the graphics device, you can save as an an image file on your computer using ggsave()
+# Substitute the ".wav" extension with the image file extension we will use, with gsub()
+# gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
+# The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
+ggsave(filename = file.path(figure_path, "GroupMembership_Group1_Indiv1_Call1.tiff"), units = "in", width = 6.38, height = 3, dpi = 600)
 ```
 
