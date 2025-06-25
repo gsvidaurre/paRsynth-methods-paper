@@ -43,9 +43,9 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "C:/Users/britt/Desktop" # Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
@@ -206,10 +206,10 @@ For the Group Information Dataset, we need to choose 2 calls from 2 individuals 
 Group 2: Individual 4 (calls 1 and 2), Individual 6 (calls 1 and 2)
 Group 3: Individual 1 (calls 3 and 4), Individual 4 (calls 1 and 4)
 
-For the Individual Information Dataset, we need to to choose 2 calls from 2 individuals from Group 1 and Group 2
+For the Individual Identity Dataset, we need to to choose 2 calls from 2 individuals from Group 1 and Group 2
 
 Group 1: Individual 1 (calls 2 and 3), Individual 3 (calls 1 and 2)
-Group 2: Individual 1 (calls 3 and 5), Indivodual 2 (calls 1 and 2)
+Group 2: Individual 1 (calls 3 and 5), Individual 2 (calls 1 and 2)
 
 Make sure to move the selected files to the "lexicon" folder before proceeding with this code. 
 

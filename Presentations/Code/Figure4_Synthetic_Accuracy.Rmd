@@ -57,7 +57,7 @@ Initialize working directories for data and figures.
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
@@ -70,7 +70,7 @@ git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # B
 ```{r}
 
 # Initialize the directory for analysis on your local computer
-analysis_dir <- "paRsynth_synthetic_experiments"
+analysis_dir <- "paRsynth_simulation_experiments"
 
 # Combine the base path and the data directory into a single path
 analysis_path <- file.path(path, analysis_dir)
@@ -826,3 +826,134 @@ ggsave(filename = file.path(git_path, "MSU_EEB_EffectSize_class4_SPCC.tiff"), wi
 
 
 ```
+
+ABS presentation
+```{r}
+
+glimpse(res_summ)
+
+# Make accuracy plot for edit distance
+
+res_summ %>%
+  # Filter by edit distance accuracy values for 4 classes
+  dplyr::filter(
+    n_groups == 2 | n_groups == 8
+  ) %>%
+  # Capitalize the group and individual level labels
+  dplyr::mutate(
+    accuracy_level = gsub("group", "Group", accuracy_level),
+    accuracy_level = gsub("individual", "Individual", accuracy_level)
+  ) %>%
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, shape = 21, size = 1) +
+ facet_grid(
+    accuracy_method ~ n_groups
+  ) +
+  labs(y = "Average Accuracy", x = "Proportion of Group Information") +
+  scale_y_continuous(limits = c(0, 1.05)) +
+  scale_fill_manual(values = c("white", "gray")) +
+  guides(fill = guide_legend(title = "Accuracy Level")) +
+  theme_bw() +
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none",
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
+    strip.background = element_rect(color = "black", fill = "white"),
+    strip.text = element_text(size = 14))
+  )
+
+ggsave(filename = file.path(git_path, "ABS_Accuracy_class2_8.tiff"), width = 12.5, height = 6, units = "in", dpi = 300)
+
+# full n_groups range for supplement graph
+res_summ %>%
+  # Capitalize the group and individual level labels
+  dplyr::mutate(
+    accuracy_level = gsub("group", "Group", accuracy_level),
+    accuracy_level = gsub("individual", "Individual", accuracy_level)
+  ) %>%
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, shape = 21, size = 1) +
+ facet_grid(
+    accuracy_method ~ n_groups
+  ) +
+  labs(y = "Average Accuracy", x = "Proportion of Group Information") +
+  scale_y_continuous(limits = c(0, 1.05)) +
+  scale_fill_manual(values = c("white", "gray")) +
+  guides(fill = guide_legend(title = "Accuracy Level")) +
+  theme_bw() +
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text = element_text(size = 14),
+    # axis.title = element_text(size = 16),
+    legend.position = "none",
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
+    strip.background = element_rect(color = "black", fill = "white"),
+    strip.text = element_text(size = 14))
+  )
+
+ggsave(filename = file.path(git_path, "ABS_Accuracy_allclass.tiff"), width = 12.5, height = 6, units = "in", dpi = 300)
+
+
+# thumbnail size
+
+res_summ %>%
+  # Filter by edit distance accuracy values for 4 classes
+  dplyr::filter(
+    n_groups == 2 | n_groups == 8
+  ) %>%
+  # Capitalize the group and individual level labels
+  dplyr::mutate(
+    accuracy_level = gsub("group", "Group", accuracy_level),
+    accuracy_level = gsub("individual", "Individual", accuracy_level)
+  ) %>%
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
+  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = .25, stroke = .25, shape = 21, size = .33) +
+ facet_grid(
+    accuracy_method ~ n_groups
+  ) +
+  labs(y = "Average Accuracy", x = "Proportion of Group Information") +
+  scale_y_continuous(limits = c(0, 1.05)) +
+  scale_fill_manual(values = c("white", "gray")) +
+  guides(fill = guide_legend(title = "Accuracy Level")) +
+  theme_bw() +
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text = element_text(size = 5),
+    # axis.title = element_text(size = 16),
+    legend.position = "none",
+    # legend.position = "top",
+    # legend.title = element_text(size = 16),
+    # legend.text = element_text(size = 14),
+    strip.background = element_rect(color = "black", fill = "white"),
+    strip.text = element_blank()
+    # strip.text = element_text(size = 5)
+  )
+
+ggsave(filename = file.path(git_path, "ABS_Accuracy_class2_8_thumbnail.tiff"), width = 2.1, height = 2, units = "in", dpi = 300)
+
+```
+
