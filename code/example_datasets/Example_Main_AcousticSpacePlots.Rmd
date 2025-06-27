@@ -53,14 +53,14 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
 # path <- "/Users/summe/OneDrive/Desktop/" #Summer's path
-# path <- "C:/Users/britt/Desktop" # Britt's path
+path <- "C:/Users/britt/Desktop" # Britt's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-git_path <- file.path(path, "GitHub_repos") # Grace's path
+git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
+# git_path <- file.path(path, "GitHub_repos") # Grace's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -179,7 +179,7 @@ mds_edit_grp_filt %>%
   # Below is the legend with Group and Individual labels
   # guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
   # Uncomment this line to turn off the legend
-  # guides(color = "none", shape = "none", fill = "none") +
+  guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(-4.75, -1.8), breaks = seq(-4.75, -1.75, 0.5), labels = sprintf("%.2f", round(seq(-4.75, -1.75, 0.5), 2))) +
   scale_y_continuous(limits = c(-4.5, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
@@ -208,7 +208,7 @@ mds_edit_grp_filt %>%
 ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_edit_GroupMembership_GroupPolygons_legend.tiff"), width = 4.5, height = 2.4, units = "in", dpi = 300)
 
 # Version without legend for figure creation purposes
-# ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 
 ```
 
@@ -237,7 +237,7 @@ mds_spcc_grp_filt %>%
   scale_fill_manual(values = cols_grp_filt) +
   xlab("") + ylab("") + 
   # Below is the legend with Group and Individual labels
-  # guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
   # Uncomment this line to turn off the legend
   guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
@@ -410,7 +410,7 @@ mds_spcc_ind_filt %>%
   scale_fill_manual(values = fills) +
   xlab("") + ylab("") + 
   guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = "none") +
-  # guides(color = "none", shape = "none", fill = "none") +
+  guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(-0.03, 0.42), breaks = seq(-0.03, 0.44, 0.09), labels = sprintf("%.2f", round(seq(-0.03, 0.44, 0.09), 2))) +
   scale_y_continuous(limits = c(-0.3, 0.4), breaks = seq(-0.3, 0.4, 0.1), labels = sprintf("%.2f", round(seq(-0.3, 0.4, 0.1), 2))) +
@@ -435,6 +435,11 @@ mds_spcc_ind_filt %>%
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
+
+# with legend
+ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons_legend.tiff"), width = 4, height = 2.6, units = "in", dpi = 300)
+
+# without legend
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
 ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 

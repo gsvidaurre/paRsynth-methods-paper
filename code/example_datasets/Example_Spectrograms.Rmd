@@ -294,7 +294,7 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
   # Substitute the ".wav" extension with the image file extension we will use, with gsub()
   # gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
   # The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
-  ggsave(filename = file.path(figures_path, gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w])), units = "in", width = 1.4, height = 1.4, dpi = 600)
+  ggsave(filename = file.path(figures_path, gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w])), units = "in", width = 1.4, height = 1.25, dpi = 600)
 }))
 
 ```
