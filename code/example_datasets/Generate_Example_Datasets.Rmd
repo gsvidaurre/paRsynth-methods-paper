@@ -93,8 +93,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ###################### Manually update in every new coding session ##################################
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
