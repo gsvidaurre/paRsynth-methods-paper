@@ -354,8 +354,9 @@ mds_edit_ind_filt %>%
   scale_color_manual(values = cols_grp_filt) +
   scale_fill_manual(values = fills) +
   xlab("") + ylab("") + 
-  # guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = "none") +
-  guides(color = "none", shape = "none", fill = "none") +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1)) +
+         # shape = guide_legend(title = "Individual", nrow = 1), fill = "none") +
+  # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(2.25, 4.5), breaks = seq(2.25, 4.5, 0.5), labels = sprintf("%.2f", round(seq(2.25, 4.5, 0.5), 2))) +
   scale_y_continuous(limits = c(-4.1, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
@@ -381,7 +382,7 @@ mds_edit_ind_filt %>%
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_edit_IndividualIdentity_IndividualPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_edit_IndividualIdentity_IndividualPolygons_legend.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 
 ```
 
