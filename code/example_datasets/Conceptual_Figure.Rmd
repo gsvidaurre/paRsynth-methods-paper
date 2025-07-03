@@ -154,14 +154,17 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
     # axis.title = element_text(size = 16),
     axis.text = element_text(size = 12),
     axis.title.x = element_blank(),
-    axis.title.y = element_blank()
-  ) # 
+    axis.title.y = element_blank(),
+    # Removing numbers and ticks from x axis for figure
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) 
 
 # We will use this image file and it may need to be resized
 # use the ggsave line to save the static plot, as the anim_save line to save the animated plot
 
 # This sizing is being used by Summer for creation of manuscript figure
-ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 6.5, height = 3, dpi = 600)
+ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 6.5, height = 2.8, dpi = 600)
 
 
 
@@ -199,7 +202,7 @@ gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
     panel.grid.major.x = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_rect(fill = "transparent"),
-    panel.border = element_rect(linetype = "solid", fill = NA, color = "grey"),
+    panel.border = element_rect(linetype = "solid", fill = NA, color = "black"),
     axis.line = element_line(linewidth = 0.15),
     legend.position = "none",
     plot.background = element_rect(fill = "white"),
