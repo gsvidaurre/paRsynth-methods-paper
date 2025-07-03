@@ -151,8 +151,9 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   theme(
     panel.grid.minor = element_blank(),
     panel.grid.major = element_blank(),
+    panel.border = element_rect(linetype = "solid", fill = NA, color = "black"),
     # axis.title = element_text(size = 16),
-    axis.text = element_text(size = 12),
+    axis.text = element_text(size = 12, color = "black"),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     # Removing numbers and ticks from x axis for figure
