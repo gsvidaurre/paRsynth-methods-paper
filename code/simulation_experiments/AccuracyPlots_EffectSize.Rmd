@@ -50,10 +50,10 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" #Brittany's path
+path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
@@ -373,7 +373,7 @@ eff_res_level %>%
 # Save the results as a .csv file as well
 eff_res_level %>%
   write.csv(., file = file.path(data_path, "effect_sizes_byLevel.csv"), row.names = FALSE)
-.
+
 ```
 
 ## Third, TKTK make a plot to highlight how effect sizes were calculated. Density plots of the accuracy distributions to highlight how effect sizes were calculated.
