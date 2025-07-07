@@ -872,10 +872,12 @@ res_summ %>%
     # legend.title = element_text(size = 16),
     # legend.text = element_text(size = 14),
     strip.background = element_rect(color = "black", fill = "white"),
-    strip.text = element_text(size = 14)
+    # line below hide facet labels
+    strip.text = element_blank()
+    # strip.text = element_text(size = 14)
   )
 
-ggsave(filename = file.path(git_path, "ABS_Accuracy_class2_8.tiff"), width = 12.5, height = 6, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "ABS_Accuracy_class2_8.tiff"), width = 12.5, height = 5.3, units = "in", dpi = 300)
 
 # full n_groups range for supplement graph
 res_summ %>%
