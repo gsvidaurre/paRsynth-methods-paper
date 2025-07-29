@@ -150,7 +150,7 @@ cols_grp_filt
 
 ```
 
-Create the group membership plots. Edit distance first with a legend.
+Create the group membership plots for edit distance
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -201,6 +201,7 @@ mds_edit_grp_filt %>%
 
 ```
 
+Save edit distance plot
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
@@ -212,7 +213,7 @@ ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_edit_Grou
 
 ```
 
-SPCC next with a legend.
+Create the group membership plots for SPCC
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -261,6 +262,7 @@ mds_spcc_grp_filt %>%
 
 ```
 
+Save SPCC plot
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
@@ -330,7 +332,7 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 
 ```
 
-Edit distance first with a legend.
+Create the individual identity plots for edit distance
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -378,6 +380,7 @@ mds_edit_ind_filt %>%
 
 ```
 
+Save edit distance plots
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
@@ -386,7 +389,7 @@ ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_edit_Indi
 
 ```
 
-SPCC next with a legend.
+Create the individual identity plots for SPCC
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -433,6 +436,7 @@ mds_spcc_ind_filt %>%
 
 ```
 
+Save SPCC plot
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
