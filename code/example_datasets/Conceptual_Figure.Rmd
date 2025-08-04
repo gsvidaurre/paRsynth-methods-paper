@@ -146,7 +146,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   #geom_point(size = 3, shape = 19, color = "grey56") +
   xlab("Time (s)") +
   ylab("Frequency (kHz)") +
-  scale_y_continuous(limits = c(0, 6.2)) +
+  scale_y_continuous(limits = c(2, 7), breaks = seq(2, 7, 2)) +
   theme_bw() +
   theme(
     panel.grid.minor = element_blank(),
@@ -191,7 +191,7 @@ gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
   scale_x_continuous(limits = c(0.08, 0.33), breaks = seq(0.1, 0.3, 0.05), labels = seq(0.1, 0.3, 0.05), expand = c(0, 0)) +
   
   # Control the y-axis aesthetics
-  scale_y_continuous(limits = c(0, 9), breaks = seq(0, 8, 2), labels = seq(0, 8, 2), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(2, 7), breaks = seq(2, 7, 2), labels = seq(2, 7, 2), expand = c(0, 0)) +
   
   # We want spectrograms to be in grayscale
   # Change the values of limits to change how colors are assigned across amplitude bins

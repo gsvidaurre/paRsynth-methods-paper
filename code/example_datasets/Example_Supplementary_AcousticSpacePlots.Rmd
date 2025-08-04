@@ -210,7 +210,8 @@ mds_edit_grp %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 10),
+    axis.text.x = element_text(size = 8.5),
+    axis.text.y = element_text(size = 10),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.ticks = element_line(linewidth = 0.25),
@@ -315,7 +316,8 @@ mds_edit_grp %>%
   theme_bw() +
   theme(
     axis.title = element_text(size = 14),
-    axis.text = element_text(size = 10),
+    axis.text.x = element_text(size = 8.5),
+    axis.text.y = element_text(size = 10),
     strip.text.x = element_text(size = 12),
     strip.text.y = element_text(size = 10),
     panel.grid.major = element_blank(),

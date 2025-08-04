@@ -301,11 +301,11 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
 
 #Step 6: Adding colored borders to spectrogram image files by individual and group
 
-Color Palette should be paletteer ("nationalparkcolors::Arches"): 6 colors with the hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF TKTK need to add this chunk to figure codes so that all figures use the same scheme
+Color Palette should be paletteer ("nationalparkcolors::Arches"): 6 colors with the hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
 
-Add colors by group, and hues within colors indicate individual. The easiest way to create hues will be to use the same hex code for group, but change the transparency using scales::alpha().
+Add colors by group, and hues within colors indicate individual. 
 
-Perform the looping below once per dataset: Group information, then individual information.
+##Step 6.1: Creating colored boarders for the group information dataset. 
 ```{r}
 
 # Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
@@ -340,21 +340,12 @@ img_list <- list(
 # This is a list with 4 elements, each element is a vector of the names of 2 vocalizations for 1 individual in a given group
 str(img_list)
 
-# Square brackets allow you to index objects by a numeric value. But a single pair of square brackets applied to a list doesn't remove the list structur
-# img_list[1] # this is still a list!
+# We're using this list structure because colors correspond to individual information nested inside of group information. Therefore, we also need to specify colors in the same list structure, so we can map the names of vocalizations to the correct group color and individual level hue
 
-# You need to use two pairs of square brackets to extract a vector or another object from a list
-# img_list[[1]] # this is the vector that we want
-
-# To extract a single element from a vector inside of a list, you need to use both double and single brackets
-# This is the type of indexing that we're using below to pull the names of individual vocalizations from the list above
-# img_list[[1]][2] # This notation pulls the second element from the first vector in the list
-
-# We're using this list structure because colors correspond to individual information nested inside of group information. What that means is that we also need to specify colors in the same list structure, so we can map the names of vocalizations to the correct group color and individual level hue
-
-# Let's set Group 1 individuals to the first color (blue) or cols[1] and Group 2 individuals to the second color or cols[2]. Hues per individual within a group should be set using the scales::alpha() function. This vector of colors is a different object than the list above, here there is 1 color specified per individual
+# Set Group 1 individuals to the first color or cols[1] and Group 2 individuals to the second color or cols[2]. Hues per individual within a group should be set using the scales::alpha() function. This vector of colors is a different object than the list above, here there is 1 color specified per individual
 
 # Using scales::alpha(cols[1], alpha = 0.25) to set a lighter color for the second individual per group did not work, it seems that image_border() doesn't discriminate between the original color and the transparent version. We used the rgb values of the original color per palette to make a darker version of each color so as to better discriminate unique individuals in the lexicon. These colors should also be added to acoustic space plots.
+
 dark_col1 <- rgb(
     (col2rgb(cols[2]) - 80)[["red", 1]],
     (col2rgb(cols[2]) - 80)[["green", 1]],
@@ -417,7 +408,7 @@ invisible(pblapply(1:length(img_list), function(i){
 
 ```
 
-Repeat this process for the individual information dataset.
+##Step 6.2: Creating colored boarders for the individual identity dataset. 
 ```{r}
 
 # Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
