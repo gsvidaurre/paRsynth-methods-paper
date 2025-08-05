@@ -115,6 +115,14 @@ res <- data.table::rbindlist(pblapply(1:length(files), function(n){
 
 glimpse(res)
 
+# Were any SPCC values found to be negative?
+# Were there any values of 1 off of the diagonal in the SPCC matrices?
+# unique(res$notes)
+
+# There are no notes about any issues found in the SPCC matrices. All notes are about replacing values of 1 off of the diagonal in the edit distance matrix, looks good
+length(grep("SPCC", res$notes))
+length(grep("edit", res$notes)) + length(grep("^; ; $", res$notes)) == length(res$notes)
+
 # View(res)
 
 # Check that there are no accuracy values above 1, looks good
