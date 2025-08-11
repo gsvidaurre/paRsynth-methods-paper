@@ -177,9 +177,9 @@ mds_edit_grp_filt %>%
   # Below is the legend for individual labels only (for figure creation)
   guides(color = "none", shape = guide_legend(title = "Individual", nrow = 1, override.aes = list(size = 2)), fill = "none") +
   # Below is the legend with Group and Individual labels
-  # guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
+  guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
   # Uncomment this line to turn off the legend
-  guides(color = "none", shape = "none", fill = "none") +
+  # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(-4.75, -1.8), breaks = seq(-4.75, -1.75, 0.5), labels = sprintf("%.2f", round(seq(-4.75, -1.75, 0.5), 2))) +
   scale_y_continuous(limits = c(-4.5, 4), breaks = seq(-4, 4, 1), labels = sprintf("%.2f", round(seq(-4, 4, 1), 2))) +
@@ -240,7 +240,7 @@ mds_spcc_grp_filt %>%
   # Below is the legend with Group and Individual labels
   guides(color = guide_legend(title = "Group", override.aes = list(size = 3), order = 1), shape = guide_legend(title = "Individual", nrow = 1), fill = guide_legend(title = "Group", order = 1)) +
   # Uncomment this line to turn off the legend
-  guides(color = "none", shape = "none", fill = "none") +
+  # guides(color = "none", shape = "none", fill = "none") +
   # Specify the x and y-axis limits and breaks. Make sure that each label retains two decimal places even when there is a trailing zero
   scale_x_continuous(limits = c(-0.35, 0), breaks = seq(-0.35, 0, 0.05), labels = sprintf("%.2f", round(seq(-0.35, 0, 0.05), 2))) +
   scale_y_continuous(limits = c(-0.35, 0.25), breaks = seq(-0.35, 0.25, 0.1), labels = sprintf("%.2f", round(seq(-0.35, 0.25, 0.1), 2))) +
