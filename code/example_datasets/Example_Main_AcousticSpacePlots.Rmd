@@ -9,7 +9,7 @@ Purpose: Here we use build acoustic space plots for main figures. Acoustic space
 
 ```{r setup, include = FALSE}
 
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE)
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE, root.dir = "~/Desktop")
 
 ```
 
@@ -54,13 +54,13 @@ Initialize working directories for data on your local machine.
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "/Users/summe/OneDrive/Desktop/" #Summer's path
-path <- "C:/Users/britt/Desktop" # Britt's path
+# path <- "C:/Users/britt/Desktop" # Britt's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-# git_path <- file.path(path, "GitHub_repos") # Grace's path
+# git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
+git_path <- file.path(path, "GitHub_repos") # Grace's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -150,7 +150,7 @@ cols_grp_filt
 
 ```
 
-Create the group membership plots for edit distance
+Create the group membership plots for edit distance.
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -201,7 +201,7 @@ mds_edit_grp_filt %>%
 
 ```
 
-Save edit distance plot
+Save edit distance plot.
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
@@ -213,7 +213,7 @@ ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_edit_Grou
 
 ```
 
-Create the group membership plots for SPCC
+Create the group membership plots for SPCC.
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -262,7 +262,7 @@ mds_spcc_grp_filt %>%
 
 ```
 
-Save SPCC plot
+Save SPCC plot.
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
@@ -332,7 +332,7 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 
 ```
 
-Create the individual identity plots for edit distance
+Create the individual identity plots for edit distance.
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -380,7 +380,7 @@ mds_edit_ind_filt %>%
 
 ```
 
-Save edit distance plots
+Save edit distance plots.
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
@@ -389,7 +389,7 @@ ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_edit_Indi
 
 ```
 
-Create the individual identity plots for SPCC
+Create the individual identity plots for SPCC.
 ```{r}
 
 # Filter the MDS coordinates by the two groups that will be shown in these plots
@@ -436,15 +436,15 @@ mds_spcc_ind_filt %>%
 
 ```
 
-Save SPCC plot
+Save SPCC plot.
 ```{r, eval = FALSE}
 
 # Save this plot as an image file
 
-# with legend
+# With legend
 ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons_legend.tiff"), width = 4, height = 2.6, units = "in", dpi = 300)
 
-# without legend
+# Without legend
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
 ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 
