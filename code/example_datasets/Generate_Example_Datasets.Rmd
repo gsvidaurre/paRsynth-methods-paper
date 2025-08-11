@@ -44,6 +44,21 @@ invisible(lapply(X, library, character.only = TRUE))
 
 ```
 
+```{r load packages, eval = FALSE}
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
 Initialize working directories for data on your local machine.
 ```{r}
 

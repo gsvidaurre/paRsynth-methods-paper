@@ -5,9 +5,9 @@ output: html_document
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
-Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced 
+Purpose: The following code was designed to test the behavior of functions written to generate synthetic vocalizations that emphasize either individual identity or group membership information. These functions generate individually distinctive or group-specific character strings that are converted to Parson's code and then audio files of frequency-modulated vocalizations using the `soundgen` package. The loops below iterate over varying ratios of how much of the initial character string is allocated to shared group membership versus unique individual identity. The output of each loop is the accuracy of the original classes at both the individual and group levels compared to cluster labels obtained from clustering with Gaussian mixture models (performed on multidimensional scaling variables generated from the edit distance obtained from character string comparisons or the spectrographic cross-correlation (SPCC) matrix obtained from comparing synthetic acoustic signals). We can use accuracy as a metric here because class sizes are evenly balanced.
 
-Below we iterate over dataset sizes (simulating less or more crowded signaling environents) and group versus individual information encoding in character strings that we expect to influence the distinctiveness or uniqueness synthetic vocalizations at either social level. 
+Below we iterate over dataset sizes (simulating less or more crowded signaling environments) and group versus individual information encoding in character strings that we expect to influence the distinctiveness or uniqueness synthetic vocalizations at either social level. 
 
 The pipeline below will allow us to indirectly address or compare how much information about group membership versus individual identity is contained in patterns of acoustic variation across character strings and their corresponding synthetic vocalizations that represent vocal identity signals. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific, the percentage of original individual-level labels recovered by clustering should be high, but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about group membership.
 
@@ -18,13 +18,15 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 ```
 
 Load packages and set cores.
-```{r}
+```{r warnings = FALSE, messages = FALSE}
 
 # Clean the global environment
 rm(list = ls())
 
+# TKTK Need to finalize lead coder review!!!
+
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "aricode", "Rmisc", "warbleR", "stringdist", "mclust", "combinat", "ggpubr", "paletteer", "effsize")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "Rmisc", "warbleR", "stringdist", "mclust", "combinat")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -43,11 +45,23 @@ invisible(lapply(1:length(X), function(x){
 # Add paRsynth to the list of packages to load
 # X <- c(X, "paRsynth")
 
-# Load all of the packages specified above
-invisible(lapply(X, library, character.only = TRUE))
-
 # Set cores for parallel processing
 cores <- parallel::detectCores() - 4
+
+```
+
+```{r load packages, eval = FALSE}
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
 
 ```
 
@@ -57,16 +71,16 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
+path <- "~/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" #Brittany's path
 
 ###################################################################################
 
 ```
 
-```{r}
+```{r eval = FALSE}
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_simulation_experiments"
@@ -104,11 +118,131 @@ if(!dir.exists(figure_path)){
 ```
 
 Source custom functions for this manuscript.
-```{r}
+```{r eval = FALSE}
 
 # Load custom functions for the code below
 # This line of code loads a function to calculate the maximum global accuracy of clustering by finding and calculating accuracy across all bipartite matchings (matchings between original class labels and predicted cluster labels)
 source(file.path(path, "GitHub_repos/paRsynth-methods-paper/code/functions/accuracy_score.R"))
+
+```
+
+```{r echo = FALSE, eval = TRUE}
+
+# Load the bipartite mapping function in a separate chunk because RMarkdown knitting continues to fail with the source call() above.
+
+# Created: Vanessa Ferdinand
+# Updated: Grace Smith-Vidaurre
+
+########################################################################
+# overview:
+
+# find_best_mapping() finds the best mapping of true labels to inferred labels
+# and then calculates the percentage of rows in your dataframe that follow that mapping.
+# that percentage is the "accuracy score" you're looking for.
+
+########################################################################
+# for testing the function: create a demo dataframe
+
+# k <- 10
+# true_label <- c(rep(seq(1:k),10))
+# inferred_label <- sample(c(rep(letters[1:k],10)))
+# signal <- seq(1:length(true_label))
+# 
+# df <- data.frame(signal,true_label,inferred_label)
+# head(df)
+# nrow(df)
+# 
+# table(df$true_label)
+# table(df$inferred_label)
+
+########################################################################
+# how many unique sets of mappings are there between the true and inferred labels?
+# we need to calculate the number of bipartite combinations (i.e. "matchings")
+
+# given a bipartite graph, a "matching" is a subset of the edges 
+# for which every vertex belongs to exactly one of the edges
+
+# we want to calculate the accuracy score for every "matching"
+# and select the matching with the best accuracy score
+# to be the "best matching"
+
+# when you have k true labels and k inferred labels
+# there are k! bipartite matchings that this code will compute an accuracy for
+# (draw the tree yourself and you'll see why it's a factorial)
+# factorial(k)
+# hot tip: check how big this number is before you run the code!
+
+# input: a dataframe with columns named true_label and inferred_label
+# output: a list in the following order
+# 1) the best mapping
+# 2) the accuracy of that mapping (i.e. maximum accuracy found)
+# 3) the list of accuracies computed for each mapping
+find_best_mapping <- function(df) {
+  # get the set of true labels and the set of inferred labels
+  true_label_set <- sort(unique(df$true_label))
+  inferred_label_set <- sort(unique(df$inferred_label))
+  
+  # generate all possible mappings between the two sets of labels
+  # the ith inferred label maps to the ith label in true_label_set
+  mappings <- combinat::permn(inferred_label_set)
+  # mappings
+  
+  # this calculation only works when the two labels sets are the same size
+  if (length(true_label_set) != length(inferred_label_set)) { 
+    warning(print("The number of labels in the true set and the inferred set are not the same!")) 
+  }
+  
+  x <- length(true_label_set)
+  n <- factorial(x)
+  print(paste("checking",n,"mappings"))
+  
+  # for each mapping, calculate the accuracy
+  accs <- c()
+  for (i in 1:length(mappings)) {
+    # if (i %% 100==0) { print(paste(i,"of",n)) }  # print progress every 100th iteration
+    # if (i == n) { print("done")}
+    
+    # put the count of each label pair in matrix format
+    tab <- table(df$true_label,df$inferred_label)
+    
+    # order the table by the current mapping 
+    # so the diagonal will contain the counts for this mapping
+    tab <- tab[true_label_set,mappings[[i]]]
+    
+    # accuracy is the % of rows in the df that follows the mapping
+    hits <- sum(diag(tab))
+    accuracy <- hits/sum(tab)
+    
+    accs[i] <- accuracy
+  }
+  
+  # if there was a single maximum accuracy, then return the maximum accuracy
+  if(length(which(accs == max(accs))) == 1){
+    
+    best <- mappings[[which(accs == max(accs))]]
+    
+  # if there were ties for the maximum accuracy, then randomly sample the mappings from among these ties
+  } else {
+    
+    wh <- which(accs == max(accs))
+    best <- mappings[[sample(wh, size = 1)]]
+    
+  }
+  
+  best_mapping <- rbind(true_label_set,best)
+  
+  row.names(best_mapping) <- c("true label","inferred label")
+  
+  return(list(best_mapping = best_mapping, maximum_accuracy = max(accs), accuracies = accs))
+}
+
+# example usage:
+# find_best_mapping(df)
+# system.time(find_best_mapping(df))
+
+# btw I think the best mapping calculated in this way is guaranteed to be the
+# one with the highest mutual information between true labels and inferred labels
+# I wanna check that later (and for cases where k differs between true and inferred)
 
 ```
 
@@ -118,8 +252,8 @@ Source the paRsynth functions directly from the GitHub repository.
 ###################### Manually update in every new coding session ##################################
 
 # Brittany's path should include "GitHub/paRsynth"
-repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-# repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "~/Desktop/GitHub_repos/paRsynth/R"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -149,7 +283,7 @@ In the code below, I handled negative SPCC values by setting these to the minimu
 How well can we recover the information that was originally encoded over two social levels? Here we generate synthetic vocal identity signals over varying social environment characteristics and information encoding rules. Then we use the prediction accuracy of original labels by clustering algorithms (performed on MDS feature spaces derived from the edit distance computed amongst strings and spectrographic cross-correlation computed amongst synthetic vocalizations) to ask how well we "recovered" information encoded at the group and individual levels.
 
 Iterate over each treatment a number of times so that we can calculate a 95% confidence interval around each accuracy calculations. In the looping structure below, a selection table is made and the edit distance and SPCC are performed each time a new call dataset is generated. Audio files are written to a directory associated with the project and removed before initiating the subsequent iteration. The duration of the audio files significantly impacts the computational time (files over 400 ms take a long time to generate). Also, long strings written to short duration audio files do not sound or look biologically relevant, so we are using a short string length below. The number of calls that will be compared by the edit distance and SPCC also increases computational time, as well as the number of treatments (social conditions, information encoding) and the number of iterations per treatment.
-```{r}
+```{r eval = FALSE}
 
 #################### Information encoding and social environment treatments #################### 
 
@@ -217,10 +351,10 @@ string_length # 16
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
 iteratns <- 10
-# iteratns <- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
-# z <- 2 # number of groups and individuals, or social conditions, as well as the number of calls per individual
+# These are the parameters that can be used for internal code review by team members to test if the code is working for separate treatment combinations. After updating the iterating variables below, go to line 375 and run the code from there. Do not run starting on line 365 or you'll run the whole loop. This is in addition to the fine-scale code review line by line.
+# z <- 1 # number of groups and individuals, or social conditions, as well as the number of calls per individual
 # i <- 1 # information encoding treatments
 # n <- 1 # replicates or iterations
 
