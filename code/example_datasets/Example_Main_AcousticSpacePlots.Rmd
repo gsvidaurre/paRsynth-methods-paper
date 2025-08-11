@@ -82,12 +82,25 @@ figures_path <- file.path(git_path, figures_dir)
 ```
 
 Read in the synthetic call metadata, and MDS coordinates. Set cores for parallel processing.
-```{r}
+```{r eval = FALSE}
 
 synthetic_call_metadata <- read.csv(file.path(analysis_path, "synthetic_call_metadata.csv"))
 glimpse(synthetic_call_metadata)
 
 mds_coords <- read.csv(file.path(analysis_path, "MDS_coordinates.csv"))
+glimpse(mds_coords)
+
+cores <- parallel::detectCores() - 4
+cores
+
+```
+
+```{r echo = FALSE, eval = TRUE}
+
+synthetic_call_metadata <- read.csv("/Users/gsvidaurre/Desktop/paRsynth_methods_synthetic_dataset/synthetic_call_metadata.csv")
+glimpse(synthetic_call_metadata)
+
+mds_coords <- read.csv("/Users/gsvidaurre/Desktop/paRsynth_methods_synthetic_dataset/MDS_coordinates.csv")
 glimpse(mds_coords)
 
 cores <- parallel::detectCores() - 4
