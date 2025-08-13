@@ -116,7 +116,7 @@
        transform="translate(-12.539144,0.25166001)"><tspan
          x="64.33197"
          y="6.6403198"
-         id="tspan1">Selected individually distinctive spectrograms</tspan></text><text
+         id="tspan10">Selected individually distinctive spectrograms</tspan></text><text
        xml:space="preserve"
        style="font-size:4.23333px;font-family:Arial;-inkscape-font-specification:Arial;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;white-space:pre;inline-size:93.2334;display:inline;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
        x="33.945221"
@@ -125,7 +125,7 @@
        transform="translate(70.319427,0.24117923)"><tspan
          x="33.945221"
          y="6.6403198"
-         id="tspan2">Acoustic spaces of five out of ten individuals</tspan></text><image
+         id="tspan11">Acoustic spaces of five out of ten individuals</tspan></text><image
        width="95.25"
        height="66.040001"
        preserveAspectRatio="none"
@@ -141,7 +141,7 @@
        transform="translate(68.944221,82.879165)"><tspan
          x="33.945221"
          y="6.6403198"
-         id="tspan7">Spectrographic Cross Correlation</tspan></text><text
+         id="tspan12">Spectrographic Cross Correlation</tspan></text><text
        xml:space="preserve"
        style="font-size:4.23333px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
        x="141.16197"
@@ -212,9 +212,9 @@
        transform="translate(68.793025,12.540152)"><tspan
          x="33.945221"
          y="6.6403198"
-         id="tspan9"><tspan
+         id="tspan14"><tspan
            style="font-size:3.88056px;font-family:Sans;-inkscape-font-specification:'Sans, Normal'"
-           id="tspan8">Edit Distance</tspan></tspan></text><text
+           id="tspan13">Edit Distance</tspan></tspan></text><text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
        x="98.626831"
@@ -231,7 +231,7 @@
        height="8.3705769"
        x="11.478044"
        y="11.689712" /><rect
-       style="fill:#f6955e;fill-opacity:1;stroke:#a6450e;stroke-width:0.747658;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:#f8b186;fill-opacity:1;stroke:#a6450e;stroke-width:0.747658;stroke-dasharray:none;stroke-opacity:1"
        id="rect6-1"
        width="34.812344"
        height="8.3729191"

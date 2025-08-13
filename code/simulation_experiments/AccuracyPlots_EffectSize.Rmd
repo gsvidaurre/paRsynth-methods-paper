@@ -189,6 +189,11 @@ res_summ_acc <- res %>%
     n_groups = factor(n_groups),
     # Convert the x-axis column to factor to control axis ticks
     group_information_proportion = factor(round(group_information_proportion, 2))
+  )  %>% 
+  # change "group" and individual to be capalized
+  dplyr::mutate(
+    accuracy_level = str_replace(accuracy_level, "group", "Group"),
+    accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
   )
 
 # There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows, looks good
@@ -219,10 +224,6 @@ shps <- c(21, 24) # Encode accuracy method by shape. See the points function for
 class_labs <- c("Classes: 2", "Classes: 4", "Classes: 6", "Classes: 8")
 names(class_labs) <- c("2", "4", "6", "8")
 
-# Renaming the Accuracy Information Level labels
-level_labs <- c("Group-level accuracy", "Individual-level accuracy")
-names(level_labs) <- c("group", "individual")
-
 # Renaming the Accuracy Method labels
 method_labs <- c("edit distance", "SPCC")
 names(method_labs) <- c("edit", "SPCC")
@@ -246,7 +247,7 @@ res_summ_acc %>%
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
   guides(color = guide_legend(title = "Social level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Social level"),
          shape = guide_legend(title = "Social level")) +
-  labs(y = "Average accuracy", x = "Proportion of group information") +
+  labs(y = "Accuracy and 95% CI", x = "Proportion of group information") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
@@ -436,12 +437,13 @@ res_density_values <- res %>%
     tmp = gsub(pattern = "_mean", replace = "", tmp)
   ) %>%
   # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
-  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>% 
-  # Change social level labels to be capitalized
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>%
+  # change "group" and individual to be capalized
   dplyr::mutate(
-    accuracy_level = gsub("group", "Group", accuracy_level),
-    accuracy_level = gsub("individual", "Individual", accuracy_level)
+    accuracy_level = str_replace(accuracy_level, "group", "Group"),
+    accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
   )
+
 
 glimpse(res_density_values)
 
@@ -451,10 +453,15 @@ means <- res_density_values %>%
   group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>%
   dplyr::summarize(
     mean_val = mean(accuracy_measurements)
-  ) %>%
+  ) %>% 
   dplyr::select(
     accuracy_level, accuracy_method, n_groups, group_information_proportion, mean_val
   ) %>%
+  # change "group" and individual to be capalized
+  dplyr::mutate(
+    accuracy_level = str_replace(accuracy_level, "group", "Group"),
+    accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
+  )
   ungroup()
 
 glimpse(means)
@@ -529,7 +536,7 @@ res_density_values %>%
   scale_alpha_manual(values = c(1, 0.5)) +
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
   guides(color = guide_legend(title = "Social level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Social level"), alpha = "none") +
-  labs(y = "Density of accuracy values at either social social", x = "Accuracy measurements") +
+  labs(y = "Density of accuracy values at either social level", x = "Accuracy values") +
   theme_bw() +
   # Remove gridlines using theme() and change the background color of the strip labels
   # Place legend on the top
@@ -537,7 +544,7 @@ res_density_values %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text = element_text(size = 10),
+    axis.text = element_text(size = 8),
     axis.title = element_text(size = 11),
     legend.position = "top",
     legend.title = element_text(size = 10),
