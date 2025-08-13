@@ -50,14 +50,14 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (we may need a separate base path per user)
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
+# path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-# git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 ###################################################################################
 
 ```
@@ -340,6 +340,8 @@ print(ggpubr::ggqqplot(res_summ_eff$accuracy_individual_measurements))
 ```
 
 ## Second, calculate effect sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods
+
+Note that the effect size calculations below throw a warning about fully disjoint distributions. This is an expected error when two distributions of accuracy values have no overlap, which did occur in some of our experimental treatments.
 ```{r}
 
 # Start with data frame "res_sum_eff" created above
@@ -358,23 +360,6 @@ eff_res_level <- res_summ_eff %>%
     eff_CI_lower = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["lower"]],
     eff_magnitude = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["magnitude"]]
   ) 
-
-# This code prints the following warning message, which we investigate below:
-
-# Warning message:
-# There were 60 warnings in `dplyr::reframe()`.
-# The first warning was:
-# ℹ In argument: `eff_delta = ...[[]]`.
-# ℹ In group 8: `n_groups = 2`, `group_information_proportion = 1`,
-#   `accuracy_method = "edit"`.
-# Caused by warning in `cliff.delta.default()`:
-# ! The samples are fully disjoint, using approximate Confidence Interval estimation
-# ℹ Run dplyr::last_dplyr_warnings() to see the 59 remaining
-#   warnings. 
-# This code throws several warnings:
-# Running dplyr::last_dplyr_warnings() shows that this warning pops up for many other effect size calculations too, like group 17: `n_groups = 6`, `group_information_proportion = 0`,
-  # `accuracy_method = "SPCC"`.
-# See below for our investigation of these warnings
 
 glimpse(eff_res_level)
 
@@ -416,7 +401,7 @@ names(method_labs) <- c("edit", "SPCC")
 prop_labs <- c("Proportion of\n group information: 0", "0.33", "0.67", "1")
 names(prop_labs) <- unique(res$group_information_proportion)
 
-# Aaking this in case we want to make the facet background a very very light grey
+# Making this in case we want to make the facet background a very very light grey
 ngrey <- scales::alpha("grey", 0.1)
 
 glimpse(res)
@@ -444,7 +429,6 @@ res_density_values <- res %>%
     accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
   )
 
-
 glimpse(res_density_values)
 
 # Generate means for vertical dashed lines
@@ -461,7 +445,7 @@ means <- res_density_values %>%
   dplyr::mutate(
     accuracy_level = str_replace(accuracy_level, "group", "Group"),
     accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
-  )
+  ) %>% 
   ungroup()
 
 glimpse(means)
@@ -544,6 +528,7 @@ res_density_values %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
+    panel.spacing.x = unit(0.75, "lines"),
     axis.text = element_text(size = 8),
     axis.title = element_text(size = 11),
     legend.position = "top",
@@ -555,8 +540,8 @@ res_density_values %>%
     strip.background = element_rect(color = "black", fill = ngrey)
   )
 
-# save as tiff file
-ggsave(filename = file.path(git_path, "AccuracyDensityPlots_EffectSizes.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+# Then object git_path contains the figures directory already
+ggsave(filename = file.path(git_path, "Fig_5", "AccuracyDensityPlots_EffectSizes.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
 ```
 
@@ -655,7 +640,7 @@ res_density_values %>%
     strip.background = element_rect(color = "black", fill = ngrey)
   )
 
-# save as tiff file
+# Save as tiff file. Then object git_path contains the figures directory already
 ggsave(filename = file.path(git_path, "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
 
 ```
