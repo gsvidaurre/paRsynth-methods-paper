@@ -836,9 +836,9 @@ glimpse(res_summ)
 
 res_summ %>%
   # Filter by edit distance accuracy values for 4 classes
-  dplyr::filter(
-    n_groups == 2 | n_groups == 8
-  ) %>%
+  # dplyr::filter(
+    # n_groups == 2 | n_groups == 8
+  # ) %>%
   # Capitalize the group and individual level labels
   dplyr::mutate(
     accuracy_level = gsub("group", "Group", accuracy_level),
@@ -849,7 +849,7 @@ res_summ %>%
   ) %>% 
   ggplot(aes(x = group_information_proportion, y = mean_accuracy, fill = accuracy_level)) +
   # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
-  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.85, stroke = 0.85, shape = 21, size = 1) +
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 2.5, stroke = 2.5, shape = 21, size = 2.5) +
  facet_grid(
     accuracy_method ~ Classes, labeller = labeller(.cols = label_both)
   ) +
@@ -865,7 +865,7 @@ res_summ %>%
     panel.background = element_blank(),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
-    axis.text = element_text(size = 14),
+    axis.text = element_text(size = 28),
     # axis.title = element_text(size = 16),
     legend.position = "none",
     # legend.position = "top",
@@ -877,7 +877,7 @@ res_summ %>%
     # strip.text = element_text(size = 14)
   )
 
-ggsave(filename = file.path(git_path, "ABS_Accuracy_class2_8.tiff"), width = 12.5, height = 5.3, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "ABS_Accuracy_class2_8.tiff"), width = 22, height = 9, units = "in", dpi = 300)
 
 # full n_groups range for supplement graph
 res_summ %>%
