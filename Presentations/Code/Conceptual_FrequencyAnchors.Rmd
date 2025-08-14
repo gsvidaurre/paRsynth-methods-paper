@@ -140,7 +140,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   # geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
   geom_line(color = "grey24", linetype = "dotted", linewidth = 1) +
   geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
-  geom_point(size = 3, shape = 19, color = "black") +
+  geom_point(size = 3, shape = 19, color = "#F6955EFF") +
   xlab("Time (s)") +
   ylab("Frequency (kHz)") +
   scale_y_continuous(limits = c(0, 6.2)) +
@@ -182,7 +182,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   # geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
   geom_line(color = "grey24", linetype = "dotted", linewidth = 1) +
   geom_point(aes(group = seq_along(time)), shape = 21, size = 8, color = scales::alpha("#F6955EFF")) +
-  geom_point(size = 3, shape = 19, color = "black") +
+  geom_point(size = 3, shape = 19, color = "F6955EFF") +
   xlab("Time (s)") +
   ylab("Frequency (kHz)") +
   scale_y_continuous(limits = c(0, 6.2)) +
@@ -268,6 +268,93 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
 # this sizing is for use in a powerpoint presentation
 gganimate::animate(Freq_anch_plot, units = "in", height = 3.5, width = 12.5, res = 300)
 gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch_GIF.gif"))
+
+# resizing for thumbnail
+Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
+  geom_line(color = scales::alpha("#A8CDECFF"), linewidth = .8) +
+  # Turn on the line below for the animation of the graph, turn off for the static version
+  # geom_point(aes(group = seq_along(time)), size = 1.25, color = scales::alpha("#F6955EFF")) +
+  # Turn on the line below for the static graph image, turn off for animated version
+  geom_point(size = 5, color = scales::alpha("#F6955EFF")) +
+  xlab("Time (s)") +
+  ylab("Frequency (kHz)") +
+  scale_y_continuous(limits = c(0, 7)) +
+  theme_bw() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    # axis.title = element_text(size = 16),
+    axis.text = element_text(size = 8),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  gganimate::transition_reveal(time)
+
+# resizing for small thumbnail
+gganimate::animate(Freq_anch_plot, units = "in", height = 2, width = 2.1, res = 300)
+gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch_GIF_thumbnail.gif"))
+
+```
+
+Brittany making for DISC poster presentation:
+```{r}
+
+# Create a data frame of the frequency anchors plus timestamps
+freq_anchors <- data.frame(
+  freq_anchors = frequency_anchors,
+  # The timestamps should be evenly spaced across the duration of the call, which is the soundgen default
+  # We generated calls in the first script that had 200 ms duration
+  time = round(seq(0, 0.2, 0.2/(length(frequency_anchors) - 1)), 3)
+)
+
+# X-axis is time, y-axis is frequency
+glimpse(freq_anchors)
+
+# Make a graphic of the frequency anchors plus a line through them STATIC
+Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
+  # geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
+  geom_line(color = "grey50", linetype = "dotted", linewidth = 1) +
+  geom_point(size = 4, shape = 19, color = "#9B6981FF") +
+  xlab("Time (s)") +
+  ylab("Frequency (kHz)") +
+  scale_y_continuous(limits = c(0, 6.2)) +
+  theme_bw() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    # axis.title = element_text(size = 16),
+    axis.text = element_text(size = 16),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  ) 
+
+# We will use this image file and it may need to be resized
+# use the ggsave line to save the static plot, as the anim_save line to save the animated plot
+# This sizing is being used by Summer for creation of manuscript figure
+ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 5.5, height = 3.2, dpi = 600)
+
+# Make a graphic of the frequency anchors plus a line through them
+Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
+  geom_line(color = scales::alpha("black"), linetype = "dotted", linewidth = 2) +
+  geom_point(aes(group = seq_along(time)), size = 8, color = scales::alpha("#9B6981FF")) +
+  xlab("Time (s)") +
+  ylab("Frequency (kHz)") +
+  scale_y_continuous(limits = c(0, 6.2)) +
+  theme_bw() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    # axis.title = element_text(size = 16),
+    axis.text = element_text(size = 16),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  ) 
+  # gganimate::transition_reveal(time)
+
+# We will use this image file and it may need to be resized
+# this sizing is for use in a powerpoint presentation
+gganimate::animate(Freq_anch_plot, units = "in", height = 3.5, width = 12.5, res = 300)
+gganimate::anim_save(file.path(figure_path, "Concept_FreqAnch.gif"))
 
 # resizing for thumbnail
 Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
