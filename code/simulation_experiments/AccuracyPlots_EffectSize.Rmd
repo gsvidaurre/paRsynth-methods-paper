@@ -1,19 +1,19 @@
 ---
-title: "Information Encoding Experiments - Effect Size Calculations"
-author: "Grace Smith-Vidaurre, Brittany Coppinger, others"
+title: "Information Encoding Experiments - Accuracy Visualization and Effect Size Calculations"
+author: "Brittany Coppinger, Grace Smith-Vidaurre, others"
 output: html_document
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
-TKTK calculating effect size and plotting accuracy and density plots. 
+Purpose: The following code was designed to visualize the accuracy scores of information detection at each social level for each combination of group information proportion and social class treatment, for both SPCC and edit distance measures. Additionally, this code calculates the effect sizes of accuracy comparisons between social levels for each combinations of treatments, then visualizes those effect sizes. 
 
-Purpose: The following code was designed to visualize the accuracy of SPCC and Edit distance calculations across the various experimental treatments. 
-  First, the code creates a figure (TKTK figure XX in manuscript) that visualizes accuracy scores. This figure uses output from the script TKTK "Synthetic_Experiments"to create a data frame which is used to create plots of average accuracy for SPCC and Edit methods by Group Info Proportion and Social Environment Treatments. Plots are separate for information level (group or individual).
-  Second, this code calculates Cliff's Delta Effect Size for Group vs Individual Information level accuracy measures across all Social Environment X Group Information Proportion X Method conditions. Before calculating these effect sizes, we check the distribution of our accuracy measures. They are not normally distributed, so we opt to calculate Cliff's Delta as the effect size. This code saves the data table with all the Cliff's Delta values, 95% Confidence Intervals and effect size magnitudes. Magnitude is assessed through the effsize package, which uses thresholds provided in Romano, 2006. (|d|<0.147 "negligible", |d|<0.33 "small", |d|<0.474 "medium", otherwise "large"). These values are included in the TKTK table in the manuscript. Finally, we create density plots to viszualize effect size measures to create main and supplemental figures for the manuscropt. 
+In part 1, the code creates a figure (Fig 4 in manuscript) that visualizes accuracy scores. This figure uses output from the script "Simulation_Experiments" to create a data frame which is used to create plots of average accuracy by group information proportions and social class treatment for each social information level (individual and group). This plot averages over 10 iterations performed in "Simulation_Experiments" to calculate averages and 95% confidence intervals.
+  
+In part 2, this code calculates Cliff's Delta Effect Size for Group vs Individual Information level accuracy measures across all Social Environment by Group Information Proportion by Method conditions. Before calculating these effect sizes, we check the distribution of our accuracy measures. They are not normally distributed, so we opt to calculate Cliff's Delta as the effect size. This code saves the data table with all the Cliff's Delta values, 95% Confidence Intervals and effect size magnitudes. Magnitude is assessed through the effsize package, which uses thresholds provided in Romano, 2006. (|d|<0.147 "negligible", |d|<0.33 "small", |d|<0.474 "medium", otherwise "large"). These values are included in the supplemental table in the manuscript. Finally, we create density plots to visualize effect size measures to create main and supplemental figures for the manuscript. 
 
 ```{r setup, include = FALSE}
 
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE, root.dir = "~/Desktop")
 
 ```
 
@@ -36,11 +36,23 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
-# Load all of the packages specified above
-invisible(lapply(X, library, character.only = TRUE))
-
 # Set cores for parallel processing
 cores <- parallel::detectCores() - 4
+
+```
+
+```{r load packages, eval = FALSE}
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
 
 ```
 
@@ -49,15 +61,15 @@ Initialize working directories for data and figures.
 
 ###################### Manually update in every new coding session ##################################
 
-# Initialize a base path (we may need a separate base path per user)
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# Initialize a base path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
+path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 ###################################################################################
 
 ```
@@ -67,6 +79,7 @@ git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Gra
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_simulation_experiments"
 
+#####
 # Combine the base path and the data directory into a single path
 analysis_path <- file.path(path, analysis_dir)
 
@@ -74,7 +87,8 @@ analysis_path <- file.path(path, analysis_dir)
 if(!dir.exists(analysis_path)){ 
   dir.create(analysis_path)
 }
-
+####
+  
 # Specify a folder inside the analysis directory where data will be written out/read in
 data_dir <- "data"
 
@@ -86,6 +100,7 @@ if(!dir.exists(data_path)){
   dir.create(data_path)
 }
 
+####
 # Specify a folder inside the analysis directory where data will be written out/read in
 figure_dir <- "figures"
 
@@ -96,36 +111,38 @@ figure_path <- file.path(path, analysis_dir, figure_dir)
 if(!dir.exists(figure_path)){ 
   dir.create(figure_path)
 }
-
+####
 ```
 
-# Part 1: Plotting accuracy scores by XXX
+# Part 1: Plotting accuracy scores for information detection at each social level by group information proportion and social class
 
-## Read in accuracy calculations from XXX output
+## Read in accuracy calculations from "Simulation_Experiments" output
 ```{r}
 
+# create a list of the files that contain accuracy output in the data path, then view this list. This step is for checking that all files are found in the correct path. There should be 16 files, 1 for each unique combination of social class and group information proportion condition. 
 files <- list.files(path = data_path, pattern = "^Accuracy_")
 files
 
+# Create a data frame called res that complies all the accuracy output data into one data frame. 
 res <- data.table::rbindlist(pblapply(1:length(files), function(n){
   
   return(read.csv(file.path(data_path, files[n])))
   
 }), fill = TRUE)
 
+# view "res" to double check that the structure of the dataframe is as expected. There should be 160 rows (16 original files, 10 rows (iterations) per file)
 glimpse(res)
 
-# Were any SPCC values found to be negative?
-# Were there any values of 1 off of the diagonal in the SPCC matrices?
+# Now, perform various checks of the dataframe res to verify that the data are good to work with:
+
+# Checking the data in the notes column to determine if any SPCC values were found to be negative. or if there any values of 1 off of the diagonal in the SPCC matrices.
 # unique(res$notes)
 
-# There are no notes about any issues found in the SPCC matrices. All notes are about replacing values of 1 off of the diagonal in the edit distance matrix, looks good
+# There are no notes about any issues found in the SPCC matrices. All notes are about replacing values of 1 off of the diagonal in the edit distance matrix, looks good to proceed with these accuracy measurements. 
 length(grep("SPCC", res$notes))
 length(grep("edit", res$notes)) + length(grep("^; ; $", res$notes)) == length(res$notes)
 
-# View(res)
-
-# Check that there are no accuracy values above 1, looks good
+# Check that there are no accuracy values above 1, looks good to proceed
 sapply(res %>%
          dplyr::select(names(.)[grep("accuracy", names(.))]),
        function(X){
@@ -133,7 +150,7 @@ sapply(res %>%
        }
 )
 
-# Check that there are no accuracy values below 0, looks good
+# Check that there are no accuracy values below 0, looks good to proceed
 sapply(res %>%
          dplyr::select(names(.)[grep("accuracy", names(.))]),
        function(X){
@@ -146,13 +163,7 @@ sapply(res %>%
 ## Modify datframe "res" to allow for plotting of accuracy results and 95% confidence intervals, save this dataframe as "res_summ_acc"
 ```{r}
 
-# Average Accuracy Measures by Encoding treatment and social condition
-
-# Check that the number of rows matches the number of treatments and iterations
-# 4 social and 4 information treatments by 10 iterations should be 160 rows, looks good
-glimpse(res)
-
-# Summarize the results from the synthetic experiments to calculate the mean and 95% CI per treatment combination (social condition and information encoding condition)
+# Summarize the results from the synthetic experiments to calculate the mean and 95% CI per each treatment combination of social class and group information proportion condition. 
 
 res_summ_acc <- res %>%
   # Make the data frame longer so that each row is a separate accuracy calculation
@@ -168,29 +179,25 @@ res_summ_acc <- res %>%
     # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
     tmp = gsub(pattern = "_mean", replace = "", tmp)
   ) %>%
-  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  # Then use "separate" to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
   tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>%
-  # View()
-  # Group by the columns that have information about each experimental treatment
-  # Operations like this are helpful for avoiding nested loops. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
+  # Group by the columns that have information about each experimental treatment. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
   dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>%
-  # Once a data frame is grouped, you can calculate summary statistics by each group
+  # Now that the data frame is grouped, calculate summary statistics for each grouping
   dplyr::summarise(
     mean_accuracy = mean(accuracy_measurements),
-    # Calculate the 95% CI measurements and extract the upper 95% CI value
     upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
     lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
   ) %>%
   # Make sure to ungroup before plotting, and the columns used for grouping will be retained
   ungroup() %>%
-  # Reorganize scoial_envt_treatment, so that legend scale goes in order from Sparse to Dense
   # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
   dplyr::mutate(
     n_groups = factor(n_groups),
     # Convert the x-axis column to factor to control axis ticks
     group_information_proportion = factor(round(group_information_proportion, 2))
   )  %>% 
-  # change "group" and individual to be capalized
+  # change "group" and "individual" to be capitalized
   dplyr::mutate(
     accuracy_level = str_replace(accuracy_level, "group", "Group"),
     accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
@@ -208,33 +215,49 @@ unique(res_summ_acc$accuracy_level)
 
 ```
 
-## Plot accuracy scores
-```{r}
-# Make color list that contains 1 ,2 4, and 5th color hex codes from paletteer_packages:Arches
+## Set up objects to be used in all plots in this code. 
+``` {r figure asthetic set up}
+
+# Make color list that contains the first and second color hex codes from paletteer_packages:Arches, which will be the theme colors for this manuscript. 
 # paletteer_d("nationalparkcolors::Arches")
 #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF
-# Use #A8CDECFF #F6955EFF #9B6981FF #7887A4FF
+# Use #A8CDECFF #F6955EFF
 
-cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
+# Make list for color
+cols <- c("#A8CDECFF", "#F6955EFF")
+
+# Make list for color fill, that is more transparent
 fillcols <- scales::alpha(cols, alpha = 0.2)
-shps <- c(21, 24) # Encode accuracy method by shape. See the points function for options
 
-# Need to make named character vectors to relabel facet text
-# Renaming the Accuracy Method labels
+# we will encode accuracy method by shape, so make a list of the two shapes we wany, using number that correspond with the "points" funtion. 
+shps <- c(21, 24)
+
+# Make named character vectors to relabel facet text:
+
+# Renaming n_groups to be social class labels
 class_labs <- c("Classes: 2", "Classes: 4", "Classes: 6", "Classes: 8")
 names(class_labs) <- c("2", "4", "6", "8")
 
-# Renaming the Accuracy Method labels
+# Renaming the accuracy_method labels
 method_labs <- c("edit distance", "SPCC")
 names(method_labs) <- c("edit", "SPCC")
 
-# Aaking this in case we want to make the facet background a very very light grey
+# Renaming group information proportion treatment levels
+prop_labs <- c("Proportion of n group information: 0", "0.33", "0.67", "1")
+names(prop_labs) <- unique(res$group_information_proportion)
+
+# Make object ngreay, to set as strip background color. 
 ngrey <- scales::alpha("grey", 0.2)
 
-# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
+```
+
+## Plot accuracy scores
+```{r}
+
+# Create the accuracy plot that will make up Fig 4 in the manuscript. Plot average accuracy as a function of group information proportion condition, using facet_grid to great separate plots for each accuracy method and social class combination. 
 res_summ_acc %>%
   ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = accuracy_level, fill = accuracy_level, shape = accuracy_level)) +
-  # linewidth controls the width of the errorbar lines, stroke controls the width of the symbol border
+  # line width controls the width of the error bar lines, stroke controls the width of the symbol border
   geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.5, stroke = 0.5, size = 0.75) +
   facet_grid(
     accuracy_method ~ n_groups,
@@ -247,9 +270,9 @@ res_summ_acc %>%
   # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
   guides(color = guide_legend(title = "Social level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Social level"),
          shape = guide_legend(title = "Social level")) +
-  labs(y = "Accuracy and 95% CI", x = "Proportion of group information") +
+  labs(y = "Average accuracy and 95% CI", x = "Proportion of group information") +
   theme_bw() +
-  # Remove gridlines using theme() and change the background color of the strip labels
+  # Remove grid lines using theme() and change the background color of the strip labels
   # Place legend on the top
   theme(
     panel.grid.major = element_blank(),
@@ -266,20 +289,19 @@ res_summ_acc %>%
     strip.background = element_rect(color = "black", fill = ngrey)
   )
 
-# save as tiff file
-ggsave(filename = file.path(git_path, "AverageAccuracy_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+# save as tiff file. Remember, the object git_path contains the figures directory already
+ggsave(filename = file.path(git_path, "Fig_4", "AverageAccuracy_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
-# This is a good reference to walk through customizing facet aes https://www.datanovia.com/en/blog/how-to-change-ggplot-facet-labels/
 ```
 
 
-# TKTK calculate then plot effect size
+# Part 2: Calculating effect sizes for all social level comparisons. 
 
-## First, check the normality the accuracy measures (summed by level) before running effect size analyses. For each measure, create density and QQ plots to visualize the distribution of the data, then perform a Shapiro Wilks test of normality. 
+## First, check the normality the accuracy measures (summed by social level) before running effect size analyses. For each measure, create density and QQ plots to visualize the distribution of the data, then perform a Shapiro Wilks test of normality. 
 ```{r}
 
 # Start with data frame "res"
-glimpse(res)
+# glimpse(res)
 
 # To check the distribution of our accuracy measures, we need to set up new data the has separate columns for group and individual accuracy measures and saves the information about method (SPCC or edit distance) in another column
 # To do this, we will create a table called "res_summ_eff"
@@ -319,11 +341,9 @@ print(ggpubr::ggdensity(res_summ_eff$accuracy_group_measurements,
 print(ggpubr::ggqqplot(res_summ_eff$accuracy_group_measurements))
 # perform a Shapiro Wilk's test for normality
 print(shapiro.test(res_summ_eff$accuracy_group_measurements))
+
 # Density plot is left skewed and QQ plot is not aligned
-# 	Shapiro-Wilk normality test
-# data:  res_summ_eff$accuracy_group_measurements
-# W = 0.92249, p-value = 8.049e-12
-# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+# P value of <0.05 implies the data are significantly different from normal. NOT NORMALLY DISTRIBUTED
 
 # Now repeat the steps above, but for "accuracy_individual_measurements"
 print(ggpubr::ggdensity(res_summ_eff$accuracy_individual_measurements, 
@@ -341,7 +361,7 @@ print(ggpubr::ggqqplot(res_summ_eff$accuracy_individual_measurements))
 
 ## Second, calculate effect sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods
 
-Note that the effect size calculations below throw a warning about fully disjoint distributions. This is an expected error when two distributions of accuracy values have no overlap, which did occur in some of our experimental treatments.
+### Note that the effect size calculations below throw a warning about fully disjoint distributions. This is an expected error when two distributions of accuracy values have no overlap, which did occur in some of our experimental treatments.
 ```{r}
 
 # Start with data frame "res_sum_eff" created above
@@ -374,39 +394,12 @@ eff_res_level %>%
 
 ```
 
-## Third, TKTK make a plot to highlight how effect sizes were calculated. Density plots of the accuracy distributions to highlight how effect sizes were calculated.
+## Third, create figures (1 main, 1 supplemental) of density plots to highlight how effect sizes were calculated. 
 
-Make one main figure that has class sizes of 2 and 8 only. Make 2 supplementary figures of all classes but edit distance and SPCC only.
-
-Main figure.
+### Make one main figure that has class sizes of 2 and 8 only. This is used as Fig 5 in the manuscript.
 ```{r}
 
-eff_res <- read.csv(file.path(data_path, "effect_sizes_byLevel.csv"))
-glimpse(eff_res)
-
-cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
-fillcols <- scales::alpha(cols, alpha = 1)
-shps <- c(21, 24) # Encode accuracy level. See the points function for options
-
-# Need to make named character vectors to relabel facet text
-# Renaming the Accuracy Method labels
-class_labs <- c("Classes: 2", "Classes: 8")
-names(class_labs) <- c("2", "8")
-
-# Need to make named character vectors to relabel facet text
-# Renaming the Accuracy Method labels
-method_labs <- c("Edit", "SPCC")
-names(method_labs) <- c("edit", "SPCC")
-
-prop_labs <- c("Proportion of\n group information: 0", "0.33", "0.67", "1")
-names(prop_labs) <- unique(res$group_information_proportion)
-
-# Making this in case we want to make the facet background a very very light grey
-ngrey <- scales::alpha("grey", 0.1)
-
-glimpse(res)
-
-# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
+# Create data frame of density values
 res_density_values <- res %>%
   # Make the data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
@@ -423,7 +416,7 @@ res_density_values <- res %>%
   ) %>%
   # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
   tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>%
-  # change "group" and individual to be capalized
+  # change "group" and individual to be capitalized
   dplyr::mutate(
     accuracy_level = str_replace(accuracy_level, "group", "Group"),
     accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
@@ -451,9 +444,9 @@ means <- res_density_values %>%
 glimpse(means)
 
 # Make labels of the effect size value and the 95% CI
-glimpse(eff_res)
+glimpse(eff_res_level)
 
-eff_res_label <- eff_res %>% 
+eff_res_label <- eff_res_level %>% 
   dplyr::filter(n_groups %in% c(2, 8)) %>%
   group_by(n_groups, accuracy_method, group_information_proportion) %>% 
   dplyr::mutate(
@@ -487,6 +480,7 @@ bar_coords <- means %>%
 
 glimpse(bar_coords)
 
+# Finally, create the density plots to visualize effect size comparisons
 res_density_values %>%
   dplyr::filter(n_groups %in% c(2, 8)) %>%
   ggplot() +
@@ -540,37 +534,14 @@ res_density_values %>%
     strip.background = element_rect(color = "black", fill = ngrey)
   )
 
-# Then object git_path contains the figures directory already
+# save as tiff file. Remember, the object git_path contains the figures directory already
 ggsave(filename = file.path(git_path, "Fig_5", "AccuracyDensityPlots_EffectSizes.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
 ```
 
-Supplementary figures.
+### Make a supplementary figures of all classes for edit distance and SPCC only.
 ```{r}
 
-cols <- c("#A8CDECFF", "#F6955EFF", "#9B6981FF", "#7887A4FF")
-fillcols <- scales::alpha(cols, alpha = 0.2)
-shps <- c(21, 24) # Encode accuracy level. See the points function for options
-
-# Need to make named character vectors to relabel facet text
-# Renaming the Accuracy Method labels
-class_labs <- c("Classes: 2", "4", "6", "8")
-names(class_labs) <- c("2", "4", "6", "8")
-
-# Need to make named character vectors to relabel facet text
-# Renaming the Accuracy Method labels
-method_labs <- c("Edit", "SPCC")
-names(method_labs) <- c("edit", "SPCC")
-
-prop_labs <- c("Proportion of group information: 0", "0.33", "0.67", "1")
-names(prop_labs) <- unique(res$group_information_proportion)
-
-# Aaking this in case we want to make the facet background a very very light grey
-ngrey <- scales::alpha("grey", 0.2)
-
-glimpse(res)
-
-# Make the faceted plot without ggarrange(), no need to make separate plots unless you need more flexibility
 res_density_values <- res %>%
   # Make the data frame longer so that each row is a separate accuracy calculation
   pivot_longer(
@@ -641,6 +612,6 @@ res_density_values %>%
   )
 
 # Save as tiff file. Then object git_path contains the figures directory already
-ggsave(filename = file.path(git_path, "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
+ggsave(filename = file.path(git_path, "supplementary_figures", "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
 
 ```
