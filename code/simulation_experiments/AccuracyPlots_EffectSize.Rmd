@@ -25,7 +25,8 @@ rm(list = ls())
 
 # tktk update list
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "pbapply", "stringdist", "tidyverse",  "data.table", "ggpubr", "effsize", "paletteer")
+X <- c("pbapply", "tidyverse", "effsize", "paletteer")
+
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -79,16 +80,6 @@ git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # B
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_simulation_experiments"
 
-#####
-# Combine the base path and the data directory into a single path
-analysis_path <- file.path(path, analysis_dir)
-
-# Create the data directory if it doesn't already exist on your computer
-if(!dir.exists(analysis_path)){ 
-  dir.create(analysis_path)
-}
-####
-  
 # Specify a folder inside the analysis directory where data will be written out/read in
 data_dir <- "data"
 
@@ -100,18 +91,6 @@ if(!dir.exists(data_path)){
   dir.create(data_path)
 }
 
-####
-# Specify a folder inside the analysis directory where data will be written out/read in
-figure_dir <- "figures"
-
-# Combine the base path, the analysis directory, and the data directory into a single path
-figure_path <- file.path(path, analysis_dir, figure_dir)
-
-# Create the data directory if it doesn't already exist on your computer
-if(!dir.exists(figure_path)){ 
-  dir.create(figure_path)
-}
-####
 ```
 
 # Part 1: Plotting accuracy scores for information detection at each social level by group information proportion and social class
