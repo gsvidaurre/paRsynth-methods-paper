@@ -142,7 +142,7 @@ glimpse(freq_anchors)
 Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   # geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
   geom_line(color = "grey24", linetype = "dotted", linewidth = 1) +
-  geom_point(size = 5, shape = 21, color = "black", fill = "grey60", stroke = 1.2) +
+  geom_point(size = 3, shape = 21, color = "black", fill = "grey60", stroke = 1.2) +
   #geom_point(size = 3, shape = 19, color = "grey56") +
   xlab("Time (s)") +
   ylab("Frequency (kHz)") +
@@ -153,7 +153,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
     panel.grid.major = element_blank(),
     panel.border = element_rect(linetype = "solid", fill = NA, color = "black"),
     # axis.title = element_text(size = 16),
-    axis.text = element_text(size = 12, color = "black"),
+    axis.text = element_text(size = 8, color = "black"),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     # Removing numbers and ticks from x axis for figure
@@ -165,7 +165,7 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
 # use the ggsave line to save the static plot, as the anim_save line to save the animated plot
 
 # This sizing is being used by Summer for creation of manuscript figure
-ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 6.5, height = 2.8, dpi = 600)
+ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 5.025, height = 2.18, dpi = 600)
 
 
 
@@ -212,7 +212,7 @@ gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
     # Turn off the axis titles, which should remove titles for all 3 axes, including amplitude and the amplitude scale bar
     axis.title = element_blank(),
     # Control the size of the x and y-axis text 
-    axis.text = element_text(size = 12, color = "black", vjust = 0),
+    axis.text = element_text(size = 8, color = "black", vjust = 0),
     # Control the size of the axis tick lines
     axis.ticks = element_line(color = "black", linewidth = 0.15)
   )
@@ -221,6 +221,6 @@ gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
 # Substitute the ".wav" extension with the image file extension we will use, with gsub()
 # gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
 # The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
-ggsave(filename = file.path(figure_path, "GroupMembership_Group1_Indiv1_Call1.tiff"), units = "in", width = 6.38, height = 3, dpi = 600)
+ggsave(filename = file.path(figure_path, "GroupMembership_Group1_Indiv1_Call1.tiff"), units = "in", width = 4.9, height = 2.2, dpi = 600)
 ```
 
