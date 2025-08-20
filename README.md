@@ -20,9 +20,11 @@ This branch holds a copy of all scripts for the purpose of code review. Code rev
   
 2. Check all narrative text for clarity and typos at the end of your iterative RMarkdown knitting process.
 
-3. Push the final RMarkdown document and knitted HTML report to the main and code review branches of the manuscript repository.
+3. Push the final RMarkdown document and knitted HTML report to the main branch of the manuscript repository.
 
-4. Let the co-author assigned to each of your scripts know that the RMarkdown document and knitted HTML report for each of your scripts are ready for them to review.
+4. Let the Grace know that the RMarkdown document and knitted HTML report for each of your scripts are ready for the next round of code review.
+
+**Note:** Grace will merge all final script versions from the main branch to the code review branch, and will let everyone know when they can start the second round of code review.
 
 ## Second round of code review (co-author)
 
@@ -42,7 +44,7 @@ This branch holds a copy of all scripts for the purpose of code review. Code rev
       
       - Run the entire inner nested loop for one iteration of one experimental treatment combination. Here you will freeze the iterating variables again, but you will run code starting from the line with the inner `apply()` loop.
   
-  - Whenever you encounter a chunk or a line of code that is not well explained, does not produce the correct output, or is wrong, write a comment above it to the lead coder in the following style "TODO: More information about what needs to change". When you find code that is wrong, please tell the lead coder how to fix the code if you see a solution for the problem.
+  - Whenever you encounter a chunk or a line of code that is not well explained, does not produce the correct output, or is wrong, write a comment above it to the lead coder in the following style "TODO: More information about what needs to change". When you find code that is wrong, please tell the lead coder how to fix the code if you see a solution for the problem. Please do the same whenever you encounter a typo, because the lead coder needs to make the final call on changes to each script.
   
   - Do not knit the RMarkdown file, as this will overwrite the version knitted by the lead coder.
   
@@ -50,7 +52,7 @@ This branch holds a copy of all scripts for the purpose of code review. Code rev
   
 5. Repeat this process for each script to which you have been assigned.
 
-6. Push the final RMarkdown document that you reviewed, including the comments you added, to the main and code review branches of the manuscript repository.
+6. Push the final RMarkdown document that you reviewed, including the comments you added, to the code review branch of the manuscript repository.
 
 7. Let the lead coder for each of your scripts know that your feedback on the RMarkdown document is ready for them to integrate.
 
@@ -58,12 +60,14 @@ This branch holds a copy of all scripts for the purpose of code review. Code rev
 
 1. The lead coder for each script should address all comments and feedback by the co-author who performed code review. After addressing feedback, knit the RMarkdown document one final time, then commit your changes with a description that states that you integrated or addressed all feedback from code review before pushing your changes to the `code-review` branch.
 
+  - All feedback should be addressed by opening each script in the code review branch, with the changes pushed by the co-author who performed code review, then addressing suggestions directly in this version of the script.
+  
+  - When you are done integrating feedback, push these changes to the `code-review` branch with a commit message about the fact that you integrated feedback from the second round of code review.
+
 2. Once you have pushed to the `code-review` branch, make a pull request to merge your changes with the main branch of the repository. Grace will review and approve these final pull requests.
 
 This branch should remain in the repository even after all changes have been integrated into the main repository, to maintain a history of all code review activities by our team.
 
 ## Code review assignments
 
-
-
-
+![](/Users/gracesmith-vidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures/Code_review_assignments.jpg){#id .class width=60% height=60%}
