@@ -24,7 +24,7 @@ The **`code` directory** holds the sub-directories and scripts described below. 
   
   2. `AccuracyPlots_EffectSize.Rmd`: We plotted the accuracy results from simulation experiments and calculated effect sizes for statistical inference about identity information detection performance. In this script we also made a figure of the accuracy value distributions and effect size results.
   
-The `functions` directory holds:
+The `./functions` directory holds:
 
 1. `accuracy_score.R`: This is a function written by Vanessa Ferdinand to calculate the accuracy of predicting true class labels using k-means clustering. The function uses bipartite matching between original class labels and cluster labels to calculate all possible accuracy values for a given clustering solution.
 
