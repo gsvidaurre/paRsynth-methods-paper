@@ -1,21 +1,51 @@
-# paRsynth-methods-paper
+# Synthetic vocal identity signals with paRsynth
 
-This repository holds code for a methods manuscript on creating synthetic vocal identity signals with paRsynth and decoding information in the resulting synthetic vocalizations using traditional bioacoustics tools.
+<style type="text/css">
+body{
+  font-family: Arial;
+  font-size: 14pt;
+}
+h1{
+  font-size: 22pt;
+}
 
-The repository holds methods manuscript drafts, feedback, code (scripts and functions), and figures (see directory `figures`).
+h2{
+  font-size: 18pt;
+}
 
-The `functions` directory holds a function written by Vanessa Ferdinand to calculate the accuracy of predicting true class labels using k-means clustering. The function uses bipartite mapping between original class labels and cluster labels to calculate all possible accuracy values for a given clustering result. 
+h3{
+  font-size: 16pt;
+}
+</style>
 
-The `code` directory holds the following scripts:
+This repository holds code for a paper on creating synthetic vocal identity signals with paRsynth and detecting identity information in the resulting synthetic vocalizations using traditional bioacoustics tools. The repository holds manuscript drafts in the `drafts` folder, code (scripts and functions), as well as figures. Below we describe more detail about the code and figure directory structures and file contents.
 
-1. `Generate_SyntheticDatasets.Rmd`: Create two datasets of synthetic vocal identity signals that contain more group membership information or more individual identity information. The resulting audio files and metadata spreadsheet are saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration.
+The **`code` directory** holds the sub-directories and scripts described below. Across each of these files, we make scripts available as RMarkdown files that can be used to reproduce our results. We also make the knitted HTML reports associated with each RMarkdown document available. These knitted reports document the results produced by this code on our local machines and which were used to write the associated paper.
 
-2. `Figures_Spectrograms.Rmd`: Generate spectrogram image files that will be used for visual checks, and spectrograms used in main figures of call catalogues in the manuscript. Image files of spectrograms for visual checks are saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration. This script also contains code to create spectrograms `seewave::ggspectro()`, then resize images and write them back out with colored borders for publication-quality figures using `imagemagick`. 
+`./example_datasets`:
 
-3. `Figures_SPCC_EditDistance.Rmd`: Perform spectrographic cross-correlation (SPCC) to calculate acoustic similarity across all audio files in both datasets. Also calculate the distance amongst all strings using the Levenstein edit distance. Perform multidimensional scaling (MDS) on the SPCC matrix (converted to distances) and the edit distance matrix to convert these measurements to features. The SPCC and edit distance matrices and the MDS coordinates are also saved on the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) to avoid having to rerun this computationally intensive code over and over. Whenever the vocal identity signal datasets are changed in `Generate_SyntheticDatasets.Rmd`, then this script should be run again.
+  1. `Generate_Example_Datasets.Rmd`: We created two datasets of synthetic vocal identity signals that contain more group membership information ("group-specific" dataset) or more individual identity information ("individually distinctive"" dataset). The resulting audio files and metadata spreadsheet are saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration and code reviewing purposes.
+  
+  2. `Example_Spectrograms.Rmd`: Here we generated spectrogram image files that were used for preliminary visual inspection, as well as spectrograms that we used in call catalogues for main figures of the associated paper. Image files of spectrograms for visual checks were saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration purposes. This script also contains code to create spectrograms for main figures in the paper. For these spectrograms, we used `seewave::ggspectro()`, then we used `imagemagick` to resize image files and add colored borders for publication-quality figures.
+  
+  3. `Conceptual_Figure.Rmd`: This script contains code to build individual components of a conceptual figure highlighting the pipeline used to generate synthetic vocal identity signals through sonification of character strings with the `paRsynth` and `soundgen` packages.
+  
+  4. `Example_Datasets_Similarity_Calculations.Rmd`: Here we performed spectrographic cross-correlation (SPCC) to calculate acoustic similarity across all audio files in both example datasets generated above. We also calculated the distance amongst all character strings using the Levenshtein edit distance. We then carried out multidimensional scaling (MDS) on the SPCC matrix (after converting this to distance measurements) and the edit distance matrix to convert all distance measurements to features. The SPCC and edit distance matrices and the MDS coordinates are also saved on the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) to avoid having to rerun this computationally intensive code over and over during internal collaboration. Whenever the vocal identity signal datasets are changed in `Generate_Example_Datasets.Rmd`, this script should be run again.
+  
+  5. `Example_Main_AcousticSpacePlots.Rmd`: We used the multidimensional scaling coordinates across the example call datasets and distance measurement methods to build low-dimensional acoustic space plots for main manuscript figures. These acoustic space plots were focused on SPCC and edit distance acoustic space, and we drew convex hull polgyons around sets of calls by the  social level that had the most identity information encoded. For instance, the main figure for the group-specific dataset included a catalogue of spectrograms, a panel of the edit distance acoustic space and a panel of SPCC acoustic space, both with group-level polygons.
+  
+  6. `Example_Supplementary_AcousticSpacePlots.Rmd`: In this script we built acoustic space plots for supplementary figures to show the two example vocalization datasets with polygons drawn at both social levels, as well as using both distance methods to analyze the character string and audio representations of the vocalizations.
+  
+`./simulation_experiments`:
+  
+  1. `Experiments_InformationEncoding.Rmd`: We carried out synthetic experiments to address how well the original information encoded at two social levels can be detected using computational pipelines that rely on distance measurements with SPCC (audio) and the edit distance (character strings). We then used features generated per distance method to cluster calls back to their original classes at each social level. These experiments were performed over different information encoding treatments at the group and individual levels and signaling environment densities (numbers of groups and individuals in the simulated signaling environment).
+  
+  2. `AccuracyPlots_EffectSize.Rmd`: We plotted the accuracy results from simulation experiments and calculated effect sizes for statistical inference about identity information detection performance. In this script we also made a figure of the accuracy value distributions and effect size results.
+  
+The `functions` directory holds:
 
-4. `Figures_MainAcousticSpacePlots.Rmd`: Read in the multidimensional scaling coordinates across call datasets and (dis)similarity methods to build low-dimensional acoustic space plots for main manuscript figures. These acoustic space plots are focused on SPCC and edit distance acoustic space, and polygons will be drawn by social level. For instance, the group membership data should be represented in a single main figure that includes a catalog of spectrograms, a panel of the edit distance acoustic space and a panel of SPCC acoustic space, both with group-level polygons.
+1. `accuracy_score.R`: This is a function written by Vanessa Ferdinand to calculate the accuracy of predicting true class labels using k-means clustering. The function uses bipartite matching between original class labels and cluster labels to calculate all possible accuracy values for a given clustering solution.
 
-5. `Figures_SupplementaryAcousticSpacePlots.Rmd`: Build acoustic space plots for supplementary figures to show call datasets with polygons drawn at both social levels, ad using both (dis)similarity methods.
+The overall **`figures` directory** holds separate nested directories per figure. Supplementary figures are held inside of the nested directory `supplementary_figures`. Each sub-directory per figure contains plots written out directly from R, as well as vector graphics (SVG) files that we used to arrange composite figures in Inkscape. 
 
-6. `Experiments_InformationEncoding.Rmd`: Run synthetic experiments to address how well the original information encoded at two social levels can be detected using computational pipelines to measure call (dis)similarity with SPCC and the edit distance, and then use features generated per (dis)similarity method to cluster calls back to their original classes at each social level. These experiments are performed over different social conditions (numbers of groups and individuals in the simulated signaling environment) and information encoding treatments at the group and individual levels.
+The **`Presentations` folder** holds the folders `Code` and `Figures`, each of which contains scripts and image files used to generate results and figures for conference presentations.
