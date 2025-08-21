@@ -1,33 +1,73 @@
-# Synthetic vocal identity signals with paRsynth
+# Code review for synthetic vocal identity signals paper
 
-This repository holds code for a paper on creating synthetic vocal identity signals with paRsynth and detecting identity information in the resulting synthetic vocalizations using traditional bioacoustics tools. The repository holds manuscript drafts in the `drafts` folder, code (scripts and functions), as well as figures. Below we describe more detail about the code and figure directory structures and file contents.
+This branch holds a copy of all scripts for the purpose of code review. Code review will be performed by the co-authorship team to 1) ensure that all code can be evaluated and produce the expected output across different machines, and 2) the narrative text explaining code across scripts is accessible to readers. Code review starts with the lead coder, or the person who led a particular script, and then concludes with review by a co-author on the manuscript team. For this manuscript, all code review should be performed in RStudio in the original RMarkdown document, as well as knitting each RMarkdown document.
 
-The **`code` directory** holds the sub-directories and scripts described below. Across each of these files, we make scripts available as RMarkdown files that can be used to reproduce our results. We also make the knitted HTML reports associated with each RMarkdown document available. These knitted reports document the results produced by this code on our local machines and which were used to write the associated paper.
+## First round of code review (lead coder)
 
-`./example_datasets`:
+1. Ensure that the final version of the code produces the expected output on your computer.
 
-  1. `Generate_Example_Datasets.Rmd`: We created two datasets of synthetic vocal identity signals that contain more group membership information ("group-specific" dataset) or more individual identity information ("individually distinctive" dataset). The resulting audio files and metadata spreadsheet are saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration and code reviewing purposes.
+  - First check that the code in the RMarkdown document evaluates correctly, which should have already been part of your process of developing the script.
   
-  2. `Example_Spectrograms.Rmd`: Here we generated spectrogram image files that were used for preliminary visual inspection, as well as spectrograms that we used in call catalogues for main figures of the associated paper. Image files of spectrograms for visual checks were saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration purposes. This script also contains code to create spectrograms for main figures in the paper. For these spectrograms, we used `seewave::ggspectro()`, then we used `imagemagick` to resize image files and add colored borders for publication-quality figures.
+  - Then update the RMarkdown document to produce a clean knitted HTML report This includes:
   
-  3. `Conceptual_Figure.Rmd`: This script contains code to build individual components of a conceptual figure highlighting the pipeline used to generate synthetic vocal identity signals through sonification of character strings with the `paRsynth` and `soundgen` packages.
+     - Modifying the global chunk options to evaluate and include code in the HTML report.
+     
+     - Updating all paths you use to be the full path on your local machine, otherwise the RMarkdown knitting process will fail. You can do this in two different ways. You can update path variables to be the full path in every chunk. Alternatively, you can include an extra chunk above each chunk that uses a path, then use `eval = TRUE` and `echo = FALSE` to make sure that chunk is evaluated, but the code is not included in the report. If you do this, you must also use `eval = FALSE` and `echo = TRUE` in the subsequent chunk that does not use the full path to ensure that the code for that chunk is included but not evaluated.
+     
+     - Use the script `example_datasets/Example_Main_AcousticSpacePlots.Rmd` as an example of how to structure an RMarkdown file for knitting in the ways described above, as well as how to lay out the YAML header and global knitting options.
+     
+  - The final version of the knitted report should include all code and evaluated output (plots as well), but should not include messages, warnings, or errors. Any errors produced by a particular line or chunk of code should be noted in your narrative text.
   
-  4. `Example_Datasets_Similarity_Calculations.Rmd`: Here we performed spectrographic cross-correlation (SPCC) to calculate acoustic similarity across all audio files in both example datasets generated above. We also calculated the distance amongst all character strings using the Levenshtein edit distance. We then carried out multidimensional scaling (MDS) on the SPCC matrix (after converting this to distance measurements) and the edit distance matrix to convert all distance measurements to features. The SPCC and edit distance matrices and the MDS coordinates are also saved on the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) to avoid having to rerun this computationally intensive code over and over during internal collaboration. Whenever the vocal identity signal datasets are changed in `Generate_Example_Datasets.Rmd`, this script should be run again.
-  
-  5. `Example_Main_AcousticSpacePlots.Rmd`: We used the multidimensional scaling coordinates across the example call datasets and distance measurement methods to build low-dimensional acoustic space plots for main manuscript figures. These acoustic space plots were focused on SPCC and edit distance acoustic space, and we drew convex hull polgyons around sets of calls by the  social level that had the most identity information encoded. For instance, the main figure for the group-specific dataset included a catalogue of spectrograms, a panel of the edit distance acoustic space and a panel of SPCC acoustic space, both with group-level polygons.
-  
-  6. `Example_Supplementary_AcousticSpacePlots.Rmd`: In this script we built acoustic space plots for supplementary figures to show the two example vocalization datasets with polygons drawn at both social levels, as well as using both distance methods to analyze the character string and audio representations of the vocalizations. These plots include the full datasets of vocalizations and also represent a universal acoustic space. This is the same universal space represented in the acousitc space plots generated in `Example_Main_AcousticSpacePlots.Rmd`.
-  
-`./simulation_experiments`:
-  
-  1. `Experiments_InformationEncoding.Rmd`: We carried out synthetic experiments to address how well the original information encoded at two social levels can be detected using computational pipelines that rely on distance measurements with SPCC (audio) and the edit distance (character strings). We then used features generated per distance method to cluster calls back to their original classes at each social level. These experiments were performed over different information encoding treatments at the group and individual levels and signaling environment densities (numbers of groups and individuals in the simulated signaling environment).
-  
-  2. `AccuracyPlots_EffectSize.Rmd`: We plotted the accuracy results from simulation experiments and calculated effect sizes for statistical inference about identity information detection performance. In this script we also made a figure of the accuracy value distributions and effect size results.
-  
-The `./functions` directory holds:
+2. Check all narrative text for clarity and typos at the end of your iterative RMarkdown knitting process.
 
-1. `accuracy_score.R`: This is a function written to calculate the accuracy of predicting true class labels using k-means clustering. The function uses bipartite matching between original class labels and cluster labels to calculate all possible accuracy values for a given clustering solution.
+3. Push the final RMarkdown document and knitted HTML report to the main branch of the manuscript repository.
 
-The overall **`figures` directory** holds separate nested directories per figure. Supplementary figures are held inside of the nested directory `supplementary_figures`. Each sub-directory per figure contains plots written out directly from R, as well as vector graphics (SVG) files that we used to arrange composite figures in Inkscape. 
+4. Let the Grace know that the RMarkdown document and knitted HTML report for each of your scripts are ready for the next round of code review.
 
-The **`Presentations` folder** holds the folders `Code` and `Figures`, each of which contains scripts and image files used to generate results and figures for conference presentations. Code in this folder has not undergone manuscript level code review and is included for the purpose of reproducing presentation figures only. 
+**Note:** Grace will merge all final script versions from the main branch to the code review branch, and will let everyone know when they can start the second round of code review.
+
+## Second round of code review (co-author)
+
+1. Pull changes from this `code-review` branch, and focus on the following steps for one script at a time.
+
+2. Read through the narrative text of the RMarkdown file and the knitted HTML report to make sure you understand the purpose of each code chunk. Do not modify the narrative text or code yet.
+
+3. Ensure you've downloaded the most recent version of the example datasets or simulation results from Google Drive (depending on the script to which you're assigned).
+
+4. Update the path variables in the RMarkdown file to reflect your local computer, then start running code chunks in order and check the output of each chunk.
+
+  - Run code line by line inside of each chunk, and ensure that you understand what each line of code is doing. There should be narrative text above each chunk, and comments inside of the chunk, that indicate the purpose of either the overall code chunk or specific lines of code.
+  
+    - The only exception to running code line by line is the script `simulation_experiments/Simulation_Experiments.Rmd`. Co-authors assigned to review this script should focus on the two following levels of code review of the code chunk with nested loops that performs the simulation experiment:
+    
+      - Freeze the iterating variable to run code line by line inside of the nested loops for one experimental treatment combination. Focus on checking the code for correctness, clarity, and whether it produces the expected output. Repeat this process again a second time to check the code and output for another experimental treatment combination. Here you should run code inside of the looping structures (do not evaluate lines of code that contain `apply()` functions). Doing this is important to ensure you avoid running all treatment combinations, which is computational intensive.
+      
+      - Run the entire inner nested loop for one iteration of one experimental treatment combination. Here you will freeze the iterating variables again, but you will run code starting from the line with the inner `apply()` loop.
+  
+  - Whenever you encounter a chunk or a line of code that is not well explained, does not produce the correct output, or is wrong, write a comment above it to the lead coder in the following style "TODO: More information about what needs to change". When you find code that is wrong, please tell the lead coder how to fix the code if you see a solution for the problem. Please do the same whenever you encounter a typo, because the lead coder needs to make the final call on changes to each script.
+  
+  - Do not knit the RMarkdown file, as this will overwrite the version knitted by the lead coder.
+  
+  - When you are done, add "Code review completed by [insert your name]" underneath the global knitting options chunk when. Please do this even if you did not see any changes that need to be made to the RMarkdown script, so we can track that you completed your code review duties.
+  
+5. Repeat this process for each script to which you have been assigned.
+
+6. Push the final RMarkdown document that you reviewed, including the comments you added, to the code review branch of the manuscript repository.
+
+7. Let the lead coder for each of your scripts know that your feedback on the RMarkdown document is ready for them to integrate.
+
+## Final code edits (lead coder)
+
+1. The lead coder for each script should address all comments and feedback by the co-author who performed code review. After addressing feedback, knit the RMarkdown document one final time, then commit your changes with a description that states that you integrated or addressed all feedback from code review before pushing your changes to the `code-review` branch.
+
+  - All feedback should be addressed by opening each script in the code review branch, with the changes pushed by the co-author who performed code review, then addressing suggestions directly in this version of the script.
+  
+  - When you are done integrating feedback, push these changes to the `code-review` branch with a commit message about the fact that you integrated feedback from the second round of code review.
+
+2. Once you have pushed to the `code-review` branch, make a pull request to merge your changes with the main branch of the repository. Grace will review and approve these final pull requests.
+
+This branch should remain in the repository even after all changes have been integrated into the main repository, to maintain a history of all code review activities by our team.
+
+## Code review assignments
+
+![](https://github.com/gsvidaurre/paRsynth-methods-paper/blob/code-review/figures/Code_review_assignments.jpg)
