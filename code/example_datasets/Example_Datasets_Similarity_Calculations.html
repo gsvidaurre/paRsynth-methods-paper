@@ -12,7 +12,7 @@
 
 <meta name="date" content="2025-08-21" />
 
-<title> Create example datasets of synthetic vocal identity signals </title>
+<title> Similarity and distance measurements for example datasets </title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1485,7 +1485,7 @@ font-size: 0.95em;
 
 
 <h1 class="title toc-ignore"><center style="font-size:30px;font-style:normal;color:#0E0E7D;"><br />
-Create example datasets of synthetic vocal identity signals<br />
+Similarity and distance measurements for example datasets<br />
 </center></h1>
 <h4 class="author"><br />
 <center style="font-style:normal;">
@@ -1532,26 +1532,24 @@ h3{
 font-size: 16pt;
 }
 </style>
-<p><strong>Purpose</strong>: Here we generate synthetic vocal identity
-signal datasets with more group than individual information, and more
-individual than group information. In each dataset, information at these
-two social levels is encoded in frequency modulation patterns. We use
-functions from the <code>paRsynth</code> package to create character
-strings, Parsons code strings, and frequency anchors that encode
-information at these two social levels. We then use the
-<code>soundgen</code> package to create synthetic audio files with the
-encoded information, and the <code>warbleR</code> package to create
-spectrograms. The resulting audio files, selection table spreadsheet are
-uploaded to a shared location for subsequent analysis and figures.</p>
-<p>You can run this script to generate audio files and metadata, or if
-you want to reproduce results in later code, you can download the files
-saved in a shared location.</p>
+<p><strong>Purpose</strong>: Here we use the <code>warbleR</code>
+package to run spectrographic cross-correlation (SPCC) and generate
+figures of acoustic variation in two dimensional acoustic space. We
+perform these analyses for synthetic vocal identity signal datasets that
+contain more group than individual information, and more individual than
+group information, respectively.</p>
+<p>You can run the chunks in this script in order whenever you need to
+run SPCC from scratch. Once SPCC has been performed, the resulting
+matrix will be uploaded to the same shared location where audio files
+are held. You can download this matrix and run the initial chunks
+through Step 1, then skip Step 2 and continue with subsequent steps to
+build acoustic space plots.</p>
 <p>Load packages and set paths.</p>
 <pre class="r"><code># Clean the global environment
 rm(list = ls())
 
 # Specify the required packages
-X &lt;- c(&quot;devtools&quot;, &quot;dplyr&quot;, &quot;stringdist&quot;, &quot;tidyverse&quot;, &quot;ggplot2&quot;, &quot;apcluster&quot;, &quot;soundgen&quot;, &quot;parallel&quot;, &quot;stringr&quot;, &quot;data.table&quot;, &quot;tuneR&quot;, &quot;pbapply&quot;, &quot;warbleR&quot;)
+X &lt;- c(&quot;devtools&quot;, &quot;dplyr&quot;, &quot;stringdist&quot;, &quot;tidyverse&quot;, &quot;ggplot2&quot;, &quot;apcluster&quot;, &quot;soundgen&quot;, &quot;parallel&quot;, &quot;stringr&quot;, &quot;data.table&quot;, &quot;tuneR&quot;, &quot;pbapply&quot;, &quot;warbleR&quot;, &quot;paletteer&quot;)
 
 # Install the packages in X if not already installed
 is_installed &lt;- function(p) is.element(p, installed.packages()[,1])
@@ -1562,12 +1560,8 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
-# Install the paRsynth package from GitHub if you haven&#39;t installed it already
-# remove.packages(&quot;paRsynth&quot;)
-# devtools::install_github(&quot;gsvidaurre/paRsynth&quot;)
-
-# Add paRsynth to the list of packages to load
-# X &lt;- c(X, &quot;paRsynth&quot;)</code></pre>
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))</code></pre>
 <pre class="r"><code># Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))</code></pre>
 <p>Initialize working directories for data on your local machine.</p>
@@ -1575,6 +1569,7 @@ invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))</code></pr
 # path &lt;- &quot;/Users/raneemsamman/Desktop&quot; # Raneem&#39;s path
 # path &lt;- &quot;/Users/gracesmith-vidaurre/Desktop&quot; # Grace&#39;s path
 path &lt;- &quot;/Users/gsvidaurre/Desktop/&quot; # Grace&#39;s path
+# path &lt;- &quot;/Users/summe/OneDrive/Desktop/&quot; #Summer&#39;s path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir &lt;- &quot;paRsynth_methods_synthetic_dataset&quot;
@@ -1607,355 +1602,391 @@ images_path &lt;- file.path(path, analysis_dir, images_dir)
 # Create the data directory if it doesn&#39;t already exist on your computer
 if(!dir.exists(images_path)){ 
   dir.create(images_path)
+}
+
+# Specify a folder inside the analysis directory where images for figures will be written out/read in
+figures_dir &lt;- &quot;figures&quot;
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figures_path &lt;- file.path(path, analysis_dir, figures_dir)
+
+# Create the data directory if it doesn&#39;t already exist on your computer
+if(!dir.exists(figures_path)){ 
+  dir.create(figures_path)
 }</code></pre>
-<p>Source the paRsynth functions directly from the GitHub
-repository.</p>
-<pre class="r"><code>###################### Manually update in every new coding session ##################################
-
-# Brittany&#39;s path should include &quot;GitHub/paRsynth&quot;
-# repo_path &lt;- &quot;~/Desktop/R_packages/paRsynth/R&quot; # Grace&#39;s path
-repo_path &lt;- &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R&quot;
-
-# Get all of the R files for each function in this directory
-function_files &lt;- list.files(repo_path, pattern = &quot;.R$&quot;, full.names = TRUE)
-function_files</code></pre>
-<pre><code>## [1] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/frequency_anchors.R&quot;
-## [2] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/generate_strings.R&quot; 
-## [3] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/parsons_code.R&quot;     
-## [4] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/write_audio.R&quot;</code></pre>
-<pre class="r"><code># Iterate over these files to load each function, and silence the output
-invisible(sapply(X = function_files, FUN = source))
-
-###################################################################################</code></pre>
-<p>Check out documentation for the paRsynth functions. These functions
-are written below in the order in which they should be used.</p>
-<pre class="r"><code># ?paRsynth::generate_strings
-# ?paRsynth::parsons_code
-# ?paRsynth::frequency_anchors
-# ?paRsynth::write_audio</code></pre>
-<div id="step-1-create-character-strings-representing-vocal-signals-with-more-group-membership-information-than-individual-information" class="section level1">
-<h1>Step 1: Create character strings representing vocal signals with
-more group membership information than individual information</h1>
-<pre class="r"><code># Set the seed for reproducibility
-set.seed(88)
-
-# These were the same amounts of group, individual, random, and global information as in synthetic experiments
-individual_information &lt;- c(0, 2, 4, 6)
-group_information &lt;- rev(individual_information)
-
-individual_information</code></pre>
-<pre><code>## [1] 0 2 4 6</code></pre>
-<pre class="r"><code>group_information</code></pre>
-<pre><code>## [1] 6 4 2 0</code></pre>
-<pre class="r"><code># For the group membership dataset, choose the values of group and individual information such that both are present, but group information is present in greater amounts
-group_information &lt;- 4
-individual_information &lt;- 2
-
-# Create variation within individuals
-random_variation &lt;- 2 
-
-# Then set other parameters for creating synthetic vocal identity signals
-# The length of the global header and tail should be the same across strings
-globals &lt;- 8 # 4 characters for the global head, 4 for the global tail
-
-# Initialize the values of the number of groups, individuals, calls, and string length
-n_groups &lt;- 5
-n_individuals &lt;- 10
-n_calls &lt;- 5
-
-# Initialize the total string length
-string_length &lt;- (globals + group_information + individual_information + random_variation)
-string_length # 16</code></pre>
-<pre><code>## [1] 16</code></pre>
-<pre class="r"><code>### Generate the string for each call
-calls &lt;- generate_strings(
-  n_groups = n_groups, 
-  n_individuals = n_individuals, 
-  n_calls = n_calls, 
-  string_length = string_length, 
-  group_information = group_information, 
-  individual_information = individual_information,
-  random_variation = random_variation
-)
-
-glimpse(calls)</code></pre>
-<pre><code>## Rows: 250
-## Columns: 10
-## $ Group             &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ Individual        &lt;dbl&gt; 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4…
-## $ Call_ID           &lt;dbl&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3…
-## $ Call              &lt;chr&gt; &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACBB…
-## $ Global_head       &lt;chr&gt; &quot;CABC&quot;, &quot;CABC&quot;, &quot;CABC&quot;, &quot;CABC&quot;, &quot;CABC&quot;, &quot;CABC&quot;, &quot;CAB…
-## $ Group_head        &lt;chr&gt; &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;…
-## $ Individual_middle &lt;chr&gt; &quot;BA&quot;, &quot;BA&quot;, &quot;BA&quot;, &quot;BA&quot;, &quot;BA&quot;, &quot;CC&quot;, &quot;CC&quot;, &quot;CC&quot;, &quot;CC&quot;…
-## $ Random_variation  &lt;chr&gt; &quot;CC&quot;, &quot;CC&quot;, &quot;CB&quot;, &quot;BB&quot;, &quot;AB&quot;, &quot;AB&quot;, &quot;CB&quot;, &quot;CA&quot;, &quot;AA&quot;…
-## $ Group_tail        &lt;chr&gt; &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;…
-## $ Global_tail       &lt;chr&gt; &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBA…</code></pre>
-<pre class="r"><code># There should be close to as many unique strings as there are calls in the data frame
-length(unique(calls$Call))</code></pre>
-<pre><code>## [1] 158</code></pre>
-<pre class="r"><code>nrow(calls)</code></pre>
-<pre><code>## [1] 250</code></pre>
-</div>
-<div id="step-2-convert-the-strings-to-parsons-code" class="section level1">
-<h1>Step 2: Convert the strings to Parsons code</h1>
-<pre class="r"><code>calls_parsons &lt;- parsons_code(
-  df = calls, 
-  string_col = &quot;Call&quot;,
-  global_head_col = &quot;Global_head&quot;,
-  group_head_col = &quot;Group_head&quot;,
-  individual_middle_col = &quot;Individual_middle&quot;,
-  group_tail_col = &quot;Group_tail&quot;,
-  global_tail_col = &quot;Global_tail&quot;,
-  random_variation_col = &quot;Random_variation&quot;,
-  mapping = list(&quot;A&quot; = &quot;up&quot;, &quot;B&quot; = &quot;down&quot;, &quot;C&quot; = &quot;constant&quot;)
-)
-
-glimpse(calls_parsons)</code></pre>
-<pre><code>## Rows: 250
+<p>Read in the synthetic call metadata and set cores for parallel
+processing.</p>
+<pre class="r"><code>synthetic_call_metadata &lt;- read.csv(file.path(analysis_path, &quot;synthetic_call_metadata.csv&quot;))
+glimpse(synthetic_call_metadata)</code></pre>
+<pre><code>## Rows: 500
+## Columns: 24
+## $ Group           &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ Individual      &lt;int&gt; 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, …
+## $ Call_ID         &lt;int&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, …
+## $ Call            &lt;chr&gt; &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACBBCC…
+## $ Parsons_Code    &lt;chr&gt; &quot;constant-up-down-constant-up-up-down-up-constant-cons…
+## $ Frequency1      &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, …
+## $ Frequency2      &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, …
+## $ Frequency3      &lt;int&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, …
+## $ Frequency4      &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, …
+## $ Frequency5      &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, …
+## $ Frequency6      &lt;int&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, …
+## $ Frequency7      &lt;int&gt; 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, …
+## $ Frequency8      &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 4000, 4000, 4000, 4000, …
+## $ Frequency9      &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, …
+## $ Frequency10     &lt;int&gt; 4000, 4000, 4000, 3000, 5000, 5000, 4000, 4000, 5000, …
+## $ Frequency11     &lt;int&gt; 4000, 4000, 3000, 2000, 4000, 4000, 3000, 5000, 6000, …
+## $ Frequency12     &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, …
+## $ Frequency13     &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, …
+## $ Frequency14     &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, …
+## $ Frequency15     &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, …
+## $ Frequency16     &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, …
+## $ Frequency17     &lt;int&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, …
+## $ audio_file_name &lt;chr&gt; &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot;, &quot;GroupMembe…
+## $ dataset         &lt;chr&gt; &quot;Group_Membership&quot;, &quot;Group_Membership&quot;, &quot;Group_Members…</code></pre>
+<pre class="r"><code>cores &lt;- parallel::detectCores() - 4
+cores</code></pre>
+<pre><code>## [1] 4</code></pre>
+<pre class="r"><code># Find the maximum frequency anchor value across all vocalizations in kHz
+freq_cols &lt;- synthetic_call_metadata[, grepl(&quot;Frequency&quot;, names(synthetic_call_metadata))]
+glimpse(freq_cols)</code></pre>
+<pre><code>## Rows: 500
 ## Columns: 17
-## $ Group                          &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
-## $ Individual                     &lt;dbl&gt; 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, …
-## $ Call_ID                        &lt;dbl&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, …
-## $ Call                           &lt;chr&gt; &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACCBCCBAA&quot;,…
-## $ Global_head                    &lt;chr&gt; &quot;CABC&quot;, &quot;CABC&quot;, &quot;CABC&quot;, &quot;CABC&quot;, &quot;CABC&quot;,…
-## $ Group_head                     &lt;chr&gt; &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;AA…
-## $ Individual_middle              &lt;chr&gt; &quot;BA&quot;, &quot;BA&quot;, &quot;BA&quot;, &quot;BA&quot;, &quot;BA&quot;, &quot;CC&quot;, &quot;CC…
-## $ Random_variation               &lt;chr&gt; &quot;CC&quot;, &quot;CC&quot;, &quot;CB&quot;, &quot;BB&quot;, &quot;AB&quot;, &quot;AB&quot;, &quot;CB…
-## $ Group_tail                     &lt;chr&gt; &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC&quot;, &quot;BC…
-## $ Global_tail                    &lt;chr&gt; &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBAA&quot;, &quot;CBAA&quot;,…
-## $ Call_Parsons_Code              &lt;chr&gt; &quot;constant-up-down-constant-up-up-down-u…
-## $ Global_Head_Parsons_Code       &lt;chr&gt; &quot;constant-up-down-constant&quot;, &quot;constant-…
-## $ Group_Head_Parsons_Code        &lt;chr&gt; &quot;up-up&quot;, &quot;up-up&quot;, &quot;up-up&quot;, &quot;up-up&quot;, &quot;up…
-## $ Individual_Middle_Parsons_Code &lt;chr&gt; &quot;down-up&quot;, &quot;down-up&quot;, &quot;down-up&quot;, &quot;down-…
-## $ Random_Variation_Parsons_Code  &lt;chr&gt; &quot;constant-constant&quot;, &quot;constant-constant…
-## $ Group_Tail_Parsons_Code        &lt;chr&gt; &quot;down-constant&quot;, &quot;down-constant&quot;, &quot;down…
-## $ Global_Tail_Parsons_Code       &lt;chr&gt; &quot;constant-down-up-up&quot;, &quot;constant-down-u…</code></pre>
-</div>
-<div id="step-3-convert-the-parsons-code-to-frequency-values" class="section level1">
-<h1>Step 3: Convert the Parsons code to frequency values</h1>
-<pre class="r"><code>calls_parsons_frequencies &lt;- frequency_anchors(
-  df = calls_parsons, 
-  parsons_col = &quot;Call_Parsons_Code&quot;, 
-  group_id_col = &quot;Group&quot;, 
-  individual_id_col = &quot;Individual&quot;, 
-  call_id_col = &quot;Call_ID&quot;,
-  call_string_col = &quot;Call&quot;,
-  section_transition = &quot;starting_frequency&quot;,
-  starting_frequency = 4000, 
-  frequency_shift = 1000
-)
+## $ Frequency1  &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency2  &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency3  &lt;int&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000…
+## $ Frequency4  &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency5  &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency6  &lt;int&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000…
+## $ Frequency7  &lt;int&gt; 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000…
+## $ Frequency8  &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency9  &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency10 &lt;int&gt; 4000, 4000, 4000, 3000, 5000, 5000, 4000, 4000, 5000, 5000…
+## $ Frequency11 &lt;int&gt; 4000, 4000, 3000, 2000, 4000, 4000, 3000, 5000, 6000, 6000…
+## $ Frequency12 &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000…
+## $ Frequency13 &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000…
+## $ Frequency14 &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency15 &lt;int&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000…
+## $ Frequency16 &lt;int&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000…
+## $ Frequency17 &lt;int&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000…</code></pre>
+<pre class="r"><code>max_freq &lt;- max(sapply(freq_cols, max))/1000
+max_freq # 7 kHz</code></pre>
+<pre><code>## [1] 7</code></pre>
+<pre class="r"><code># Set an upper frequency with 0.5 kHz of buffer above the maximum frequency of vocalizations in the dataset. This will be used as the upper limit of the bandpass filter in spectrographic cross-correlation.
+upp_freq &lt;- max_freq + 0.5
+upp_freq # 7.5 kHz</code></pre>
+<pre><code>## [1] 7.5</code></pre>
+<div id="step-1-create-a-warbler-selection-table" class="section level1">
+<h1>Step 1: Create a warbleR selection table</h1>
+<pre class="r"><code># Create a vector of all of the audio files in the analysis path
+wavs &lt;- list.files(path = audio_path, pattern = &quot;.wav$&quot;, full.names = FALSE)
+length(wavs)</code></pre>
+<pre><code>## [1] 500</code></pre>
+<pre class="r"><code>head(wavs)</code></pre>
+<pre><code>## [1] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; 
+## [2] &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; 
+## [3] &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; 
+## [4] &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; 
+## [5] &quot;GroupMembership_Group1_Indiv1_Call5.wav&quot; 
+## [6] &quot;GroupMembership_Group1_Indiv10_Call1.wav&quot;</code></pre>
+<pre class="r"><code># Iterate over the audio files to create one row of the selection table at a time. warbleR selection tables have a very specific format that must be used for downstream analysis.
+sel_tbl &lt;- data.table::rbindlist(pblapply(1:length(wavs), function(w){
+  
+  tmp &lt;- tuneR::readWave(file.path(audio_path, wavs[w]))
+  
+  # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
+  metadats_tmp &lt;- synthetic_call_metadata %&gt;%
+    dplyr::filter(grepl(wavs[w], audio_file_name))
+  
+  # Create a row for the selection table in warbleR format if the audio file exists and metadata for that file also exists
+  if(nrow(metadats_tmp) &gt; 0){
+    
+    # Use 0.1s as a margin to indicate where the vocalization starts and ends in the audio file
+    # soundgen::soundgen() adds 100ms of silence before and after the synthetic vocalization by default 
+    res &lt;- data.frame(
+      sound.files = wavs[w], 
+      selec = 1,
+      start = 0.1, 
+      end = seewave::duration(tmp) - 0.1,
+      sampling_rate = tmp@samp.rate,
+      group_ID = metadats_tmp[[&quot;Group&quot;]],
+      individual_ID = metadats_tmp[[&quot;Individual&quot;]],
+      call = metadats_tmp[[&quot;Call&quot;]],
+      call_ID = metadats_tmp[[&quot;Call_ID&quot;]],
+      dataset = metadats_tmp[[&quot;dataset&quot;]]
+    )
+    
+  } else {
+    
+    res &lt;- data.frame(
+      sound.files = wavs[w], 
+      selec = 1, 
+      start = 0.1, 
+      end = seewave::duration(tmp) + 0.1,
+      sampling_rate = NA,
+      group_ID = NA,
+      individual_ID = NA,
+      call = NA,
+      call_ID = NA,
+      dataset = NA
+    )
+    
+  }
+  
+  return(res)
+  
+}))
 
-glimpse(calls_parsons_frequencies)</code></pre>
-<pre><code>## Rows: 250
-## Columns: 22
-## $ Group        &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
-## $ Individual   &lt;dbl&gt; 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, …
-## $ Call_ID      &lt;dbl&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, …
-## $ Call         &lt;chr&gt; &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACBBCCBAA…
-## $ Parsons_Code &lt;chr&gt; &quot;constant-up-down-constant-up-up-down-up-constant-constan…
-## $ Frequency1   &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency2   &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency3   &lt;dbl&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 500…
-## $ Frequency4   &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency5   &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency6   &lt;dbl&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 500…
-## $ Frequency7   &lt;dbl&gt; 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 600…
-## $ Frequency8   &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency9   &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency10  &lt;dbl&gt; 4000, 4000, 4000, 3000, 5000, 5000, 4000, 4000, 5000, 500…
-## $ Frequency11  &lt;dbl&gt; 4000, 4000, 3000, 2000, 4000, 4000, 3000, 5000, 6000, 600…
-## $ Frequency12  &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency13  &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency14  &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency15  &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency16  &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency17  &lt;dbl&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 500…</code></pre>
-</div>
-<div id="step-4-for-each-call-or-string-use-these-frequency-vectors-to-generate-synthetic-audio-files-with-the-soundgen-package" class="section level1">
-<h1>Step 4: For each call or string, use these frequency vectors to
-generate synthetic audio files with the soundgen package</h1>
-<pre class="r"><code>synthetic_call_metadata_group &lt;- write_audio(
-  df = calls_parsons_frequencies, 
-  save_path = audio_path, 
-  sampling_rate = 44100,
-  sylLen = 200,
-  temperature = 0.025, # default stochasticity in generating sound
-  rolloffExact = c(0.25), # specify an amplitude value for the fundamental only, which will silence all harmonics
-  prefix = &quot;GroupMembership&quot;
-)
-
-glimpse(synthetic_call_metadata_group)</code></pre>
-</div>
-<div id="step-5-repeat-steps-1---4-to-create-vocalizations-with-more-individual-than-group-information" class="section level1">
-<h1>Step 5: Repeat Steps 1 - 4 to create vocalizations with more
-individual than group information</h1>
-<pre class="r"><code># Set the seed for reproducibility
-set.seed(888)
-
-# These were the same amounts of group, individual, random, and global information as in synthetic experiments
-individual_information &lt;- c(0, 2, 4, 6)
-group_information &lt;- rev(individual_information)
-
-individual_information</code></pre>
-<pre><code>## [1] 0 2 4 6</code></pre>
-<pre class="r"><code>group_information</code></pre>
-<pre><code>## [1] 6 4 2 0</code></pre>
-<pre class="r"><code># For the group membership dataset, choose the values of group and individual information such that both are present, but individual information is present in greater amounts
-group_information &lt;- 2
-individual_information &lt;- 4
-
-# Create variation within individuals
-random_variation &lt;- 2 
-
-# Then set other parameters for creating synthetic vocal identity signals
-# The length of the global header and tail should be the same across strings
-globals &lt;- 8 # 4 characters for the global head, 4 for the global tail
-
-# Initialize the values of the number of groups, individuals, calls, and string length
-n_groups &lt;- 5
-n_individuals &lt;- 10
-n_calls &lt;- 5
-
-# Initialize the total string length
-string_length &lt;- (globals + group_information + individual_information + random_variation)
-string_length # 16</code></pre>
-<pre><code>## [1] 16</code></pre>
-<pre class="r"><code>### Generate the string for each call
-calls &lt;- generate_strings(
-  n_groups = n_groups, 
-  n_individuals = n_individuals, 
-  n_calls = n_calls, 
-  string_length = string_length, 
-  group_information = group_information, 
-  individual_information = individual_information,
-  random_variation = random_variation
-)
-
-glimpse(calls)</code></pre>
-<pre><code>## Rows: 250
+# See the selection table in warbleR format with useful metadata for acoustic space plots
+glimpse(sel_tbl)</code></pre>
+<pre><code>## Rows: 500
 ## Columns: 10
-## $ Group             &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ Individual        &lt;dbl&gt; 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4…
-## $ Call_ID           &lt;dbl&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3…
-## $ Call              &lt;chr&gt; &quot;ACCCBCBCBBABCCBA&quot;, &quot;ACCCBCBCBAABCCBA&quot;, &quot;ACCCBCBCBAA…
-## $ Global_head       &lt;chr&gt; &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACC…
-## $ Group_head        &lt;chr&gt; &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B…
-## $ Individual_middle &lt;chr&gt; &quot;CBCB&quot;, &quot;CBCB&quot;, &quot;CBCB&quot;, &quot;CBCB&quot;, &quot;CBCB&quot;, &quot;BCAA&quot;, &quot;BCA…
-## $ Random_variation  &lt;chr&gt; &quot;BA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;CA&quot;, &quot;CA&quot;, &quot;BC&quot;, &quot;CA&quot;, &quot;BB&quot;, &quot;AB&quot;…
-## $ Group_tail        &lt;chr&gt; &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B…
-## $ Global_tail       &lt;chr&gt; &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCB…</code></pre>
-<pre class="r"><code># There should be close to as many unique strings as there are calls in the data frame
-length(unique(calls$Call))</code></pre>
-<pre><code>## [1] 192</code></pre>
-<pre class="r"><code>nrow(calls)</code></pre>
-<pre><code>## [1] 250</code></pre>
-<pre class="r"><code>### Convert to Parsons code
-calls_parsons &lt;- parsons_code(
-  df = calls, 
-  string_col = &quot;Call&quot;,
-  global_head_col = &quot;Global_head&quot;,
-  group_head_col = &quot;Group_head&quot;,
-  individual_middle_col = &quot;Individual_middle&quot;,
-  group_tail_col = &quot;Group_tail&quot;,
-  global_tail_col = &quot;Global_tail&quot;,
-  random_variation_col = &quot;Random_variation&quot;,
-  mapping = list(&quot;A&quot; = &quot;up&quot;, &quot;B&quot; = &quot;down&quot;, &quot;C&quot; = &quot;constant&quot;)
-)
-
-glimpse(calls_parsons)</code></pre>
-<pre><code>## Rows: 250
-## Columns: 17
-## $ Group                          &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
-## $ Individual                     &lt;dbl&gt; 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, …
-## $ Call_ID                        &lt;dbl&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, …
-## $ Call                           &lt;chr&gt; &quot;ACCCBCBCBBABCCBA&quot;, &quot;ACCCBCBCBAABCCBA&quot;,…
-## $ Global_head                    &lt;chr&gt; &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACCC&quot;, &quot;ACCC&quot;,…
-## $ Group_head                     &lt;chr&gt; &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;,…
-## $ Individual_middle              &lt;chr&gt; &quot;CBCB&quot;, &quot;CBCB&quot;, &quot;CBCB&quot;, &quot;CBCB&quot;, &quot;CBCB&quot;,…
-## $ Random_variation               &lt;chr&gt; &quot;BA&quot;, &quot;AA&quot;, &quot;AA&quot;, &quot;CA&quot;, &quot;CA&quot;, &quot;BC&quot;, &quot;CA…
-## $ Group_tail                     &lt;chr&gt; &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;,…
-## $ Global_tail                    &lt;chr&gt; &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCBA&quot;, &quot;CCBA&quot;,…
-## $ Call_Parsons_Code              &lt;chr&gt; &quot;up-constant-constant-constant-down-con…
-## $ Global_Head_Parsons_Code       &lt;chr&gt; &quot;up-constant-constant-constant&quot;, &quot;up-co…
-## $ Group_Head_Parsons_Code        &lt;chr&gt; &quot;down&quot;, &quot;down&quot;, &quot;down&quot;, &quot;down&quot;, &quot;down&quot;,…
-## $ Individual_Middle_Parsons_Code &lt;chr&gt; &quot;constant-down-constant-down&quot;, &quot;constan…
-## $ Random_Variation_Parsons_Code  &lt;chr&gt; &quot;down-up&quot;, &quot;up-up&quot;, &quot;up-up&quot;, &quot;constant-…
-## $ Group_Tail_Parsons_Code        &lt;chr&gt; &quot;down&quot;, &quot;down&quot;, &quot;down&quot;, &quot;down&quot;, &quot;down&quot;,…
-## $ Global_Tail_Parsons_Code       &lt;chr&gt; &quot;constant-constant-down-up&quot;, &quot;constant-…</code></pre>
-<pre class="r"><code>### Generate frequency anchors
-calls_parsons_frequencies &lt;- frequency_anchors(
-  df = calls_parsons, 
-  parsons_col = &quot;Call_Parsons_Code&quot;, 
-  group_id_col = &quot;Group&quot;, 
-  individual_id_col = &quot;Individual&quot;, 
-  call_id_col = &quot;Call_ID&quot;,
-  call_string_col = &quot;Call&quot;,
-  section_transition = &quot;starting_frequency&quot;,
-  starting_frequency = 4000, 
-  frequency_shift = 1000
-)
-
-glimpse(calls_parsons_frequencies)</code></pre>
-<pre><code>## Rows: 250
-## Columns: 22
-## $ Group        &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
-## $ Individual   &lt;dbl&gt; 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, …
-## $ Call_ID      &lt;dbl&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, …
-## $ Call         &lt;chr&gt; &quot;ACCCBCBCBBABCCBA&quot;, &quot;ACCCBCBCBAABCCBA&quot;, &quot;ACCCBCBCBAABCCBA…
-## $ Parsons_Code &lt;chr&gt; &quot;up-constant-constant-constant-down-constant-down-constan…
-## $ Frequency1   &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency2   &lt;dbl&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 500…
-## $ Frequency3   &lt;dbl&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 500…
-## $ Frequency4   &lt;dbl&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 500…
-## $ Frequency5   &lt;dbl&gt; 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 500…
-## $ Frequency6   &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency7   &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency8   &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency9   &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency10  &lt;dbl&gt; 2000, 2000, 2000, 2000, 2000, 5000, 5000, 5000, 5000, 500…
-## $ Frequency11  &lt;dbl&gt; 3000, 5000, 5000, 4000, 4000, 3000, 4000, 3000, 5000, 500…
-## $ Frequency12  &lt;dbl&gt; 4000, 6000, 6000, 5000, 5000, 3000, 5000, 2000, 4000, 500…
-## $ Frequency13  &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency14  &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency15  &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…
-## $ Frequency16  &lt;dbl&gt; 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 300…
-## $ Frequency17  &lt;dbl&gt; 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 400…</code></pre>
-<pre class="r"><code>### Write synthetic audio files
-synthetic_call_metadata_indiv &lt;- write_audio(
-  df = calls_parsons_frequencies, 
-  save_path = audio_path, 
-  sampling_rate = 44100,
-  sylLen = 200,
-  temperature = 0.025, # default stochasticity in generating sound
-  rolloffExact = c(0.25), # specify an amplitude value for the fundamental only, which will silence all harmonics
-  prefix = &quot;IndividualIdentity&quot;
-)
-
-glimpse(synthetic_call_metadata_indiv)</code></pre>
+## $ sound.files   &lt;chr&gt; &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot;, &quot;GroupMembers…
+## $ selec         &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+## $ start         &lt;dbl&gt; 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0…
+## $ end           &lt;dbl&gt; 0.3103855, 0.3102041, 0.3092063, 0.3091156, 0.3094785, 0…
+## $ sampling_rate &lt;int&gt; 44100, 44100, 44100, 44100, 44100, 44100, 44100, 44100, …
+## $ group_ID      &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+## $ individual_ID &lt;int&gt; 1, 1, 1, 1, 1, 10, 10, 10, 10, 10, 2, 2, 2, 2, 2, 3, 3, …
+## $ call          &lt;chr&gt; &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACCBCCBAA&quot;, &quot;CABCAABACBBCCBA…
+## $ call_ID       &lt;int&gt; 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4,…
+## $ dataset       &lt;chr&gt; &quot;Group_Membership&quot;, &quot;Group_Membership&quot;, &quot;Group_Membershi…</code></pre>
+<pre class="r"><code># Looks good, a single sampling rate across files
+unique(sel_tbl$sampling_rate)</code></pre>
+<pre><code>## [1] 44100</code></pre>
 </div>
-<div id="step-6-save-the-metadata-for-the-synthetic-datasets-in-a-csv-file" class="section level1">
-<h1>Step 6: Save the metadata for the synthetic datasets in a CSV
-file</h1>
-<pre class="r"><code># Combine the metdata across datasets and add an extra column to indicate the call dataset generated
-synthetic_call_metadata_group %&gt;%
+<div id="step-2.-perform-spectrographic-cross-correlation-spcc-to-measure-acoustic-similarity-of-all-calls-in-dataset" class="section level1">
+<h1>Step 2. Perform spectrographic cross-correlation (SPCC) to measure
+acoustic similarity of all calls in dataset</h1>
+<p>If the <code>temperature</code> argument used by
+<code>soundgen</code> is set to 0 (for no stochasticity in sound
+generation), then you will need to filter out any calls that have
+duplicated strings prior to running cross-correlation. Otherwise you
+will have values of 1 outside of the diagonal representing comparisons
+among calls of exactly the same structure or duplicates, and
+multidimensional scaling will fail.</p>
+<p>Here SPCC is performed across both synthetic vocalization datasets,
+so that the acoustic space shown below will be a universal space across
+figures.</p>
+<pre class="r"><code># In preliminary analyses, when generating the synthetic vocalizations, increasing the temperature from 0 to 0.025 and then 0.05 reduced the number of ones off of the diagonal to 1 but didn&#39;t completely eliminate them.
+xc_mat &lt;- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, upp_freq), wn = &quot;hanning&quot;, cor.method = &quot;pearson&quot;, parallel = cores, na.rm = FALSE, type = &quot;spectrogram&quot;, path = audio_path)
+
+str(xc_mat)
+dim(xc_mat)
+
+# Checking, get the percentage of unique values that are negative
+# In preliminary analyses, using the &quot;continuous_trajectory&quot; option to create frequency anchors led to more structural variation in the synthetic datasets, and also a small number of negative values in the SPCC matrix, consistent with the idea that SPCC yields negative values when comparing vocalizations that are very structurally different
+neg_values &lt;- length(xc_mat[xc_mat &lt; 0]) / (dim(xc_mat)[1] * dim(xc_mat)[2])
+neg_values # No negative values, looks good
+
+# No values of 1 off of the diagonal, looks good
+ones &lt;- ((length(which(xc_mat[lower.tri(xc_mat)] &gt; 0.999999))*2) / length(xc_mat)) * 100
+ones
+
+# Update the dimension names of the matrix
+dimnames(xc_mat) &lt;- list(sel_tbl$sound.files, sel_tbl$sound.files)
+
+# Save this matrix since it can take a long time to generate when there are many vocalizations
+saveRDS(xc_mat, file.path(analysis_path, &quot;xc_mat.RDS&quot;))</code></pre>
+</div>
+<div id="step-3-calculate-the-edit-distance-amongst-all-strings" class="section level1">
+<h1>Step 3: Calculate the edit distance amongst all strings</h1>
+<pre class="r"><code>xc_mat &lt;- readRDS(file.path(analysis_path, &quot;xc_mat.RDS&quot;))
+
+# For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
+edit_dists &lt;- unlist(lapply(1:nrow(xc_mat), function(m){
+  lapply(1:ncol(xc_mat), function(p){
+    
+    return(
+      stringdist(
+        a = sel_tbl %&gt;% 
+          dplyr::filter(
+            sound.files == dimnames(xc_mat)[[1]][m]
+          ) %&gt;% 
+          pull(call),
+        b = sel_tbl %&gt;% 
+          dplyr::filter(
+            sound.files == dimnames(xc_mat)[[2]][p]
+          ) %&gt;% 
+          pull(call),
+        method = &quot;lv&quot;
+      )
+    )
+    
+  })
+}))
+
+edit_mat &lt;- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
+dim(edit_mat)
+
+# Check for values of 0 off of the diagonal. This will happen by chance when the exact same strings are generated for the same individual (even with the random variation, and especially when there are few characters devoted to encoding random variation for within-individual variation).
+zeroes &lt;- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
+zeroes # [1] 0.1616, 404 comparisons (202 unique)
+
+# hist(edit_mat[lower.tri(edit_mat)])
+
+# The code below replaces edit distance values of 0 off of the diagonal with a small number close to 0. The lowest non-zero value in the edit distance matrix is 1. Replace zeroes off of the diagonal with 1/10th of this value, or 0.1, which is the same value used and validated in the simulation experiments for the associated paper.
+
+# Get the minimum non-zero similarity value in the matrix
+min_vals &lt;- edit_mat[lower.tri(edit_mat)]
+
+# Then get the smallest non-zero value, which should be 1. Looks good
+sec_min_val &lt;- min(min_vals[min_vals &gt; 0])
+# sec_min_val [1] 1
+
+# Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of 1, which will now be the smallest non-zero value in this matrix
+edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] &lt;- round(sec_min_val/10, 8)
+edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] &lt;- round(sec_min_val/10, 8)
+
+# Update the dimension names of the matrix
+dimnames(edit_mat) &lt;- list(sel_tbl$sound.files, sel_tbl$sound.files)
+
+# Save this matrix since it can take a long time to generate when there are many vocalizations
+saveRDS(edit_mat, file.path(analysis_path, &quot;edit_mat.RDS&quot;))</code></pre>
+</div>
+<div id="step-4-reduce-the-dimensionality-of-the-spcc-and-edit-distance-matrices-with-multidimensional-scaling." class="section level1">
+<h1>Step 4: Reduce the dimensionality of the SPCC and edit distance
+matrices with multidimensional scaling.</h1>
+<p>First apply MDS to the SPCC matrix.</p>
+<pre class="r"><code>xc_mat &lt;- readRDS(file.path(analysis_path, &quot;xc_mat.RDS&quot;))
+str(xc_mat)</code></pre>
+<pre><code>##  num [1:500, 1:500] 1 0.973 0.925 0.863 0.924 ...
+##  - attr(*, &quot;dimnames&quot;)=List of 2
+##   ..$ : chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...
+##   ..$ : chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...</code></pre>
+<pre class="r"><code># Convert to a distance matrix and dist object for isoMDS
+dist_mat &lt;- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+str(dist_mat)</code></pre>
+<pre><code>##  &#39;dist&#39; Named num [1:124750] 0.0271 0.075 0.1372 0.0762 0.1398 ...
+##  - attr(*, &quot;Labels&quot;)= chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...
+##  - attr(*, &quot;Size&quot;)= int 500
+##  - attr(*, &quot;call&quot;)= language as.dist.default(m = 1 - xc_mat, diag = TRUE, upper = TRUE)
+##  - attr(*, &quot;Diag&quot;)= logi TRUE
+##  - attr(*, &quot;Upper&quot;)= logi TRUE</code></pre>
+<pre class="r"><code># Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is &quot;low&quot; stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
+iso_spcc &lt;- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
+str(iso_spcc)</code></pre>
+<pre><code>## List of 2
+##  $ points: num [1:500, 1:15] -0.217 -0.22 -0.206 -0.179 -0.233 ...
+##   ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. ..$ : chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...
+##   .. ..$ : NULL
+##  $ stress: num 1.85</code></pre>
+<pre class="r"><code># Stress of the final solution was under 5%
+round(iso_spcc$stress, 2) # 1.85 %</code></pre>
+<pre><code>## [1] 1.85</code></pre>
+<pre class="r"><code>str(iso_spcc$points)</code></pre>
+<pre><code>##  num [1:500, 1:15] -0.217 -0.22 -0.206 -0.179 -0.233 ...
+##  - attr(*, &quot;dimnames&quot;)=List of 2
+##   ..$ : chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...
+##   ..$ : NULL</code></pre>
+<pre class="r"><code># View(iso_spcc$points)
+
+# Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
+mds_spcc &lt;- data.frame(
+  sound.files = dimnames(xc_mat)[[1]],
+  X = as.vector(iso_spcc$points[, 1]), 
+  Y = as.vector(iso_spcc$points[, 2])
+) %&gt;% 
+  inner_join(
+    sel_tbl %&gt;% 
+      dplyr::select(sound.files, group_ID, individual_ID, dataset),
+    by = c(&quot;sound.files&quot;)
+  ) %&gt;%
   dplyr::mutate(
-    dataset = &quot;Group_Membership&quot;
+    unique_individuals = paste(group_ID, individual_ID, sep = &quot; - &quot;),
+    group_ID = factor(group_ID),
+    individual_ID = factor(individual_ID),
+    unique_individuals = factor(unique_individuals),
+    dataset = gsub(&quot;_&quot;, &quot; &quot;, dataset),
+    dataset = factor(dataset)
+  )
+
+glimpse(mds_spcc)</code></pre>
+<pre><code>## Rows: 500
+## Columns: 7
+## $ sound.files        &lt;chr&gt; &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot;, &quot;GroupMe…
+## $ X                  &lt;dbl&gt; -0.2166648, -0.2203792, -0.2064050, -0.1786338, -0.…
+## $ Y                  &lt;dbl&gt; -0.122519612, -0.120751577, -0.146505067, -0.208834…
+## $ group_ID           &lt;fct&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ individual_ID      &lt;fct&gt; 1, 1, 1, 1, 1, 10, 10, 10, 10, 10, 2, 2, 2, 2, 2, 3…
+## $ dataset            &lt;fct&gt; Group Membership, Group Membership, Group Membershi…
+## $ unique_individuals &lt;fct&gt; 1 - 1, 1 - 1, 1 - 1, 1 - 1, 1 - 1, 1 - 10, 1 - 10, …</code></pre>
+<p>Then apply MDS to the edit distance matrix.</p>
+<pre class="r"><code>edit_mat &lt;- readRDS(file.path(analysis_path, &quot;edit_mat.RDS&quot;))
+str(edit_mat)</code></pre>
+<pre><code>##  num [1:500, 1:500] 0 0.1 1 2 2 3 3 3 3 4 ...
+##  - attr(*, &quot;dimnames&quot;)=List of 2
+##   ..$ : chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...
+##   ..$ : chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...</code></pre>
+<pre class="r"><code># Convert to a dist object for isoMDS (this is already a distance matrix and should not be subtracted from 1)
+dist_mat &lt;- stats::as.dist(edit_mat, diag = TRUE, upper = TRUE)
+str(dist_mat)</code></pre>
+<pre><code>##  &#39;dist&#39; Named num [1:124750] 0.1 1 2 2 3 3 3 3 4 4 ...
+##  - attr(*, &quot;Labels&quot;)= chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...
+##  - attr(*, &quot;Size&quot;)= int 500
+##  - attr(*, &quot;call&quot;)= language as.dist.default(m = edit_mat, diag = TRUE, upper = TRUE)
+##  - attr(*, &quot;Diag&quot;)= logi TRUE
+##  - attr(*, &quot;Upper&quot;)= logi TRUE</code></pre>
+<pre class="r"><code># Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is &quot;low&quot; stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
+iso_edit &lt;- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
+str(iso_edit)</code></pre>
+<pre><code>## List of 2
+##  $ points: num [1:500, 1:15] -3.75 -3.65 -3.67 -3.62 -3.66 ...
+##   ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. ..$ : chr [1:500] &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call2.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call3.wav&quot; &quot;GroupMembership_Group1_Indiv1_Call4.wav&quot; ...
+##   .. ..$ : NULL
+##  $ stress: num 3.96</code></pre>
+<pre class="r"><code># Stress of the final solution was under 5%
+round(iso_edit$stress, 2) # 3.96 %</code></pre>
+<pre><code>## [1] 3.96</code></pre>
+<pre class="r"><code># Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
+mds_edit &lt;- data.frame(
+  sound.files = dimnames(edit_mat)[[1]],
+  X = as.vector(iso_edit$points[, 1]), 
+  Y = as.vector(iso_edit$points[, 2])
+) %&gt;% 
+  inner_join(
+    sel_tbl %&gt;% 
+      dplyr::select(sound.files, group_ID, individual_ID, dataset),
+    by = c(&quot;sound.files&quot;)
+  ) %&gt;%
+  dplyr::mutate(
+    unique_individuals = paste(group_ID, individual_ID, sep = &quot; - &quot;),
+    group_ID = factor(group_ID),
+    individual_ID = factor(individual_ID),
+    unique_individuals = factor(unique_individuals),
+    dataset = gsub(&quot;_&quot;, &quot; &quot;, dataset),
+    dataset = factor(dataset)
+  )
+
+glimpse(mds_edit)</code></pre>
+<pre><code>## Rows: 500
+## Columns: 7
+## $ sound.files        &lt;chr&gt; &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot;, &quot;GroupMe…
+## $ X                  &lt;dbl&gt; -3.746273, -3.648048, -3.674134, -3.618295, -3.6572…
+## $ Y                  &lt;dbl&gt; 0.25714939, 0.25303453, -0.52302028, -1.37163849, -…
+## $ group_ID           &lt;fct&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ individual_ID      &lt;fct&gt; 1, 1, 1, 1, 1, 10, 10, 10, 10, 10, 2, 2, 2, 2, 2, 3…
+## $ dataset            &lt;fct&gt; Group Membership, Group Membership, Group Membershi…
+## $ unique_individuals &lt;fct&gt; 1 - 1, 1 - 1, 1 - 1, 1 - 1, 1 - 1, 1 - 10, 1 - 10, …</code></pre>
+</div>
+<div id="step-5-save-the-mds-coordinates-in-a-single-spreadsheet." class="section level1">
+<h1>Step 5: Save the MDS coordinates in a single spreadsheet.</h1>
+<pre class="r"><code>mds_spcc %&gt;% 
+  dplyr::mutate(
+    method = &quot;SPCC&quot;
   ) %&gt;% 
   bind_rows(
-    synthetic_call_metadata_indiv %&gt;% 
+    mds_edit %&gt;% 
       dplyr::mutate(
-        dataset = &quot;Individual_Identity&quot;
+        method = &quot;edit&quot;
       )
-  ) %&gt;%
-  write.csv(., file = file.path(analysis_path, &quot;synthetic_call_metadata.csv&quot;), row.names = FALSE) </code></pre>
-</div>
-<div id="step-7-save-the-audio-files-and-metadata-spreadsheet-in-a-shared-location" class="section level1">
-<h1>Step 7: Save the audio files and metadata spreadsheet in a shared
-location</h1>
-<p>For now, the audio files and metadata will be stored on Google Drive
-for in-house collaborative work. These files were manually uploaded to
-Google Drive and should be used as input for the subsequent scripts.</p>
+  ) %&gt;% 
+  write.csv(file.path(analysis_path, &quot;MDS_coordinates.csv&quot;), row.names = FALSE)</code></pre>
+<p>This spreadsheet of MDS coordinates will be used to build acoustic
+space plots for main and supplementary figures for the associated
+paper.</p>
 </div>
 
 

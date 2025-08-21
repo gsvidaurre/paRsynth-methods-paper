@@ -9,10 +9,10 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Grace Smith-Vidaurre" />
 
+<meta name="date" content="2025-08-21" />
 
-<title>Simulation Experiments</title>
+<title> Simulation Experiments </title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -349,48 +349,89 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Simulation Experiments</h1>
-<h4 class="author">Grace Smith-Vidaurre</h4>
-<h4 class="date">11 August, 2025</h4>
+<h1 class="title toc-ignore"><center style="font-size:30px;font-style:normal;color:#0E0E7D;"><br />
+Simulation Experiments<br />
+</center></h1>
+<h4 class="author"><br />
+<center style="font-style:normal;">
+<a style="font-size:22px;color:#337ab7;text-decoration: underline;" href="https://smith-vidaurrelab.github.io/">Grace
+Smith-Vidaurre</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1-3*</span></sup>
+<br /> <br />
+<center style="font-size:18px;font-style:normal;color:black;">
+<sup><span style="font-size:12px;color:black;">1</span></sup>Department
+of Integrative Biology, Michigan State University
+</center>
+<center style="font-size:18px;font-style:normal;color:black;">
+<sup><span style="font-size:12px;color:black;">2</span></sup>Department
+of Computational Mathematics, Science, and Engineering, Michigan State
+University
+</center>
+<center style="font-size:18px;font-style:normal;color:black;">
+<sup><span style="font-size:12px;color:black;">3</span></sup>Ecology,
+Evolution, and Behavior Program, Michigan State University
+</center>
+<br />
+<center style="font-size:18px;">
+<sup style="font-size:12px;">*</sup>Corresponding author (<a href="mailto:smithvid@msu.edu" class="email">smithvid@msu.edu</a>)
+</center></h4>
+<h4 class="date"><center style="font-size:22px;font-style:normal;"><br />
+21 August 2025<br />
+</center><br />
+<br /></h4>
 
 </div>
 
 
-<p>Purpose: The following code was designed to test the behavior of
-functions written to generate synthetic vocalizations that emphasize
-either individual identity or group membership information. These
-functions generate individually distinctive or group-specific character
-strings that are converted to Parson’s code and then audio files of
-frequency-modulated vocalizations using the <code>soundgen</code>
-package. The loops below iterate over varying ratios of how much of the
-initial character string is allocated to shared group membership versus
-unique individual identity. The output of each loop is the accuracy of
-the original classes at both the individual and group levels compared to
-cluster labels obtained from clustering with Gaussian mixture models
-(performed on multidimensional scaling variables generated from the edit
-distance obtained from character string comparisons or the
-spectrographic cross-correlation (SPCC) matrix obtained from comparing
-synthetic acoustic signals). We can use accuracy as a metric here
-because class sizes are evenly balanced.</p>
-<p>Below we iterate over dataset sizes (simulating less or more crowded
-signaling environments) and group versus individual information encoding
-in character strings that we expect to influence the distinctiveness or
-uniqueness synthetic vocalizations at either social level.</p>
-<p>The pipeline below will allow us to indirectly address or compare how
-much information about group membership versus individual identity is
-contained in patterns of acoustic variation across character strings and
-their corresponding synthetic vocalizations that represent vocal
-identity signals. For instance, when creating datasets of vocalizations
-that are more individually distinctive and less group-specific, the
-percentage of original individual-level labels recovered by clustering
-should be high, but low for the group-level, because patterns of
-acoustic variation should contain a lot of information about individual
-identity but less about group membership.</p>
+<style type="text/css">
+body{
+font-family: Arial;
+font-size: 14pt;
+}
+h1{
+font-size: 22pt;
+}
+h2{
+font-size: 18pt;
+}
+h3{
+font-size: 16pt;
+}
+</style>
+<p><strong>Purpose</strong>: We designed simulation experiments to test
+the detection of identity information in synthetic vocalizations with
+spectrographic cross-correlation, a computational tool traditionally
+applied to biacoustics datasets. In these synthetic experiments, we
+manipulated the complexity of identity information encoding
+(e.g. identity information was encoded over one or two social levels),
+as well as the density of the simulated signaling environment (the
+number of classes at each social level, or the size of synthetic
+datasets).</p>
+<p>We used a similar pipeline to analyze the datasets arising from each
+treatment combination as the example datasets generated in previous
+scripts. Here we also performed unsupervised clustering and measured the
+accuracy of predicted labels at each social level with a bipartite
+matching approach, which allowed us to assess how well an analytical
+pipeline based on spectrographic cross-correlation could be used for
+identity information detection. We analyzed both the character string
+(edit distance) and audio (spectrographic cross-correlation)
+representations of the synthetic vocalizations in these experiments. In
+the next script, we used effect sizes to make statistical inferences
+about the accuracy of detection of the social level with the most
+identity information encoded.</p>
+<p>We expected both the complexity of identity information encoding
+(e.g. identity information was encoded over one or two social levels)
+and the density of the simulated signaling environment to influence the
+distinctiveness or uniqueness synthetic vocalizations at either social
+level. For instance, when creating datasets of vocalizations that are
+more individually distinctive and less group-specific (more individual
+information encoded than group information), the percentage of original
+individual-level labels recovered by clustering should be high, but low
+for the group-level, because patterns of acoustic variation should
+contain a lot of information about individual identity but less about
+group membership.</p>
 <p>Load packages and set cores.</p>
 <pre class="r"><code># Clean the global environment
 rm(list = ls())
-
-# TKTK Need to finalize lead coder review!!!
 
 # Initialize packages for data processing and analysis
 X &lt;- c(&quot;devtools&quot;, &quot;dplyr&quot;, &quot;stringdist&quot;, &quot;tidyverse&quot;, &quot;ggplot2&quot;, &quot;apcluster&quot;, &quot;soundgen&quot;, &quot;parallel&quot;, &quot;stringr&quot;, &quot;data.table&quot;, &quot;tuneR&quot;, &quot;pbapply&quot;, &quot;Rmisc&quot;, &quot;warbleR&quot;, &quot;stringdist&quot;, &quot;mclust&quot;, &quot;combinat&quot;)
@@ -419,11 +460,9 @@ invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))</code></pr
 <p>Initialize working directories for data and figures.</p>
 <pre class="r"><code>###################### Manually update in every new coding session ##################################
 
-# Initialize a base path (we may need a separate base path per user)
+# Initialize a base path (we will need a separate base path per user)
 # path &lt;- &quot;/Users/gracesmith-vidaurre/Desktop&quot; # Grace&#39;s path
-path &lt;- &quot;/home/gsvidaurre/Desktop&quot; # Grace&#39;s path
-# path &lt;- &quot;~/Desktop&quot; # Grace&#39;s path
-# path &lt;- &quot;C:/Users/britt/Desktop&quot; #Brittany&#39;s path
+path &lt;- &quot;/Users/gsvidaurre/Desktop/&quot; # Grace&#39;s path
 
 ###################################################################################</code></pre>
 <pre class="r"><code># Initialize the directory for analysis on your local computer
@@ -458,7 +497,7 @@ figure_path &lt;- file.path(path, analysis_dir, figure_dir)
 if(!dir.exists(figure_path)){ 
   dir.create(figure_path)
 }</code></pre>
-<p>Source custom functions for this manuscript.</p>
+<p>Source custom functions for the associated paper.</p>
 <pre class="r"><code># Load custom functions for the code below
 # This line of code loads a function to calculate the maximum global accuracy of clustering by finding and calculating accuracy across all bipartite matchings (matchings between original class labels and predicted cluster labels)
 source(file.path(path, &quot;GitHub_repos/paRsynth-methods-paper/code/functions/accuracy_score.R&quot;))</code></pre>
@@ -468,15 +507,15 @@ repository.</p>
 
 # Brittany&#39;s path should include &quot;GitHub/paRsynth&quot;
 # repo_path &lt;- &quot;~/Desktop/R_packages/paRsynth/R&quot; # Grace&#39;s path
-repo_path &lt;- &quot;~/Desktop/GitHub_repos/paRsynth/R&quot;
+repo_path &lt;- &quot;/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R&quot;
 
 # Get all of the R files for each function in this directory
 function_files &lt;- list.files(repo_path, pattern = &quot;.R$&quot;, full.names = TRUE)
 function_files</code></pre>
-<pre><code>## [1] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/frequency_anchors.R&quot;
-## [2] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/generate_strings.R&quot; 
-## [3] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/parsons_code.R&quot;     
-## [4] &quot;/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R/write_audio.R&quot;</code></pre>
+<pre><code>## [1] &quot;/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R/frequency_anchors.R&quot;
+## [2] &quot;/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R/generate_strings.R&quot; 
+## [3] &quot;/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R/parsons_code.R&quot;     
+## [4] &quot;/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R/write_audio.R&quot;</code></pre>
 <pre class="r"><code># Iterate over these files to load each function, and silence the output
 invisible(sapply(X = function_files, FUN = source))
 
@@ -488,37 +527,31 @@ will only work when paRsynth is installed as a package</p>
 # ?paRsynth::parsons_code
 # ?paRsynth::frequency_anchors
 # ?paRsynth::write_audio</code></pre>
-<p>In the code below, I handled negative SPCC values by setting these to
-the minimum observed non-zero SPCC value in the whole matrix. I handled
-values of 1 off of the diagonal by setting these to the maximum observed
-value less than 1 in the full matrix. I used similar guidelines for
-values of 0 off of the diagonal for the edit distance.</p>
-<div id="simulation-experiments-over-varying-social-environment-characteristics-and-information-encoding-rules" class="section level1">
-<h1>Simulation experiments over varying social environment
-characteristics and information encoding rules</h1>
-<p>How well can we recover the information that was originally encoded
-over two social levels? Here we generate synthetic vocal identity
-signals over varying social environment characteristics and information
-encoding rules. Then we use the prediction accuracy of original labels
-by clustering algorithms (performed on MDS feature spaces derived from
-the edit distance computed amongst strings and spectrographic
-cross-correlation computed amongst synthetic vocalizations) to ask how
-well we “recovered” information encoded at the group and individual
-levels.</p>
-<p>Iterate over each treatment a number of times so that we can
-calculate a 95% confidence interval around each accuracy calculations.
-In the looping structure below, a selection table is made and the edit
-distance and SPCC are performed each time a new call dataset is
-generated. Audio files are written to a directory associated with the
-project and removed before initiating the subsequent iteration. The
-duration of the audio files significantly impacts the computational time
-(files over 400 ms take a long time to generate). Also, long strings
-written to short duration audio files do not sound or look biologically
-relevant, so we are using a short string length below. The number of
-calls that will be compared by the edit distance and SPCC also increases
-computational time, as well as the number of treatments (social
-conditions, information encoding) and the number of iterations per
-treatment.</p>
+<p>We performed simulation experiments over varying social environment
+characteristics and information encoding rules. These experiments helped
+us test how well we could detect identity information that was
+originally encoded over two social levels using a traditional
+computational tool in bioacoustics. Here we generated synthetic vocal
+identity signals over varying information encoding rules and signaling
+environment densities. Then we used the prediction accuracy of original
+labels by unsupervised clustering (performed on MDS feature spaces
+derived from the edit distance computed amongst strings and
+spectrographic cross-correlation computed amongst synthetic
+vocalizations) to ask how well we detected identity information encoded
+at the group and individual levels.</p>
+<p>We iterated over treatment combinations to calculate a 95% confidence
+interval around mean accuracy calculations. In the looping structure
+below, a selection table was made, then the edit distance measurements
+and SPCC were carried out each time a new call dataset was generated.
+Audio files were written to a directory associated with the project and
+removed before initiating the subsequent iteration. The duration of the
+audio files significantly impacted the computational time (files over
+400 ms took a long time to generate). Also, long strings written to
+short duration audio files did not sound or look biologically relevant,
+so we used a short string length below. The number of calls that will be
+compared by the edit distance and SPCC also increased computational
+time, as well as the number of treatments (social conditions,
+information encoding) and the number of iterations per treatment.</p>
 <pre class="r"><code>#################### Information encoding and social environment treatments #################### 
 
 # Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create varying social conditions that mimic signaling with few or many individuals or groups
@@ -585,10 +618,10 @@ string_length # 16
 
 # Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
 iteratns &lt;- 10
-# iteratns &lt;- 1 # fewer iterations for preliminary results
 
 # Testing one iteration of each loop
-# z &lt;- 2 # number of groups and individuals, or social conditions, as well as the number of calls per individual
+# These are the parameters that can be used for internal code review by team members to test if the code is working for separate treatment combinations. After updating the iterating variables below, go to line 375 and run the code from there. Do not run starting on line 365 or you&#39;ll run the whole loop. This is in addition to the fine-scale code review line by line.
+# z &lt;- 1 # number of groups and individuals, or social conditions, as well as the number of calls per individual
 # i &lt;- 1 # information encoding treatments
 # n &lt;- 1 # replicates or iterations
 
@@ -1116,12 +1149,10 @@ system.time(
     
   }))
   
-)
-
-# 4 social conditions, 4 information encoding treatments with 10 iterations each and new accuracy measurements on 03 Mar 2025: 21h 35m 28s
-
-# 4 social conditions, 4 information encoding treatments with 10 iterations each and new accuracy measurements on 17 Jun 2025: 22h 17m 46s</code></pre>
-</div>
+)</code></pre>
+<p>The spreadsheets written out across iterations per treatment
+combination are used in the subsequent script for effect size
+calculations and graphics.</p>
 
 
 
