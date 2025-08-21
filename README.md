@@ -6,7 +6,7 @@ The **`code` directory** holds the sub-directories and scripts described below. 
 
 `./example_datasets`:
 
-  1. `Generate_Example_Datasets.Rmd`: We created two datasets of synthetic vocal identity signals that contain more group membership information ("group-specific" dataset) or more individual identity information ("individually distinctive"" dataset). The resulting audio files and metadata spreadsheet are saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration and code reviewing purposes.
+  1. `Generate_Example_Datasets.Rmd`: We created two datasets of synthetic vocal identity signals that contain more group membership information ("group-specific" dataset) or more individual identity information ("individually distinctive" dataset). The resulting audio files and metadata spreadsheet are saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration and code reviewing purposes.
   
   2. `Example_Spectrograms.Rmd`: Here we generated spectrogram image files that were used for preliminary visual inspection, as well as spectrograms that we used in call catalogues for main figures of the associated paper. Image files of spectrograms for visual checks were saved in the shared Google Drive folder [paRsynth_methods_ms_data](https://drive.google.com/drive/folders/1_CJA-WVry3pANskbtCIx6fFwrc85dWUs?usp=sharing) for internal collaboration purposes. This script also contains code to create spectrograms for main figures in the paper. For these spectrograms, we used `seewave::ggspectro()`, then we used `imagemagick` to resize image files and add colored borders for publication-quality figures.
   
@@ -16,7 +16,7 @@ The **`code` directory** holds the sub-directories and scripts described below. 
   
   5. `Example_Main_AcousticSpacePlots.Rmd`: We used the multidimensional scaling coordinates across the example call datasets and distance measurement methods to build low-dimensional acoustic space plots for main manuscript figures. These acoustic space plots were focused on SPCC and edit distance acoustic space, and we drew convex hull polgyons around sets of calls by the  social level that had the most identity information encoded. For instance, the main figure for the group-specific dataset included a catalogue of spectrograms, a panel of the edit distance acoustic space and a panel of SPCC acoustic space, both with group-level polygons.
   
-  6. `Example_Supplementary_AcousticSpacePlots.Rmd`: In this script we built acoustic space plots for supplementary figures to show the two example vocalization datasets with polygons drawn at both social levels, as well as using both distance methods to analyze the character string and audio representations of the vocalizations.
+  6. `Example_Supplementary_AcousticSpacePlots.Rmd`: In this script we built acoustic space plots for supplementary figures to show the two example vocalization datasets with polygons drawn at both social levels, as well as using both distance methods to analyze the character string and audio representations of the vocalizations. These plots include the full datasets of vocalizations and also represent a universal acoustic space. This is the same universal space represented in the acousitc space plots generated in `Example_Main_AcousticSpacePlots.Rmd`.
   
 `./simulation_experiments`:
   
@@ -26,8 +26,8 @@ The **`code` directory** holds the sub-directories and scripts described below. 
   
 The `./functions` directory holds:
 
-1. `accuracy_score.R`: This is a function written by Vanessa Ferdinand to calculate the accuracy of predicting true class labels using k-means clustering. The function uses bipartite matching between original class labels and cluster labels to calculate all possible accuracy values for a given clustering solution.
+1. `accuracy_score.R`: This is a function written to calculate the accuracy of predicting true class labels using k-means clustering. The function uses bipartite matching between original class labels and cluster labels to calculate all possible accuracy values for a given clustering solution.
 
 The overall **`figures` directory** holds separate nested directories per figure. Supplementary figures are held inside of the nested directory `supplementary_figures`. Each sub-directory per figure contains plots written out directly from R, as well as vector graphics (SVG) files that we used to arrange composite figures in Inkscape. 
 
-The **`Presentations` folder** holds the folders `Code` and `Figures`, each of which contains scripts and image files used to generate results and figures for conference presentations.
+The **`Presentations` folder** holds the folders `Code` and `Figures`, each of which contains scripts and image files used to generate results and figures for conference presentations. Code in this folder has not undergone manuscript level code review and is included for the purpose of reproducing presentation figures only. 
