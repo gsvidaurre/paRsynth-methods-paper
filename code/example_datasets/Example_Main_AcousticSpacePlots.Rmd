@@ -9,7 +9,7 @@ Purpose: Here we use build acoustic space plots for main figures. Acoustic space
 
 ```{r setup, include = FALSE}
 
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE, root.dir = "~/Desktop")
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE)
 
 ```
 
