@@ -352,7 +352,7 @@ display: none;
 <h1 class="title toc-ignore">Generate spectrogram image files for
 example datasets</h1>
 <h4 class="author">Brittany Coppinger, Grace Smith-Vidaurre</h4>
-<h4 class="date">20 August, 2025</h4>
+<h4 class="date">21 August, 2025</h4>
 
 </div>
 
@@ -731,13 +731,9 @@ img_list &lt;- list(
 )
 
 # This is a list with 4 elements, each element is a vector of the names of 2 vocalizations for 1 individual in a given group
-str(img_list)</code></pre>
-<pre><code>## List of 4
-##  $ : chr [1:2] &quot;GroupMembership_Group2_Indiv4_Call1&quot; &quot;GroupMembership_Group2_Indiv4_Call2&quot;
-##  $ : chr [1:2] &quot;GroupMembership_Group2_Indiv6_Call1&quot; &quot;GroupMembership_Group2_Indiv6_Call2&quot;
-##  $ : chr [1:2] &quot;GroupMembership_Group3_Indiv1_Call3&quot; &quot;GroupMembership_Group3_Indiv1_Call4&quot;
-##  $ : chr [1:2] &quot;GroupMembership_Group3_Indiv4_Call1&quot; &quot;GroupMembership_Group3_Indiv4_Call4&quot;</code></pre>
-<pre class="r"><code># We&#39;re using this list structure because colors correspond to individual information nested inside of group information. Therefore, we also need to specify colors in the same list structure, so we can map the names of vocalizations to the correct group color and individual level hue
+str(img_list)
+
+# We&#39;re using this list structure because colors correspond to individual information nested inside of group information. Therefore, we also need to specify colors in the same list structure, so we can map the names of vocalizations to the correct group color and individual level hue
 
 # Set Group 2 individuals to the first color or cols[2] and Group 3 individuals to the second color or cols[3]. Hues per individual within a group should be set using the scales::alpha() function. This vector of colors is a different object than the list above, here there is 1 color specified per individual
 
@@ -772,9 +768,9 @@ cols_indivs &lt;- c(
   light_col
 )
 
-cols_indivs</code></pre>
-<pre><code>## [1] &quot;#A6450E&quot;   &quot;#F6955EFF&quot; &quot;#682C3740&quot; &quot;#B87C87&quot;</code></pre>
-<pre class="r"><code># Iterate over the list of vocalizations to map each vocalization back to the correct color and write out an updated image file with a colored border
+cols_indivs
+
+# Iterate over the list of vocalizations to map each vocalization back to the correct color and write out an updated image file with a colored border
 
 # i &lt;- 2 # testing, freeze loop in the first iteration (To test, un-comment and run code inside of the curly brackets of the function). 
 # z &lt;- 1 # testing, freeze loop in the first iteration (To test, un-comment and run code inside of the curly brackets of the function). 
@@ -808,10 +804,9 @@ invisible(pblapply(1:length(img_list), function(i){
 dataset.</h2>
 <pre class="r"><code># Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
 cols &lt;- paletteer::paletteer_d(&quot;nationalparkcolors::Arches&quot;)
-cols</code></pre>
-<pre><code>## &lt;colors&gt;
-## #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF</code></pre>
-<pre class="r"><code># Generate a list of audio or image file names that will be used to add colored borders by group and individual within a group. This list has 4 vectors, 1 vector for each individual. We will need 2 group colors and 2 hues within each group color. We will append the pattern &quot;.jpeg&quot; for the file extension to the name of each vocalization in the loop below
+cols
+
+# Generate a list of audio or image file names that will be used to add colored borders by group and individual within a group. This list has 4 vectors, 1 vector for each individual. We will need 2 group colors and 2 hues within each group color. We will append the pattern &quot;.jpeg&quot; for the file extension to the name of each vocalization in the loop below
 img_list &lt;- list(
   
   # Group 1, Individual 1
@@ -838,13 +833,9 @@ img_list &lt;- list(
 
 
 # This is a list with 4 elements, each element is a vector of the names of 2 vocalizations for 1 individual in a given group
-str(img_list)</code></pre>
-<pre><code>## List of 4
-##  $ : chr [1:2] &quot;IndividualIdentity_Group1_Indiv1_Call2&quot; &quot;IndividualIdentity_Group1_Indiv1_Call3&quot;
-##  $ : chr [1:2] &quot;IndividualIdentity_Group1_Indiv3_Call1&quot; &quot;IndividualIdentity_Group1_Indiv3_Call2&quot;
-##  $ : chr [1:2] &quot;IndividualIdentity_Group2_Indiv1_Call3&quot; &quot;IndividualIdentity_Group2_Indiv1_Call5&quot;
-##  $ : chr [1:2] &quot;IndividualIdentity_Group2_Indiv2_Call1&quot; &quot;IndividualIdentity_Group2_Indiv2_Call2&quot;</code></pre>
-<pre class="r"><code># Set Group 1 to col[1] and group 2 to col [2] and then individuals to the same hues used above.
+str(img_list)
+
+# Set Group 1 to col[1] and group 2 to col [2] and then individuals to the same hues used above.
 
 dark_col1 &lt;- rgb(
     (col2rgb(cols[1]) - 80)[[&quot;red&quot;, 1]],
@@ -875,9 +866,9 @@ cols_indivs &lt;- c(
   scales::alpha(cols[2], alpha = 0.25)
 )
 
-cols_indivs</code></pre>
-<pre><code>## [1] &quot;#587D9C&quot;   &quot;#A8CDECFF&quot; &quot;#A6450E&quot;   &quot;#F6955E40&quot;</code></pre>
-<pre class="r"><code># Iterate over the list of vocalizations to map each vocalization back to the correct color and write out an updated image file with a colored border
+cols_indivs
+
+# Iterate over the list of vocalizations to map each vocalization back to the correct color and write out an updated image file with a colored border
 
 # i &lt;- 2 # testing the loop in the first iteration, individuals or vectors in the list
 # z &lt;- 1 # testing the loop in the first iteration, vocalizations or elements in each vector of the list

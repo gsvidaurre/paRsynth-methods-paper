@@ -23,10 +23,8 @@ Load packages and set cores.
 # Clean the global environment
 rm(list = ls())
 
-# tktk update list
 # Initialize packages for data processing and analysis
 X <- c("pbapply", "tidyverse", "effsize", "paletteer")
-
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -93,7 +91,7 @@ if(!dir.exists(data_path)){
 
 ```
 
-# Part 1: Plotting accuracy scores for information detection at each social level by group information proportion and social class
+# Step 1: Plotting accuracy scores for information detection at each social level by group information proportion and social class
 
 ## Read in accuracy calculations from "Simulation_Experiments" output
 ```{r}
@@ -267,14 +265,17 @@ res_summ_acc %>%
     strip.text.y = element_text (size = 11, face = "plain"),
     strip.background = element_rect(color = "black", fill = ngrey)
   )
+```
 
+Save plot
+``` {r eval=FALSE}
 # save as tiff file. Remember, the object git_path contains the figures directory already
 ggsave(filename = file.path(git_path, "Fig_4", "AverageAccuracy_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
 ```
 
 
-# Part 2: Calculating effect sizes for all social level comparisons. 
+# Step 2: Calculating effect sizes for all social level comparisons. 
 
 ## First, check the normality the accuracy measures (summed by social level) before running effect size analyses. For each measure, create density and QQ plots to visualize the distribution of the data, then perform a Shapiro Wilks test of normality. 
 ```{r}
@@ -513,6 +514,10 @@ res_density_values %>%
     strip.background = element_rect(color = "black", fill = ngrey)
   )
 
+```
+
+Save plot
+``` {r eval=FALSE}
 # save as tiff file. Remember, the object git_path contains the figures directory already
 ggsave(filename = file.path(git_path, "Fig_5", "AccuracyDensityPlots_EffectSizes.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
@@ -590,6 +595,10 @@ res_density_values %>%
     strip.background = element_rect(color = "black", fill = ngrey)
   )
 
+```
+
+Save plot
+``` {r eval=FALSE}
 # Save as tiff file. Then object git_path contains the figures directory already
 ggsave(filename = file.path(git_path, "supplementary_figures", "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
 
