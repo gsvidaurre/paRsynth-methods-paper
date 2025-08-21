@@ -1,11 +1,11 @@
 ---
-title: "ConceptualFigure_FrequencyAnchors"
-author: Grace Smith-Vidaurre, Brittany Coppinger
+title: "Conceptual Frequency Anchors Figure and Spectrogram Image"
+author: Grace Smith-Vidaurre, Brittany Coppinger, Summer Eckhardt
 output: html_document
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
-Purpose: This script uses the synthetic call metadata to create a conceptual graphic of frequency anchors for the paRsynth pipeline. This figure is used for talks and potentially for the manuscript.
+Purpose: This script uses data from the synthetic call metadata to create a conceptual graphic of frequency anchors over time to represent step 3 in the psRsynth pipeline. This graphic is then imported to Inkscape to create part of Figure 1. This code also creates a spectrogram of the resulting synthetic vocalization from the selected character string. This spectrograms is also used in Figure 1. 
 
 ```{r setup, include = FALSE}
 
@@ -13,14 +13,14 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
-Load packages and set paths.
+Load packages and set cores.
 ```{r}
 
 # Clean the global environment
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "tidyverse", "data.table", "gganimate", "tuneR", "warbleR")
+X <- c("tidyverse", "tuneR", "seewave", "warbleR")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -30,6 +30,9 @@ invisible(lapply(1:length(X), function(x){
     install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
   }
 }))
+
+cores <- parallel::detectCores() - 4
+cores
 
 ```
 
@@ -54,13 +57,13 @@ Initialize working directories for data on your local machine.
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" # Britt's path
-path <- "/Users/summe/OneDrive/Desktop" #Summer's path
+path <- "C:/Users/britt/Desktop" # Britt's path
+# path <- "/Users/summe/OneDrive/Desktop" #Summer's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-# git_path <- "/Users/gracesmith-vidaurre/Desktop/GitHub_repos"
-git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper/figures" #Summer's path
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- "/Users/gracesmith-vidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures"
+# git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper/figures" #Summer's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -94,7 +97,7 @@ glimpse(synthetic_call_metadata)
 
 ```
 
-Choose a single call for talk slides: get the character string and also the vector of frequency anchors.
+# Step 1: Choose a single call for the conceptual representation of the pipeline step. For this call, store the frequency anchor data. 
 ```{r}
 
 # Choose the first call in this dataset (Group 1, Individual 1, Call 1)
@@ -124,7 +127,9 @@ length(frequency_anchors)
 
 ```
 
-Make a conceptual graphic showing how the frequency values produced from the paRsynth pipeline pipeline serve as frequency modulation "anchors" for soundgen to generate synthetic audio files. This be a line graph of the frequency anchors above.
+# Step 2: Make the conceptual graphic.
+
+The graphic should show how the frequency values produced from the paRsynth pipeline serve as frequency modulation "anchors" for soundgen to generate synthetic audio files. This should be a line graph of the frequency anchors identified in the previous step.
 ```{r}
 
 # Create a data frame of the frequency anchors plus timestamps
@@ -139,7 +144,7 @@ freq_anchors <- data.frame(
 glimpse(freq_anchors)
 
 # Make a graphic of the frequency anchors plus a line through them
-Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
+ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
   # geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
   geom_line(color = "grey24", linetype = "dotted", linewidth = 1) +
   geom_point(size = 3, shape = 21, color = "black", fill = "grey60", stroke = 1.2) +
@@ -161,17 +166,17 @@ Freq_anch_plot <-  ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
     axis.ticks.x = element_blank()
   ) 
 
-# We will use this image file and it may need to be resized
-# use the ggsave line to save the static plot, as the anim_save line to save the animated plot
+```
 
-# This sizing is being used by Summer for creation of manuscript figure
+Save plot
+```{r eval=FALSE}
+
+# This is the size of the graphic for use in Figure 1 creation, done manually in Inkscape
 ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 5.025, height = 2.18, dpi = 600)
-
-
 
 ```
 
-Finally, make a spectrogram of the audio file that corresponds with the call used for this figure
+# Step 3: Make a spectrogram of the audio file that corresponds with the call used for this figure
 ```{r}
 
 # Set color palette for spectrograms
@@ -182,7 +187,7 @@ tmp_wav <- tuneR::readWave(file.path(audio_path, "GroupMembership_Group1_Indiv1_
 # str(tmp_wav)
 
 # Use ggspectro to generate a spectrogram
-gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
+ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
   
   # Plot amplitude values or cells in the spectrogram. Interpolation needs to be TRUE and sit outside of the aes() call to smoothen the otherwise very pixelated appearance of the raster
   geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
@@ -217,10 +222,14 @@ gg <- ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
     axis.ticks = element_line(color = "black", linewidth = 0.15)
   )
 
-# Once the plot is generated in the graphics device, you can save as an an image file on your computer using ggsave()
-# Substitute the ".wav" extension with the image file extension we will use, with gsub()
-# gsub(pattern = ".wav$", replace = ".jpeg", lexicon_wavs[w]) # uncomment to test inside of the function
-# The width and the height should be specified once you figure out a good size for spectrograms in the final composite figure
+
+```
+
+Save plot
+```{r eval=FALSE}
+
+# Save spectrogram for at appropriate size for use in Inkscape for creating Figure 1 
 ggsave(filename = file.path(figure_path, "GroupMembership_Group1_Indiv1_Call1.tiff"), units = "in", width = 4.9, height = 2.2, dpi = 600)
+
 ```
 

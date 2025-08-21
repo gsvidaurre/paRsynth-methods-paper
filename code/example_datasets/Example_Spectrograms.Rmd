@@ -334,7 +334,7 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
 Color palette should be from paletteer("nationalparkcolors::Arches"). There should be 6 colors with the hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF. We will be using the first 3 colors to match the color scheme of the manuscript and the specific color labels used then generating the acoustic space plots. Color will indicate groups, hues within colors indicate individual. 
 
 ## Creating colored borders for the "group-specific" dataset. 
-```{r}
+```{r eval=FALSE}
 
 # Get colors for groups: we will the second and the third colors (orange and purple) for the groups in the main manuscript figures
 cols <- paletteer::paletteer_d("nationalparkcolors::Arches")
@@ -437,7 +437,7 @@ invisible(pblapply(1:length(img_list), function(i){
 ```
 
 ## Creating colored borders for the "individually distinctive" dataset. 
-```{r}
+```{r eval=FALSE}
 
 # Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
 cols <- paletteer::paletteer_d("nationalparkcolors::Arches")

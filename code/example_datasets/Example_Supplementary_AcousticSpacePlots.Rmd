@@ -7,6 +7,14 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 
 Purpose: Here we use build acoustic space plots for supplementary figures. Acoustic space plots are generated using multidimensional scaling coordinates from spectrographic cross-correlation and edit distance analyses.
 
+These eight image files are used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group-specific dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individually distinctive dataset.
+
+The code in this script and the script to generate acoustic space plots for main figures should specify the same axis limits and breaks across plots for the same dataset and similarity method, but this needs to be checked carefully when assembling the final composite figures. Each composite figure should only have a single legend at the top of the file, and shared x- and y-axis dimensions.
+
+This code creates a plot of calls from both datasets in the same universal acoustic space (edit distance or SPCC). This plot should have 4 panels when complied in Inkscape: datasets plotted with polygons at both social levels.
+
+To generate a legend of the correct size for a composite figure, we write out one large image file for each composite figure that is sized correctly for the legend, then crop the figure to include the legend only in Inkscape.
+
 ```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE)
@@ -20,7 +28,7 @@ Load packages and set paths.
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR", "paletteer")
+X <- c("dplyr", "tidyverse", "pbapply", "paletteer")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -55,12 +63,14 @@ Initialize working directories for data on your local machine.
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "~/Desktop" # Grace's path
-path <- "/Users/summe/OneDrive/Desktop" #Summer's path
+# path <- "/Users/summe/OneDrive/Desktop" #Summer's path
+path <- "C:/Users/britt/Desktop" # Britt's path
+
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
+git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
 # git_path <- file.path(path, "GitHub_repos") # Grace's path
-git_path <- file.path(path, "github_repo") # Summer's path
+# git_path <- file.path(path, "github_repo") # Summer's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -106,30 +116,8 @@ cores
 
 ```
 
-## Notes on supplementary figures
 
-These eight image files should be used to generate 2 supplementary figures: One showing patterns of variation in acoustic space for the group membership dataset across (dis)similarity methods and polygons at either social level, and a similar figure for the individual identity dataset.
-
-###################################################################
-######## NEED TO UPDATE
-Supplementary figure plans (one for the group membership dataset, one for the individual identity dataset): 
-- Panel A should be edit distance, group-level polygons
-- Panel B should be SPCC, group-level polygons
-- Panel C should be edit distance, individual-level polygons
-- Panel D should be SPCC, individual-level polygons
-#####################################################################
-
-The code in this script and the script to generate acoustic space plots for main figures should specify the same axis limits and breaks across plots for the same dataset and similarity method, but this needs to be checked carefully when assembling the final composite figures. Each composite figure should only have a single legend at the top of the file, and shared x- and y-axis dimensions.
-
-To generate a legend of the correct size for a composite figure, you can write out one large image file for each composite figure that is sized correctly for the legend, then crop the figure to include the legend only. You should also check that the legends all match across panels per figure before cropping out these legends per panel.
-
-# Generate low-dimensional acoustic space plots for supplementary figures
-
-Create a plot of calls from both datasets in the same universal acoustic space (edit distance or SPCC). This plot should have 4 panels: datasets plotted with polygons at both social levels.
-
-Create two plots (SPCC and edit distance) with convex hull polygons by group. These plots should be organized with edit distance on the top and SPCC on the bottom, so the edit distance plot will have a legend. These plots will be combined with a small collection of spectrograms in one main figure.
-
-## Group membership dataset
+## Step 1: Group-specific dataset
 
 Start with aesthetics.
 ```{r}
@@ -181,7 +169,9 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 
 ```
 
-## Edit distance, group membership dataset and group-level polygons
+## Step 1a: Group-level polygons 
+
+### Edit distance, group-specific dataset and group-level polygons
 
 Create the group membership plots. Edit distance first with a legend.
 ```{r}
@@ -234,7 +224,7 @@ ggsave(filename = file.path(figures_path, "Fig_S1", "Suppl_AcousticSpace_edit_Gr
 
 ```
 
-## SPCC, group membership dataset and group-level polygons
+### SPCC, group-specific dataset and group-level polygons
 
 SPCC next with a legend.
 ```{r}
@@ -286,7 +276,9 @@ ggsave(filename = file.path(figures_path, "Fig_S2", "Suppl_AcousticSpace_SPCC_Gr
 
 ```
 
-## Edit distance, group membership dataset and individual-level polygons
+## Step 1b: Individual-level polygons 
+
+### Edit distance, group-specific dataset and individual-level polygons
 
 Edit distance first with a legend. Use the same continuous x and y-axis scales as the main figures.
 ```{r}
@@ -340,7 +332,7 @@ ggsave(filename = file.path(figures_path, "Fig_S1", "Suppl_AcousticSpace_edit_Gr
 
 ```
 
-## SPCC, group membership dataset and individual-level polygons
+### SPCC, group membership dataset and individual-level polygons
 
 SPCC with a legend. Use the same continuous x and y-axis scales as the main figures.
 ```{r}
@@ -393,7 +385,7 @@ ggsave(filename = file.path(figures_path, "Fig_S2", "Suppl_AcousticSpace_SPCC_Gr
 
 ```
 
-## Individual identity dataset
+## Step 2: Individually distinctive dataset
 
 Start with aesthetics.
 ```{r}
@@ -440,7 +432,9 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 
 ```
 
-## Edit distance, individual identity dataset and individual-level polygons
+## Step 2a: Individual-level ploygons
+
+### Edit distance, individually distinctive dataset and individual-level polygons
 
 Edit distance first with a legend.
 ```{r}
@@ -490,7 +484,7 @@ ggsave(filename = file.path(figures_path, "Fig_S1", "Suppl_AcousticSpace_edit_In
 
 ```
 
-## SPCC, individual identity dataset and individual-level polygons
+### SPCC, individually distinctive dataset and individual-level polygons
 
 SPCC next with a legend.
 ```{r}
@@ -541,7 +535,9 @@ ggsave(filename = file.path(figures_path, "Fig_S2", "Suppl_AcousticSpace_SPCC_In
 
 ```
 
-## Edit distance, individual identity dataset and group-level polygons
+## Step 2b: Group-level ploygons
+
+### Edit distance, individual identity dataset and group-level polygons
 
 Edit distance first with a legend. Use the same continuous x and y-axis scales as the main figures.
 ```{r}
@@ -594,7 +590,7 @@ ggsave(filename = file.path(figures_path, "Fig_S1", "Suppl_AcousticSpace_edit_In
 
 ```
 
-## SPCC, individual identity dataset and group-level polygons
+### SPCC, individual identity dataset and group-level polygons
 
 SPCC with a legend. Use the same continuous x and y-axis scales as the main figures.
 ```{r}
