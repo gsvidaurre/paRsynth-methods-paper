@@ -1,23 +1,5 @@
 # Synthetic vocal identity signals with paRsynth
 
-<style type="text/css">
-body{
-  font-family: Arial;
-  font-size: 14pt;
-}
-h1{
-  font-size: 22pt;
-}
-
-h2{
-  font-size: 18pt;
-}
-
-h3{
-  font-size: 16pt;
-}
-</style>
-
 This repository holds code for a paper on creating synthetic vocal identity signals with paRsynth and detecting identity information in the resulting synthetic vocalizations using traditional bioacoustics tools. The repository holds manuscript drafts in the `drafts` folder, code (scripts and functions), as well as figures. Below we describe more detail about the code and figure directory structures and file contents.
 
 The **`code` directory** holds the sub-directories and scripts described below. Across each of these files, we make scripts available as RMarkdown files that can be used to reproduce our results. We also make the knitted HTML reports associated with each RMarkdown document available. These knitted reports document the results produced by this code on our local machines and which were used to write the associated paper.
