@@ -1,11 +1,46 @@
 ---
-title: "Information Encoding Experiments - Accuracy Visualization and Effect Size Calculations"
-author: "Brittany Coppinger, Grace Smith-Vidaurre, others"
-output: html_document
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+title: <center style="font-size:30px;font-style:normal;color:#0E0E7D;">Accuracy figure and effect size calculations</center>
+author: |
+  <br />
+  <center style="font-style:normal;">
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="https://brittanycoppinger.weebly.com/">Brittany A. Coppinger</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1,3</span></sup>,
+  <a style="font-style:normal;font-size:22px;color:#337ab7;text-decoration: underline;"href="https://smith-vidaurrelab.github.io/">Grace Smith-Vidaurre</a><sup><span style="font-style:normal;font-size:12px;color:black;text-decoration:none!important;">1-3*</span></sup>
+  <br />
+  <br />
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">1</span></sup>Department of Integrative Biology, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">2</span></sup>Department of Computational Mathematics, Science, and Engineering, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">3</span></sup>Ecology, Evolution, and Behavior Program, Michigan State University</center>
+  <br />
+  <center style="font-size:18px;"><sup style="font-size:12px;">*</sup>Corresponding author (smithvid@msu.edu)</center>
+date: <center style=font-size:22px;font-style:normal;>`r format(Sys.time(), '%d %B %Y')`</center>
+  <br />
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
 ---
 
-Purpose: The following code was designed to visualize the accuracy scores of information detection at each social level for each combination of group information proportion and social class treatment, for both SPCC and edit distance measures. Additionally, this code calculates the effect sizes of accuracy comparisons between social levels for each combinations of treatments, then visualizes those effect sizes. 
+<style type="text/css">
+body{
+  font-family: Arial;
+  font-size: 14pt;
+}
+h1{
+  font-size: 22pt;
+}
+
+h2{
+  font-size: 18pt;
+}
+
+h3{
+  font-size: 16pt;
+}
+</style>
+
+**Purpose**: The following code was designed to visualize the accuracy scores of information detection at each social level for each combination of group information proportion and social class treatment, for both SPCC and edit distance measures. Additionally, this code calculates the effect sizes of accuracy comparisons between social levels for each combinations of treatments, then visualizes those effect sizes. 
 
 In part 1, the code creates a figure (Fig 4 in manuscript) that visualizes accuracy scores. This figure uses output from the script "Simulation_Experiments" to create a data frame which is used to create plots of average accuracy by group information proportions and social class treatment for each social information level (individual and group). This plot averages over 10 iterations performed in "Simulation_Experiments" to calculate averages and 95% confidence intervals.
   
@@ -63,12 +98,12 @@ Initialize working directories for data and figures.
 # Initialize a base path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "~/Desktop" # Grace's path
-path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
+path <- "/Users/gsvidaurre/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-# git_path <- file.path(path, "GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 ###################################################################################
 
 ```
@@ -93,7 +128,7 @@ if(!dir.exists(data_path)){
 
 # Step 1: Plotting accuracy scores for information detection at each social level by group information proportion and social class
 
-## Read in accuracy calculations from "Simulation_Experiments" output
+Read in accuracy calculations from "Simulation_Experiments" output.
 ```{r}
 
 # create a list of the files that contain accuracy output in the data path, then view this list. This step is for checking that all files are found in the correct path. There should be 16 files, 1 for each unique combination of social class and group information proportion condition. 
@@ -137,7 +172,7 @@ sapply(res %>%
 
 ```
 
-## Modify datframe "res" to allow for plotting of accuracy results and 95% confidence intervals, save this dataframe as "res_summ_acc"
+Modify datframe "res" to allow for plotting of accuracy results and 95% confidence intervals, save this dataframe as "res_summ_acc".
 ```{r}
 
 # Summarize the results from the synthetic experiments to calculate the mean and 95% CI per each treatment combination of social class and group information proportion condition. 
@@ -192,7 +227,7 @@ unique(res_summ_acc$accuracy_level)
 
 ```
 
-## Set up objects to be used in all plots in this code. 
+Set up objects to be used in all plots in this code. 
 ``` {r figure asthetic set up}
 
 # Make color list that contains the first and second color hex codes from paletteer_packages:Arches, which will be the theme colors for this manuscript. 
@@ -228,7 +263,7 @@ ngrey <- scales::alpha("grey", 0.2)
 
 ```
 
-## Plot accuracy scores
+Plot accuracy scores.
 ```{r}
 
 # Create the accuracy plot that will make up Fig 4 in the manuscript. Plot average accuracy as a function of group information proportion condition, using facet_grid to great separate plots for each accuracy method and social class combination. 
@@ -277,7 +312,7 @@ ggsave(filename = file.path(git_path, "Fig_4", "AverageAccuracy_PointRange.tiff"
 
 # Step 2: Calculating effect sizes for all social level comparisons. 
 
-## First, check the normality the accuracy measures (summed by social level) before running effect size analyses. For each measure, create density and QQ plots to visualize the distribution of the data, then perform a Shapiro Wilks test of normality. 
+First, check the normality the accuracy measures (summed by social level) before running effect size analyses. For each measure, create density and QQ plots to visualize the distribution of the data, then perform a Shapiro Wilks test of normality. 
 ```{r}
 
 # Start with data frame "res"
@@ -339,9 +374,9 @@ print(ggpubr::ggqqplot(res_summ_eff$accuracy_individual_measurements))
 #Because the accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
 ```
 
-## Second, calculate effect sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods
+Second, calculate effect sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods.
 
-### Note that the effect size calculations below throw a warning about fully disjoint distributions. This is an expected error when two distributions of accuracy values have no overlap, which did occur in some of our experimental treatments.
+Note that the effect size calculations below throw a warning about fully disjoint distributions. This is an expected error when two distributions of accuracy values have no overlap, which did occur in some of our experimental treatments.
 ```{r}
 
 # Start with data frame "res_sum_eff" created above
@@ -374,9 +409,9 @@ eff_res_level %>%
 
 ```
 
-## Third, create figures (1 main, 1 supplemental) of density plots to highlight how effect sizes were calculated. 
+Third, create figures (1 main, 1 supplemental) of density plots to highlight how effect sizes were calculated. 
 
-### Make one main figure that has class sizes of 2 and 8 only. This is used as Fig 5 in the manuscript.
+Make one main figure that has class sizes of 2 and 8 only. This is used as Fig 5 in the manuscript.
 ```{r}
 
 # Create data frame of density values
@@ -516,14 +551,14 @@ res_density_values %>%
 
 ```
 
-Save plot
+Save plot.
 ``` {r eval=FALSE}
 # save as tiff file. Remember, the object git_path contains the figures directory already
 ggsave(filename = file.path(git_path, "Fig_5", "AccuracyDensityPlots_EffectSizes.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
 
 ```
 
-### Make a supplementary figures of all classes for edit distance and SPCC only.
+Make a supplementary figures of all classes for edit distance and SPCC only.
 ```{r}
 
 res_density_values <- res %>%
@@ -597,7 +632,7 @@ res_density_values %>%
 
 ```
 
-Save plot
+Save plot.
 ``` {r eval=FALSE}
 # Save as tiff file. Then object git_path contains the figures directory already
 ggsave(filename = file.path(git_path, "supplementary_figures", "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
