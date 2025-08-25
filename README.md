@@ -7,17 +7,17 @@ This branch holds a copy of all scripts for the purpose of code review. Code rev
 1. Ensure that the final version of the code produces the expected output on your computer.
 
   - First check that the code in the RMarkdown document evaluates correctly, which should have already been part of your process of developing the script.
-  
+
   - Then update the RMarkdown document to produce a clean knitted HTML report This includes:
-  
+
      - Modifying the global chunk options to evaluate and include code in the HTML report.
-     
+
      - Updating all paths you use to be the full path on your local machine, otherwise the RMarkdown knitting process will fail. You can do this in two different ways. You can update path variables to be the full path in every chunk. Alternatively, you can include an extra chunk above each chunk that uses a path, then use `eval = TRUE` and `echo = FALSE` to make sure that chunk is evaluated, but the code is not included in the report. If you do this, you must also use `eval = FALSE` and `echo = TRUE` in the subsequent chunk that does not use the full path to ensure that the code for that chunk is included but not evaluated.
-     
+
      - Use the script `example_datasets/Example_Main_AcousticSpacePlots.Rmd` as an example of how to structure an RMarkdown file for knitting in the ways described above, as well as how to lay out the YAML header and global knitting options.
-     
+
   - The final version of the knitted report should include all code and evaluated output (plots as well), but should not include messages, warnings, or errors. Any errors produced by a particular line or chunk of code should be noted in your narrative text.
-  
+
 2. Check all narrative text for clarity and typos at the end of your iterative RMarkdown knitting process.
 
 3. Push the final RMarkdown document and knitted HTML report to the main branch of the manuscript repository.
@@ -37,19 +37,19 @@ This branch holds a copy of all scripts for the purpose of code review. Code rev
 4. Update the path variables in the RMarkdown file to reflect your local computer, then start running code chunks in order and check the output of each chunk.
 
   - Run code line by line inside of each chunk, and ensure that you understand what each line of code is doing. There should be narrative text above each chunk, and comments inside of the chunk, that indicate the purpose of either the overall code chunk or specific lines of code.
-  
+
     - The only exception to running code line by line is the script `simulation_experiments/Simulation_Experiments.Rmd`. Co-authors assigned to review this script should focus on the two following levels of code review of the code chunk with nested loops that performs the simulation experiment:
-    
+
       - Freeze the iterating variable to run code line by line inside of the nested loops for one experimental treatment combination. Focus on checking the code for correctness, clarity, and whether it produces the expected output. Repeat this process again a second time to check the code and output for another experimental treatment combination. Here you should run code inside of the looping structures (do not evaluate lines of code that contain `apply()` functions). Doing this is important to ensure you avoid running all treatment combinations, which is computational intensive.
-      
+
       - Run the entire inner nested loop for one iteration of one experimental treatment combination. Here you will freeze the iterating variables again, but you will run code starting from the line with the inner `apply()` loop.
-  
+
   - Whenever you encounter a chunk or a line of code that is not well explained, does not produce the correct output, or is wrong, write a comment above it to the lead coder in the following style "TODO: More information about what needs to change". When you find code that is wrong, please tell the lead coder how to fix the code if you see a solution for the problem. Please do the same whenever you encounter a typo, because the lead coder needs to make the final call on changes to each script.
-  
+
   - Do not knit the RMarkdown file, as this will overwrite the version knitted by the lead coder.
-  
+
   - When you are done, add "Code review completed by [insert your name]" underneath the global knitting options chunk when. Please do this even if you did not see any changes that need to be made to the RMarkdown script, so we can track that you completed your code review duties.
-  
+
 5. Repeat this process for each script to which you have been assigned.
 
 6. Push the final RMarkdown document that you reviewed, including the comments you added, to the code review branch of the manuscript repository.
@@ -61,7 +61,7 @@ This branch holds a copy of all scripts for the purpose of code review. Code rev
 1. The lead coder for each script should address all comments and feedback by the co-author who performed code review. After addressing feedback, knit the RMarkdown document one final time, then commit your changes with a description that states that you integrated or addressed all feedback from code review before pushing your changes to the `code-review` branch.
 
   - All feedback should be addressed by opening each script in the code review branch, with the changes pushed by the co-author who performed code review, then addressing suggestions directly in this version of the script.
-  
+
   - When you are done integrating feedback, push these changes to the `code-review` branch with a commit message about the fact that you integrated feedback from the second round of code review.
 
 2. Once you have pushed to the `code-review` branch, make a pull request to merge your changes with the main branch of the repository. Grace will review and approve these final pull requests.
@@ -70,4 +70,4 @@ This branch should remain in the repository even after all changes have been int
 
 ## Code review assignments
 
-![](/Users/gracesmith-vidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures/Code_review_assignments.jpg){#id .class width=60% height=60%}
+![](https://github.com/gsvidaurre/paRsynth-methods-paper/blob/code-review/figures/Code_review_assignments.jpg)

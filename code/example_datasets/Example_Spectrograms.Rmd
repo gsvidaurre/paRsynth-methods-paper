@@ -1,28 +1,64 @@
 ---
-title: "Generate spectrogram image files for example datasets"
-author: Grace Smith-Vidaurre
-output: html_document
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+title: <center style="font-size:30px;font-style:normal;color:#0E0E7D;">Generate spectrogram image files for example datasets</center>
+author: |
+  <br />
+  <center style="font-style:normal;">
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="https://brittanycoppinger.weebly.com/">Brittany A. Coppinger</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1,3</span></sup>,
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="https://smith-vidaurrelab.github.io/">Grace Smith-Vidaurre</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1-3*</span></sup>
+  <br />
+  <br />
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">1</span></sup>Department of Integrative Biology, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">2</span></sup>Department of Computational Mathematics, Science, and Engineering, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">3</span></sup>Ecology, Evolution, and Behavior Program, Michigan State University</center>
+  <br />
+  <center style="font-size:18px;"><sup style="font-size:12px;">*</sup>Corresponding author (smithvid@msu.edu)</center>
+date: <center style=font-size:22px;font-style:normal;>`r format(Sys.time(), '%d %B %Y')`</center>
+  <br />
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
 ---
 
-Purpose: Here we generate spectrogram image files for two synthetic datasets of vocal identity signals with more group than individual information an vice versa. We use the `warbleR` package to generate spectrograms. These original spectrogram image files can be read back into R for further modification (e.g. resizing, adding color borders) prior to creating composite figures of lexicons in Inkscape.
+<style type="text/css">
+body{
+  font-family: Arial;
+  font-size: 14pt;
+}
+h1{
+  font-size: 22pt;
+}
+
+h2{
+  font-size: 18pt;
+}
+
+h3{
+  font-size: 16pt;
+}
+</style>
+
+**Purpose**: Here we generate spectrogram image files for two synthetic datasets of vocal identity signals. One data set, the 
+"group-specific" dataset has twice the amount of group information encoded as individual information. The other dataset, the "individually distinctive" dataset has twice the amount of individual information encoded as group information. We select a sub-sample of of each of these datasets for visualization (Figs 2 and 3 in the manuscript), and this code allows for resizing and adding colored borders to those selected spectrograms. These selected spectrograms are used in inkscape to create Figs 2 and 3. 
 
 For this script to work, you will need to either run the script `Generate_SyntheticDatasets.Rmd` to create the synthetic vocal identity signals, OR you will need to access files we have already created that are stored in a shared location. If you want to reproduce the same results, then we recommend using the files stored in a shared location.
 
 ```{r setup, include = FALSE}
 
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE, root.dir = "~/Desktop")
 
 ```
 
-Load packages and set paths.
+Load packages and set cores
 ```{r}
 
 # Clean the global environment
 rm(list = ls())
 
 # Specify the required packages
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR", "ggpubr", "paletteer", "magick")
+X <- c("tidyverse", "pbapply", "warbleR", "paletteer")
 
 # Install the packages in X if not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -33,22 +69,44 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
+cores <- parallel::detectCores() - 4
+cores
+
+```
+
+```{r load packages, eval = FALSE}
+
 # Load all of the packages specified above
-invisible(lapply(X, library, character.only = TRUE))
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
 
 ```
 
 Initialize working directories for data on your local machine.
 ```{r}
 
+###################### Manually update in every new coding session ##################################
+
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "~/Desktop" # Grace's path
+path <- "/Users/gsvidaurre/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" # Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos") # Grace's path
+
+```
+
+```{r}
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -110,6 +168,7 @@ Read in the synthetic call metadata.
 ```{r}
 
 synthetic_call_metadata <- read.csv(file.path(analysis_path, "synthetic_call_metadata.csv"))
+
 glimpse(synthetic_call_metadata)
 
 ```
@@ -119,7 +178,11 @@ glimpse(synthetic_call_metadata)
 
 # Create a vector of all of the audio files in the analysis path
 wavs <- list.files(path = audio_path, pattern = ".wav$", full.names = FALSE)
+
+# Double check that the number of files is correct (looks good)
 length(wavs)
+
+# Double check the formatting of files names that were read it. 
 head(wavs)
 
 # Iterate over the audio files to create one row of the selection table at a time. warbleR selection tables have a very specific format that must be used for downstream analysis.
@@ -177,7 +240,7 @@ unique(sel_tbl$sampling_rate)
 ```
 
 # Step 2: Create spectrogram image files of each audio file
-```{r}
+```{r eval = FALSE}
 
 warbleR::spectrograms(sel_tbl, wl = 512, flim = c(0, 12), wn = "hanning", pal = reverse.gray.colors.2,ovlp = 90, inner.mar = c(5, 4, 4, 2), outer.mar = c(0, 0, 0, 0), picsize = 1, res = 100, cexlab = 1, propwidth = FALSE, xl = 1, osci = FALSE, gr = FALSE, sc = FALSE, line = FALSE, mar = 0.05, it = "jpeg", parallel = 1, path = audio_path, pb = TRUE, fast.spec = FALSE, by.song = NULL, sel.labels = NULL, title.labels = NULL, dest.path = images_path, box = TRUE, axis = TRUE)
 
@@ -199,27 +262,30 @@ The image files were uploaded to a shared Google Drive folder that also contains
 
 # Step 4: Select Spectrograms to use, read them
 
-We need to select files that match the groups chosen for the acoustic space plots. 
+We selected files that match the groups chosen for the acoustic space plots. 
 
-For the Group Information Dataset, we need to choose 2 calls from 2 individuals from Group 2 and Group 3
+For the "group-specific" dataset, we choose 2 calls from 2 individuals from Group 2 and Group 3
 
 Group 2: Individual 4 (calls 1 and 2), Individual 6 (calls 1 and 2)
 Group 3: Individual 1 (calls 3 and 4), Individual 4 (calls 1 and 4)
 
-For the Individual Identity Dataset, we need to to choose 2 calls from 2 individuals from Group 1 and Group 2
+For the "individually distinctive" dataset, we choose 2 calls from 2 individuals from Group 1 and Group 2
 
 Group 1: Individual 1 (calls 2 and 3), Individual 3 (calls 1 and 2)
 Group 2: Individual 1 (calls 3 and 5), Individual 2 (calls 1 and 2)
 
-Make sure to move the selected files to the "lexicon" folder before proceeding with this code. 
+Make sure to move these selected spectrogram files to the "lexicon" folder in the working directory before proceeding with the following steps in this code. 
 
-#Step 5: Read the spectrogram image files back in for resizing to make publication quality
 
-Before you read create this figure, you will need to copy the selected audio files to be used in lexicon figures to the folder generated above that should hold lexicon audio files. After having done that, you can set the path to this folder and read in all these files, as below.
-```{r}
+# Step 5: Read the spectrogram image files back in for resizing to make publication quality
+
+Before you create this figure, you will need to copy the selected audio files to be used in lexicon figures to the folder generated above that should hold lexicon audio files. After having done that, you can set the path to this folder and read in all these files, as below.
+```{r eval=FALSE}
 
 # First, read in audio files of selected calls, moved to the LexiconFigureFiles folder
 lexicon_wavs <- list.files(lexicon_path, pattern = ".wav$")
+
+# Double check that the files pulled are the selected files names above
 lexicon_wavs
 
 # Generate new image files of spectros using ggspectro. These should have correct text on x and y axis (numbers: time (s) frequency (KHz)), not necessarily titles. text also needs to be correct font size. 
@@ -241,7 +307,7 @@ gray_colors <- reverse.gray.colors.2(12)
 
 # Next, iterate over audio files to generate 1 high quality spectrogram and image file per vocalization 
 
-w <- 1 # freeze loop in the first iteration (test by running code inside of the curly brackets of the function)
+# w <- 1 # testing, freeze loop in the first iteration (To test, un-comment and run code inside of the curly brackets of the function). 
 
 # invisible() silences the output of lapply() printed to the console (but not output from ggspectro())
 invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
@@ -299,18 +365,16 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
 
 ```
 
-#Step 6: Adding colored borders to spectrogram image files by individual and group
+# Step 6: Adding colored borders to spectrogram image files by individual and group
 
-Color Palette should be paletteer ("nationalparkcolors::Arches"): 6 colors with the hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF 
+Color palette should be from paletteer("nationalparkcolors::Arches"). There should be 6 colors with the hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF. We will be using the first 3 colors to match the color scheme of the manuscript and the specific color labels used then generating the acoustic space plots. Color will indicate groups, hues within colors indicate individual. 
 
-Add colors by group, and hues within colors indicate individual. 
+## Creating colored borders for the "group-specific" dataset. 
+```{r eval=FALSE}
 
-##Step 6.1: Creating colored boarders for the group information dataset. 
-```{r}
-
-# Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
+# Get colors for groups: we will the second and the third colors (orange and purple) for the groups in the main manuscript figures
 cols <- paletteer::paletteer_d("nationalparkcolors::Arches")
-cols
+# cols
 
 # Generate a list of audio or image file names that will be used to add colored borders by group and individual within a group. This list has 4 vectors, 1 vector for each individual. We will need 2 group colors and 2 hues within each group color. We will append the pattern ".jpeg" for the file extension to the name of each vocalization in the loop below
 img_list <- list(
@@ -342,7 +406,7 @@ str(img_list)
 
 # We're using this list structure because colors correspond to individual information nested inside of group information. Therefore, we also need to specify colors in the same list structure, so we can map the names of vocalizations to the correct group color and individual level hue
 
-# Set Group 1 individuals to the first color or cols[1] and Group 2 individuals to the second color or cols[2]. Hues per individual within a group should be set using the scales::alpha() function. This vector of colors is a different object than the list above, here there is 1 color specified per individual
+# Set Group 2 individuals to the first color or cols[2] and Group 3 individuals to the second color or cols[3]. Hues per individual within a group should be set using the scales::alpha() function. This vector of colors is a different object than the list above, here there is 1 color specified per individual
 
 # Using scales::alpha(cols[1], alpha = 0.25) to set a lighter color for the second individual per group did not work, it seems that image_border() doesn't discriminate between the original color and the transparent version. We used the rgb values of the original color per palette to make a darker version of each color so as to better discriminate unique individuals in the lexicon. These colors should also be added to acoustic space plots.
 
@@ -379,8 +443,8 @@ cols_indivs
 
 # Iterate over the list of vocalizations to map each vocalization back to the correct color and write out an updated image file with a colored border
 
-# i <- 2 # testing the loop in the first iteration, individuals or vectors in the list
-# z <- 1 # testing the loop in the first iteration, vocalizations or elements in each vector of the list
+# i <- 2 # testing, freeze loop in the first iteration (To test, un-comment and run code inside of the curly brackets of the function). 
+# z <- 1 # testing, freeze loop in the first iteration (To test, un-comment and run code inside of the curly brackets of the function). 
 
 # The outer loop with iterating variable i iterates over the length of img_list (4 individuals across 2 groups)
 invisible(pblapply(1:length(img_list), function(i){
@@ -408,8 +472,8 @@ invisible(pblapply(1:length(img_list), function(i){
 
 ```
 
-##Step 6.2: Creating colored boarders for the individual identity dataset. 
-```{r}
+## Creating colored borders for the "individually distinctive" dataset. 
+```{r eval=FALSE}
 
 # Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
 cols <- paletteer::paletteer_d("nationalparkcolors::Arches")
@@ -444,7 +508,7 @@ img_list <- list(
 # This is a list with 4 elements, each element is a vector of the names of 2 vocalizations for 1 individual in a given group
 str(img_list)
 
-# Set Group 4 and 5 individuals to the same colors and hues used above.
+# Set Group 1 to col[1] and group 2 to col [2] and then individuals to the same hues used above.
 
 dark_col1 <- rgb(
     (col2rgb(cols[1]) - 80)[["red", 1]],
@@ -498,7 +562,7 @@ invisible(pblapply(1:length(img_list), function(i){
     # magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_3", paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
         
     # saving thick versions of the figures for presentations
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_3",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
   })
   
 }))
