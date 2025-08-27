@@ -48,6 +48,8 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
+Code review completed by Grethel Alexandra Juarez.
+
 Load packages and set paths.
 ```{r}
 
@@ -90,12 +92,15 @@ invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
 
 ```
 
+TODO: Would it be more professional if the paths were labeled as an example path and included one without specific names of the user? Line 99-100.
+
 Initialize working directories for data on your local machine.
 ```{r eval = FALSE}
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+path <- "/Users/gretheljuarez/Desktop/" # Ale's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -132,6 +137,8 @@ if(!dir.exists(images_path)){
 
 ```
 
+TODO: Here again, line 144-146.
+
 Source the paRsynth functions directly from the GitHub repository. 
 ```{r}
 
@@ -139,7 +146,8 @@ Source the paRsynth functions directly from the GitHub repository.
 
 # Brittany's path should include "GitHub/paRsynth"
 # repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "/Users/gretheljuarez/Desktop/BIRDS/GitHub_repos/paRsynth/R/" # Ale's path
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -161,6 +169,8 @@ Check out documentation for the paRsynth functions. These functions are written 
 # ?paRsynth::write_audio
 
 ```
+
+TODO: Would it be redundant to mention that although a seed is set, this would generate the same dataset for a specific user not across users? What is the purpose of line 184-186?
 
 # Step 1: Create character strings representing vocal signals with more group membership information than individual information
 ```{r}
@@ -269,6 +279,8 @@ synthetic_call_metadata_group <- write_audio(
 glimpse(synthetic_call_metadata_group)
 
 ```
+
+TODO: Here again, I am confused why lines 287-291 are included with 294-295?
 
 # Step 5: Repeat Steps 1 - 4 to create vocalizations with more individual than group information
 ```{r}

@@ -47,6 +47,8 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
+Code review completed by Grethel Alexandra Juarez.
+
 Load packages and set paths.
 ```{r}
 
@@ -86,16 +88,20 @@ invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
 
 ```
 
+TODO: I have mentioned before about including a more standard approach to labeling paths that need to be editted by each user.
+
 Initialize working directories for data on your local machine.
 ```{r}
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+path <- "/Users/gretheljuarez/Desktop" # Ale's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 # git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-git_path <- file.path(path, "GitHub_repos") # Grace's path
+# git_path <- file.path(path, "GitHub_repos") # Grace's path
+git_path <- "/Users/gretheljuarez/Desktop/BIRDS/GitHub_repos/" # Ale's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -130,10 +136,10 @@ glimpse(mds_coords)
 ```{r echo = FALSE, eval = TRUE}
 
 # Read in the necessary spreadsheets with full paths for RMarkdown knitting
-synthetic_call_metadata <- read.csv("/Users/gsvidaurre/Desktop/paRsynth_methods_synthetic_dataset/synthetic_call_metadata.csv")
+synthetic_call_metadata <- read.csv("/Users/gretheljuarez/Desktop/paRsynth_methods_synthetic_dataset/synthetic_call_metadata.csv")
 glimpse(synthetic_call_metadata)
 
-mds_coords <- read.csv("/Users/gsvidaurre/Desktop/paRsynth_methods_synthetic_dataset/MDS_coordinates.csv")
+mds_coords <- read.csv("/Users/gretheljuarez/Desktop/paRsynth_methods_synthetic_dataset/MDS_coordinates.csv")
 glimpse(mds_coords)
 
 ```

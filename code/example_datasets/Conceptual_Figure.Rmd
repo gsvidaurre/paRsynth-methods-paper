@@ -50,6 +50,8 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
+Code review completed by Grethel Alexandra Juarez.
+
 Load packages and set cores.
 ```{r}
 
@@ -88,19 +90,23 @@ invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
 
 ```
 
+TODO: What do you think about including one path that does not refer to a specific user instead labeled as an example path?
+
 Initialize working directories for data on your local machine.
 ```{r}
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop/" # Grace's path
 # path <- "C:/Users/britt/Desktop" # Britt's path
 # path <- "/Users/summe/OneDrive/Desktop" #Summer's path
+path <- "/Users/gretheljuarez/Desktop/" # Ale's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 # git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- "/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures"
+# git_path <- "/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures"
 # git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper/figures" #Summer's path
+git_path <- "/Users/gretheljuarez/Desktop/BIRDS/GitHub_repos/paRsynth-methods-paper/figures/" # Ale's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -124,6 +130,7 @@ figure_dir <- "Fig_1"
 
 # Combine the base path, the analysis directory, and the data directory into a single path
 figure_path <- file.path(git_path, figure_dir)
+
 ```
 
 Read in the synthetic call metadata.
@@ -258,7 +265,6 @@ ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
     # Control the size of the axis tick lines
     axis.ticks = element_line(color = "black", linewidth = 0.15)
   )
-
 
 ```
 
