@@ -52,6 +52,11 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
+________________________________________
+CODE REVIEW COMPLETED BY SUMMER ECKHARDT
+________________________________________
+
+
 Load packages and set cores.
 ```{r}
 
@@ -98,16 +103,19 @@ Initialize working directories for data and figures.
 # Initialize a base path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
+path <- "/Users/summe/OneDrive/Desktop" # Summer's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 # git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+# git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
+git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper/figures"
 ###################################################################################
 
 ```
 
+TODO: I think this part might need to be reworked a bit to match the 'Initializing working directories' chunks from the other RMD files in this manuscript. I believe the 'Create the data directory if it doesn't already exist on your computer' step should be occurring multiple times / needs to happen after every new directory is established. Because these directories don't already exist on my computer, I am getting warnings here & cannot proceed past this point unless I manually add these folders to my desktop / within the analysis dir
 ```{r}
 
 # Initialize the directory for analysis on your local computer
@@ -172,6 +180,11 @@ sapply(res %>%
 
 ```
 
+
+TODO: LINE 188: dataframe reads "datframe" here (I would change it but I am not sure I am allowed to change code in this round of code review?).
+
+TODO: the final line of the chunk below only reads as "Looks good" - I think it would be good to explain what you are checking for here
+
 Modify datframe "res" to allow for plotting of accuracy results and 95% confidence intervals, save this dataframe as "res_summ_acc".
 ```{r}
 
@@ -227,12 +240,17 @@ unique(res_summ_acc$accuracy_level)
 
 ```
 
+
+TODO: Line 262 wany -> want && funtion -> function
+
+TODO: Line 279 ngreay -> ngrey
+
 Set up objects to be used in all plots in this code. 
 ``` {r figure asthetic set up}
 
 # Make color list that contains the first and second color hex codes from paletteer_packages:Arches, which will be the theme colors for this manuscript. 
 # paletteer_d("nationalparkcolors::Arches")
-#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF
+# A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF
 # Use #A8CDECFF #F6955EFF
 
 # Make list for color
@@ -313,6 +331,8 @@ ggsave(filename = file.path(git_path, "Fig_4", "AverageAccuracy_PointRange.tiff"
 # Step 2: Calculating effect sizes for all social level comparisons. 
 
 First, check the normality the accuracy measures (summed by social level) before running effect size analyses. For each measure, create density and QQ plots to visualize the distribution of the data, then perform a Shapiro Wilks test of normality. 
+
+TODO: Line 389, you only state the results of the Shapiro test, but don't have actual test coded
 ```{r}
 
 # Start with data frame "res"
@@ -412,6 +432,9 @@ eff_res_level %>%
 Third, create figures (1 main, 1 supplemental) of density plots to highlight how effect sizes were calculated. 
 
 Make one main figure that has class sizes of 2 and 8 only. This is used as Fig 5 in the manuscript.
+
+
+TODO: Line 475 capalized -> capitalized
 ```{r}
 
 # Create data frame of density values

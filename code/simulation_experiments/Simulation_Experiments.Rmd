@@ -49,14 +49,21 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
+----------------------------------------
+CODE REVIEW COMPLETED BY SUMMER ECKHARDT
+----------------------------------------
+
 Load packages and set cores.
+
+TODO: Remove packages that are no longer necessary (mclust?)
 ```{r warnings = FALSE, messages = FALSE}
 
 # Clean the global environment
 rm(list = ls())
 
 # Initialize packages for data processing and analysis
-X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "Rmisc", "warbleR", "stringdist", "mclust", "combinat")
+# X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "Rmisc", "warbleR", "stringdist", "mclust", "combinat")
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "Rmisc", "warbleR", "stringdist", "combinat")
 
 # Install packages if they're not already installed
 is_installed <- function(p) is.element(p, installed.packages()[,1])
@@ -102,7 +109,8 @@ Initialize working directories for data and figures.
 
 # Initialize a base path (we will need a separate base path per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+path <- "/Users/summe/OneDrive/Desktop" # Summer's path
 
 ###################################################################################
 
@@ -150,7 +158,8 @@ Source custom functions for the associated paper.
 
 # Load custom functions for the code below
 # This line of code loads a function to calculate the maximum global accuracy of clustering by finding and calculating accuracy across all bipartite matchings (matchings between original class labels and predicted cluster labels)
-source(file.path(path, "GitHub_repos/paRsynth-methods-paper/code/functions/accuracy_score.R"))
+# source(file.path(path, "GitHub_repos/paRsynth-methods-paper/code/functions/accuracy_score.R"))
+source(file.path(path, "github_repo/paRsynth-methods-paper/code/functions/accuracy_score.R"))
 
 ```
 
@@ -158,7 +167,8 @@ source(file.path(path, "GitHub_repos/paRsynth-methods-paper/code/functions/accur
 
 # Load custom functions for the code below
 # This line of code loads a function to calculate the maximum global accuracy of clustering by finding and calculating accuracy across all bipartite matchings (matchings between original class labels and predicted cluster labels)
-source("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/code/functions/accuracy_score.R")
+# source("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/code/functions/accuracy_score.R")
+source("/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper/code/functions/accuracy_score.R")
 
 ```
 
@@ -284,7 +294,8 @@ Source the paRsynth functions directly from the GitHub repository.
 
 # Brittany's path should include "GitHub/paRsynth"
 # repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
-repo_path <- "/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R"
+# repo_path <- "/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R"
+repo_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth/R/"
 
 # Get all of the R files for each function in this directory
 function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
@@ -381,9 +392,9 @@ iteratns <- 10
 
 # Testing one iteration of each loop
 # These are the parameters that can be used for internal code review by team members to test if the code is working for separate treatment combinations. After updating the iterating variables below, go to line 375 and run the code from there. Do not run starting on line 365 or you'll run the whole loop. This is in addition to the fine-scale code review line by line.
-# z <- 1 # number of groups and individuals, or social conditions, as well as the number of calls per individual
-# i <- 1 # information encoding treatments
-# n <- 1 # replicates or iterations
+ z <- 1 # number of groups and individuals, or social conditions, as well as the number of calls per individual
+ i <- 1 # information encoding treatments
+ n <- 1 # replicates or iterations
 
 # Iterate over the social conditions and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
 system.time(
@@ -446,7 +457,7 @@ system.time(
           section_transition = "starting_frequency"
         )
         
-        # glimpse(calls_parsons_frequencies)
+         # glimpse(calls_parsons_frequencies)
         
         # Find the maximum frequency anchor and set an upper frequency 0.5 kH above this for spectrographic cross-correlation
         freq_cols <- calls_parsons_frequencies[, grep("^Freq", names(calls_parsons_frequencies))]

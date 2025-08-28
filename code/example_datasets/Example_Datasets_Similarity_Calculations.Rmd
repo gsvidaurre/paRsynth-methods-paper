@@ -49,6 +49,10 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE
 
 ```
 
+-----------------------------------------
+CODE REVIEW COMPLETED BY SUMMER ECKHARDT
+-----------------------------------------
+
 Load packages and set paths.
 ```{r}
 
@@ -92,7 +96,8 @@ Initialize working directories for data on your local machine.
 
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+path <- "/Users/summe/OneDrive/Desktop" #Summer's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
