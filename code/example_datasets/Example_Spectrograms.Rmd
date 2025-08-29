@@ -51,6 +51,8 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
+Code review completed by Raneem Samman
+
 Load packages and set cores
 ```{r}
 
@@ -95,14 +97,16 @@ Initialize working directories for data on your local machine.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path (this will need to be different per user)
-# path <- "/Users/raneemsamman/Desktop" # Raneem's path
+path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop" # Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 # git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos") # Grace's path
+# git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos") # Grace's path
+git_path <- file.path("/Users/raneemsamman/Documents/GitHub/paRsynth-methods-paper/figures") # Raneem's path
+
 
 ```
 
@@ -370,6 +374,12 @@ invisible(lapply(X = 1:length(lexicon_wavs), FUN = function(w){
 Color palette should be from paletteer("nationalparkcolors::Arches"). There should be 6 colors with the hex codes: #A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF. We will be using the first 3 colors to match the color scheme of the manuscript and the specific color labels used then generating the acoustic space plots. Color will indicate groups, hues within colors indicate individual. 
 
 ## Creating colored borders for the "group-specific" dataset. 
+TODO: Error in loadNamespace(x) : there is no package called ‘magick’. I think we need to add this package to the list of packages in line 60. 
+TODO: Error in file(con, "wb") : cannot open the connection. I believe this has to do with the git_path but i am not sure what is the correct one here; i tried the following paths: 
+git_path <- file.path("/Users/raneemsamman/Documents/GitHub")
+git_path <- file.path("/Users/raneemsamman/Documents/GitHub/paRsynth-methods-paper")
+git_path <- file.path("/Users/raneemsamman/Documents/GitHub/paRsynth-methods-paper/figures")
+
 ```{r eval=FALSE}
 
 # Get colors for groups: we will the second and the third colors (orange and purple) for the groups in the main manuscript figures
@@ -473,6 +483,7 @@ invisible(pblapply(1:length(img_list), function(i){
 ```
 
 ## Creating colored borders for the "individually distinctive" dataset. 
+TODO: Error in file(con, "wb") : cannot open the connection. same error as above chunk
 ```{r eval=FALSE}
 
 # Get colors for groups: we will the first two colors (blue and orange) for the groups in the main manuscript figures
