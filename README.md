@@ -5,9 +5,9 @@ This repository holds code for a paper on creating synthetic vocal identity sign
 The manuscript associated with this repository is:
 <br />
 
-*Sonifying character strings into synthetic vocal identity signals and testing identity information detection*. Coppinger, B.A^1,2^, Eckhardt, S.G.^1,2^, Cross, A.^3,4†^, Samman, R.^1,5†^, Juárez, G.A.^1†^, Ferdinand, V.^6,7\*^, Smith-Vidaurre, G.^1,2,5\*^.
+*Sonifying character strings into synthetic vocal identity signals and testing identity information detection*. Coppinger, B.A, Eckhardt, S.G., Cross, A.†, Samman, R.†, Juárez, G.A.†, Ferdinand, V.\*, Smith-Vidaurre, G.*.
 
-^†^equal contributions, ^\*^co-senior authors
+†equal contributions, \*co-senior authors
 <br />
 
 Below we describe the code, figure, and data directory structures and file contents on the main branch, then the code review branch.
