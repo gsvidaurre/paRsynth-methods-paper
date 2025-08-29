@@ -56,6 +56,8 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALS
 
 ```
 
+Code review completed by Raneem Samman
+
 Load packages and set paths.
 ```{r}
 
@@ -95,17 +97,19 @@ Initialize working directories for data on your local machine.
 ```{r}
 
 # Initialize a base path (this will need to be different per user)
-# path <- "/Users/raneemsamman/Desktop" # Raneem's path
+path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop" # Grace's path
 # path <- "/Users/summe/OneDrive/Desktop" #Summer's path
 # path <- "C:/Users/britt/Desktop" # Britt's path
 
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
 # git_path <- "C:/Users/britt/Documents/GitHub" # Britt's path
-git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos") # Grace's path
+# git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos") # Grace's path
 # git_path <- file.path(path, "github_repo") # Summer's path
+git_path <- file.path("/Users/raneemsamman/Documents/GitHub") # Raneem's path
+
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"
@@ -209,6 +213,9 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 ### Edit distance, group-specific dataset and group-level polygons
 
 Create the group membership plots. Edit distance first with a legend.
+
+TODO: are the glimpse stataements not commented on purpose?
+
 ```{r}
 
 # Convex hull polygons per group
@@ -250,6 +257,14 @@ mds_edit_grp %>%
   )
 
 ```
+TODO: Cannot find directory /Users/raneemsamman/Documents/GitHub/paRsynth-methods-paper/figures/supplementary_figures/Fig_S1.
+ℹ Would you like to create a new directory?
+1: Yes
+2: No
+
+Selection:
+
+not sure if this is on purpose or not. Once I selected 1 (yes) to that question, it outputted "✔ Created directory: /Users/raneemsamman/Documents/GitHub/paRsynth-methods-paper/figures/supplementary_figures/Fig_S1." which was a more compact image of the figure created above this chunk.
 
 ```{r, eval = FALSE}
 
@@ -302,6 +317,13 @@ mds_spcc_grp %>%
   )
 
 ```
+TODO: same comment as above. "Cannot find directory /Users/raneemsamman/Documents/GitHub/paRsynth-methods-paper/figures/supplementary_figures/Fig_S2.
+ℹ Would you like to create a new directory?
+1: Yes
+2: No
+
+Selection:"
+"✔ Created directory: /Users/raneemsamman/Documents/GitHub/paRsynth-methods-paper/figures/supplementary_figures/Fig_S2."
 
 ```{r, eval = FALSE}
 
@@ -423,6 +445,8 @@ ggsave(filename = file.path(figures_path, "Fig_S2", "Suppl_AcousticSpace_SPCC_Gr
 ## Step 2: Individually distinctive dataset
 
 Start with aesthetics.
+
+TODO: are the variable names and glimpse stataements not commented on purpose?
 ```{r}
 
 # Get colors for groups from the same palette used for spectrograms in lexicons
@@ -472,6 +496,9 @@ shps <- c(7, 8, 10, 4, 16, 17, 21, 23, 24, 6)
 ### Edit distance, individually distinctive dataset and individual-level polygons
 
 Edit distance first with a legend.
+
+TODO: are the glimpse stataements not commented on purpose?
+
 ```{r}
 
 hulls <- plyr::ddply(mds_edit_ind, "unique_individuals", function(x){
@@ -522,6 +549,9 @@ ggsave(filename = file.path(figures_path, "Fig_S1", "Suppl_AcousticSpace_edit_In
 ### SPCC, individually distinctive dataset and individual-level polygons
 
 SPCC next with a legend.
+
+TODO: are the glimpse stataements not commented on purpose?
+
 ```{r}
 
 hulls <- plyr::ddply(mds_spcc_ind, "unique_individuals", function(x){
