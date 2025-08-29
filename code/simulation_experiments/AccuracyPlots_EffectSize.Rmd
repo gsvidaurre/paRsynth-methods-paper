@@ -78,7 +78,7 @@ cores <- parallel::detectCores() - 4
 ```{r load packages, eval = FALSE}
 
 # Load all of the packages specified above
-invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+invisible(lapply(X, library, character.only = TRUE))
 
 ```
 
@@ -96,9 +96,9 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path
-path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-# path <- "/Users/gsvidaurre/Desktop" # Grace's path
+path <- "/Users/gsvidaurre/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
@@ -216,6 +216,11 @@ res_summ_acc <- res %>%
     accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
     accuracy_method = str_replace(accuracy_method, "edit", "Edit distance"),
     accuracy_method = str_replace(accuracy_method, "SPCC", "Spectrographic cross-correlation")
+  ) %>% 
+  # Change the group proportion labels of 1 and 0 to have decimal points
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0$", "0.00"),
+    group_information_proportion = str_replace(group_information_proportion, "^1$", "1.00")
   )
 
 # There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows, looks good
@@ -227,6 +232,7 @@ levels(res_summ_acc$n_groups)
 # Looks good
 unique(res_summ_acc$accuracy_method)
 unique(res_summ_acc$accuracy_level)
+unique(res_summ_acc$group_information_proportion)
 
 ```
 
@@ -278,6 +284,8 @@ res_summ_acc %>%
     accuracy_method ~ n_groups,
     labeller = labeller(accuracy_method = method_labs, n_groups = class_labs)
   ) +
+  # TKTK continue
+  # scale_x_discrete(labels = sprintf(levels(res_summ_acc$group_information_proportion), fmt = '%#2.2s')) +
   scale_y_continuous(limits = c(0, 1.05)) +
   scale_color_manual(values = cols) +
   scale_fill_manual(values = fillcols) +
@@ -287,8 +295,6 @@ res_summ_acc %>%
          shape = guide_legend(title = "Social level")) +
   labs(y = "Average accuracy and 95% CI", x = "Proportion of group information") +
   theme_bw() +
-  # TKTK continue
-  scale_x_discrete(labels = sprintf(group_information_proportion, '%#.2f')) +
   # Remove grid lines using theme() and change the background color of the strip labels
   # Place legend on the top
   theme(
