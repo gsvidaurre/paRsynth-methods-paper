@@ -96,9 +96,9 @@ Initialize working directories for data and figures.
 ###################### Manually update in every new coding session ##################################
 
 # Initialize a base path
-# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
 # path <- "/home/gsvidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop" # Grace's path
+# path <- "/Users/gsvidaurre/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
@@ -209,10 +209,13 @@ res_summ_acc <- res %>%
     # Convert the x-axis column to factor to control axis ticks
     group_information_proportion = factor(round(group_information_proportion, 2))
   )  %>% 
-  # change "group" and "individual" to be capitalized
+  # Change "group" and "individual" to be capitalized
+  # Also change the edit distance and SPCC labels for the final figure
   dplyr::mutate(
     accuracy_level = str_replace(accuracy_level, "group", "Group"),
     accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
+    accuracy_method = str_replace(accuracy_method, "edit", "Edit distance"),
+    accuracy_method = str_replace(accuracy_method, "SPCC", "Spectrographic cross-correlation")
   )
 
 # There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows, looks good
@@ -251,14 +254,14 @@ class_labs <- c("Classes: 2", "Classes: 4", "Classes: 6", "Classes: 8")
 names(class_labs) <- c("2", "4", "6", "8")
 
 # Renaming the accuracy_method labels
-method_labs <- c("edit distance", "SPCC")
-names(method_labs) <- c("edit", "SPCC")
+method_labs <- c("Edit distance", "Spectrographic cross-correlation")
+names(method_labs) <- c("Edit distance", "Spectrographic cross-correlation")
 
 # Renaming group information proportion treatment levels
-prop_labs <- c("Proportion of n group information: 0", "0.33", "0.67", "1")
+prop_labs <- c("Proportion of n group information: 0.00", "0.33", "0.67", "1.00")
 names(prop_labs) <- unique(res$group_information_proportion)
 
-# Make object ngreay, to set as strip background color. 
+# Set strip background color to grey 
 ngrey <- scales::alpha("grey", 0.2)
 
 ```
@@ -284,6 +287,8 @@ res_summ_acc %>%
          shape = guide_legend(title = "Social level")) +
   labs(y = "Average accuracy and 95% CI", x = "Proportion of group information") +
   theme_bw() +
+  # TKTK continue
+  scale_x_discrete(labels = sprintf(group_information_proportion, '%#.2f')) +
   # Remove grid lines using theme() and change the background color of the strip labels
   # Place legend on the top
   theme(
