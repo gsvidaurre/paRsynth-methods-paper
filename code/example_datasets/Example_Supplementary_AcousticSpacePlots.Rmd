@@ -130,7 +130,7 @@ if(!dir.exists(figures_path)){
 }
 
 # Specify a folder inside the analysis directory where images for figures will be written out/read in
-figures_dir <- "paRsynth-methods-paper-internal/figures/supplementary_figures"
+figures_dir <- "paRsynth-methods-paper/figures/supplementary_figures"
 
 # Combine the base path, the analysis directory, and the data directory into a single path
 figures_path <- file.path(git_path, figures_dir)

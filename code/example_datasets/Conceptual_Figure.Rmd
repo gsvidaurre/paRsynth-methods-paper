@@ -98,9 +98,9 @@ path <- "/Users/gsvidaurre/Desktop/" # Grace's path
 # path <- "/Users/summe/OneDrive/Desktop" #Summer's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper-internal/figures" # Britt's path
-git_path <- "/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper-internal/figures"
-# git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper-internal/figures" #Summer's path
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+git_path <- "/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures"
+# git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper/figures" #Summer's path
 
 # Initialize the directory for analysis on your local computer
 analysis_dir <- "paRsynth_methods_synthetic_dataset"

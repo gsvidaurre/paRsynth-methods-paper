@@ -102,8 +102,8 @@ path <- "/Users/gsvidaurre/Desktop" # Grace's path
 # path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper-internal/figures" # Britt's path
-git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper-internal/figures") # Grace's path
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
+git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper/figures") # Grace's path
 ###################################################################################
 
 ```
