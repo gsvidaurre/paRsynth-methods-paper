@@ -1,0 +1,421 @@
+---
+title: <center style="font-size:30px;font-style:normal;color:#0E0E7D;">Similarity and distance measurements for example datasets</center>
+author: |
+  <br />
+  <center style="font-style:normal;">
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="https://smith-vidaurrelab.github.io/">Grace Smith-Vidaurre</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1-3*</span></sup> 
+  <br />
+  <br />
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">1</span></sup>Department of Integrative Biology, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">2</span></sup>Department of Computational Mathematics, Science, and Engineering, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">3</span></sup>Ecology, Evolution, and Behavior Program, Michigan State University</center>
+  <br />
+  <center style="font-size:18px;"><sup style="font-size:12px;">*</sup>Corresponding author (smithvid@msu.edu)</center>
+date: <center style=font-size:22px;font-style:normal;>`r format(Sys.time(), '%d %B %Y')`</center>
+  <br />
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+---
+
+<style type="text/css">
+body{
+  font-family: Arial;
+  font-size: 14pt;
+}
+h1{
+  font-size: 22pt;
+}
+
+h2{
+  font-size: 18pt;
+}
+
+h3{
+  font-size: 16pt;
+}
+</style>
+
+**Purpose**: Here we use the `warbleR` package to run spectrographic cross-correlation (SPCC) and generate figures of acoustic variation in two dimensional acoustic space. We perform these analyses for synthetic vocal identity signal datasets that contain more group than individual information, and more individual than group information, respectively.
+
+You can run the chunks in this script in order whenever you need to run SPCC from scratch. Once SPCC has been performed, the resulting matrix will be uploaded to the same shared location where audio files are held. You can download this matrix and run the initial chunks through Step 1, then skip Step 2 and continue with subsequent steps to build acoustic space plots.
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE)
+
+```
+
+Load packages and set paths.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Specify the required packages
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "warbleR", "paletteer")
+
+# Install the packages in X if not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+```
+
+```{r load packages, eval = FALSE}
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+Initialize working directories for data on your local machine.
+```{r}
+
+# Initialize a base path (this will need to be different per user)
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_methods_synthetic_dataset"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where audio will be written out/read in
+audio_dir <- "audio"
+
+# Combine the base path, the analysis directory, and the audio directory into a single path
+audio_path <- file.path(path, analysis_dir, audio_dir)
+
+# Create the audio directory if it doesn't already exist on your computer
+if(!dir.exists(audio_path)){ 
+  dir.create(audio_path)
+}
+
+# Specify a folder inside the analysis directory where images will be written out/read in
+images_dir <- "images"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+images_path <- file.path(path, analysis_dir, images_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(images_path)){ 
+  dir.create(images_path)
+}
+
+# Specify a folder inside the analysis directory where images for figures will be written out/read in
+figures_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figures_path <- file.path(path, analysis_dir, figures_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figures_path)){ 
+  dir.create(figures_path)
+}
+
+```
+
+Read in the synthetic call metadata and set cores for parallel processing.
+```{r}
+
+synthetic_call_metadata <- read.csv(file.path(analysis_path, "synthetic_call_metadata.csv"))
+glimpse(synthetic_call_metadata)
+
+cores <- parallel::detectCores() - 4
+cores
+
+# Find the maximum frequency anchor value across all vocalizations in kHz
+freq_cols <- synthetic_call_metadata[, grepl("Frequency", names(synthetic_call_metadata))]
+glimpse(freq_cols)
+
+max_freq <- max(sapply(freq_cols, max))/1000
+max_freq # 7 kHz
+
+# Set an upper frequency with 0.5 kHz of buffer above the maximum frequency of vocalizations in the dataset. This will be used as the upper limit of the bandpass filter in spectrographic cross-correlation.
+upp_freq <- max_freq + 0.5
+upp_freq # 7.5 kHz
+
+```
+
+# Step 1: Create a warbleR selection table
+```{r}
+
+# Create a vector of all of the audio files in the analysis path
+wavs <- list.files(path = audio_path, pattern = ".wav$", full.names = FALSE)
+length(wavs)
+head(wavs)
+
+# Iterate over the audio files to create one row of the selection table at a time. warbleR selection tables have a very specific format that must be used for downstream analysis.
+sel_tbl <- data.table::rbindlist(pblapply(1:length(wavs), function(w){
+  
+  tmp <- tuneR::readWave(file.path(audio_path, wavs[w]))
+  
+  # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
+  metadats_tmp <- synthetic_call_metadata %>%
+    dplyr::filter(grepl(wavs[w], audio_file_name))
+  
+  # Create a row for the selection table in warbleR format if the audio file exists and metadata for that file also exists
+  if(nrow(metadats_tmp) > 0){
+    
+    # Use 0.1s as a margin to indicate where the vocalization starts and ends in the audio file
+    # soundgen::soundgen() adds 100ms of silence before and after the synthetic vocalization by default 
+    res <- data.frame(
+      sound.files = wavs[w], 
+      selec = 1,
+      start = 0.1, 
+      end = seewave::duration(tmp) - 0.1,
+      sampling_rate = tmp@samp.rate,
+      group_ID = metadats_tmp[["Group"]],
+      individual_ID = metadats_tmp[["Individual"]],
+      call = metadats_tmp[["Call"]],
+      call_ID = metadats_tmp[["Call_ID"]],
+      dataset = metadats_tmp[["dataset"]]
+    )
+    
+  } else {
+    
+    res <- data.frame(
+      sound.files = wavs[w], 
+      selec = 1, 
+      start = 0.1, 
+      end = seewave::duration(tmp) + 0.1,
+      sampling_rate = NA,
+      group_ID = NA,
+      individual_ID = NA,
+      call = NA,
+      call_ID = NA,
+      dataset = NA
+    )
+    
+  }
+  
+  return(res)
+  
+}))
+
+# See the selection table in warbleR format with useful metadata for acoustic space plots
+glimpse(sel_tbl)
+
+# Looks good, a single sampling rate across files
+unique(sel_tbl$sampling_rate)
+
+```
+
+# Step 2. Perform spectrographic cross-correlation (SPCC) to measure acoustic similarity of all calls in dataset
+
+If the `temperature` argument used by `soundgen` is set to 0 (for no stochasticity in sound generation), then you will need to filter out any calls that have duplicated strings prior to running cross-correlation. Otherwise you will have values of 1 outside of the diagonal representing comparisons among calls of exactly the same structure or duplicates, and multidimensional scaling will fail.
+
+Here SPCC is performed across both synthetic vocalization datasets, so that the acoustic space shown below will be a universal space across figures.
+```{r eval = FALSE}
+
+# In preliminary analyses, when generating the synthetic vocalizations, increasing the temperature from 0 to 0.025 and then 0.05 reduced the number of ones off of the diagonal to 1 but didn't completely eliminate them.
+xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, upp_freq), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = audio_path)
+
+str(xc_mat)
+dim(xc_mat)
+
+# Checking, get the percentage of unique values that are negative
+# In preliminary analyses, using the "continuous_trajectory" option to create frequency anchors led to more structural variation in the synthetic datasets, and also a small number of negative values in the SPCC matrix, consistent with the idea that SPCC yields negative values when comparing vocalizations that are very structurally different
+neg_values <- length(xc_mat[xc_mat < 0]) / (dim(xc_mat)[1] * dim(xc_mat)[2])
+neg_values # No negative values, looks good
+
+# No values of 1 off of the diagonal, looks good
+ones <- ((length(which(xc_mat[lower.tri(xc_mat)] > 0.999999))*2) / length(xc_mat)) * 100
+ones
+
+# Update the dimension names of the matrix
+dimnames(xc_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
+
+# Save this matrix since it can take a long time to generate when there are many vocalizations
+saveRDS(xc_mat, file.path(analysis_path, "xc_mat.RDS"))
+
+```
+
+# Step 3: Calculate the edit distance amongst all strings
+```{r eval = FALSE}
+
+xc_mat <- readRDS(file.path(analysis_path, "xc_mat.RDS"))
+
+# For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
+edit_dists <- unlist(lapply(1:nrow(xc_mat), function(m){
+  lapply(1:ncol(xc_mat), function(p){
+    
+    return(
+      stringdist(
+        a = sel_tbl %>% 
+          dplyr::filter(
+            sound.files == dimnames(xc_mat)[[1]][m]
+          ) %>% 
+          pull(call),
+        b = sel_tbl %>% 
+          dplyr::filter(
+            sound.files == dimnames(xc_mat)[[2]][p]
+          ) %>% 
+          pull(call),
+        method = "lv"
+      )
+    )
+    
+  })
+}))
+
+edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
+dim(edit_mat)
+
+# Check for values of 0 off of the diagonal. This will happen by chance when the exact same strings are generated for the same individual (even with the random variation, and especially when there are few characters devoted to encoding random variation for within-individual variation).
+zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
+zeroes # [1] 0.1616, 404 comparisons (202 unique)
+
+# hist(edit_mat[lower.tri(edit_mat)])
+
+# The code below replaces edit distance values of 0 off of the diagonal with a small number close to 0. The lowest non-zero value in the edit distance matrix is 1. Replace zeroes off of the diagonal with 1/10th of this value, or 0.1, which is the same value used and validated in the simulation experiments for the associated paper.
+
+# Get the minimum non-zero similarity value in the matrix
+min_vals <- edit_mat[lower.tri(edit_mat)]
+
+# Then get the smallest non-zero value, which should be 1. Looks good
+sec_min_val <- min(min_vals[min_vals > 0])
+# sec_min_val [1] 1
+
+# Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of 1, which will now be the smallest non-zero value in this matrix
+edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
+edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
+
+# Update the dimension names of the matrix
+dimnames(edit_mat) <- list(sel_tbl$sound.files, sel_tbl$sound.files)
+
+# Save this matrix since it can take a long time to generate when there are many vocalizations
+saveRDS(edit_mat, file.path(analysis_path, "edit_mat.RDS"))
+
+```
+
+# Step 4: Reduce the dimensionality of the SPCC and edit distance matrices with multidimensional scaling.
+
+First apply MDS to the SPCC matrix.
+```{r}
+
+xc_mat <- readRDS(file.path(analysis_path, "xc_mat.RDS"))
+str(xc_mat)
+
+# Convert to a distance matrix and dist object for isoMDS
+dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+str(dist_mat)
+
+# Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is "low" stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
+iso_spcc <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
+str(iso_spcc)
+
+# Stress of the final solution was under 5%
+round(iso_spcc$stress, 2) # 1.85 %
+
+str(iso_spcc$points)
+# View(iso_spcc$points)
+
+# Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
+mds_spcc <- data.frame(
+  sound.files = dimnames(xc_mat)[[1]],
+  X = as.vector(iso_spcc$points[, 1]), 
+  Y = as.vector(iso_spcc$points[, 2])
+) %>% 
+  inner_join(
+    sel_tbl %>% 
+      dplyr::select(sound.files, group_ID, individual_ID, dataset),
+    by = c("sound.files")
+  ) %>%
+  dplyr::mutate(
+    unique_individuals = paste(group_ID, individual_ID, sep = " - "),
+    group_ID = factor(group_ID),
+    individual_ID = factor(individual_ID),
+    unique_individuals = factor(unique_individuals),
+    dataset = gsub("_", " ", dataset),
+    dataset = factor(dataset)
+  )
+
+glimpse(mds_spcc)
+
+```
+
+Then apply MDS to the edit distance matrix.
+```{r}
+
+edit_mat <- readRDS(file.path(analysis_path, "edit_mat.RDS"))
+str(edit_mat)
+
+# Convert to a dist object for isoMDS (this is already a distance matrix and should not be subtracted from 1)
+dist_mat <- stats::as.dist(edit_mat, diag = TRUE, upper = TRUE)
+str(dist_mat)
+
+# Perform multidimensional scaling (MDS) over many dimensions to reduce stress using a rule of thumb that 5% (or 5 in the stress result below) is "low" stress. Then use the first two dimensions of the resulting solution to build an acoustic space plot
+iso_edit <- invisible(MASS::isoMDS(dist_mat, k = 15, maxit = 1000, trace = FALSE))
+str(iso_edit)
+
+# Stress of the final solution was under 5%
+round(iso_edit$stress, 2) # 3.96 %
+
+# Create a data frame for plotting that contains the coordinates per call in each the two dimensions in the new low-dimensional space as well as useful metadata 
+mds_edit <- data.frame(
+  sound.files = dimnames(edit_mat)[[1]],
+  X = as.vector(iso_edit$points[, 1]), 
+  Y = as.vector(iso_edit$points[, 2])
+) %>% 
+  inner_join(
+    sel_tbl %>% 
+      dplyr::select(sound.files, group_ID, individual_ID, dataset),
+    by = c("sound.files")
+  ) %>%
+  dplyr::mutate(
+    unique_individuals = paste(group_ID, individual_ID, sep = " - "),
+    group_ID = factor(group_ID),
+    individual_ID = factor(individual_ID),
+    unique_individuals = factor(unique_individuals),
+    dataset = gsub("_", " ", dataset),
+    dataset = factor(dataset)
+  )
+
+glimpse(mds_edit)
+
+```
+
+# Step 5: Save the MDS coordinates in a single spreadsheet.
+```{r eval = FALSE}
+
+mds_spcc %>% 
+  dplyr::mutate(
+    method = "SPCC"
+  ) %>% 
+  bind_rows(
+    mds_edit %>% 
+      dplyr::mutate(
+        method = "edit"
+      )
+  ) %>% 
+  write.csv(file.path(analysis_path, "MDS_coordinates.csv"), row.names = FALSE)
+
+```
+
+This spreadsheet of MDS coordinates will be used to build acoustic space plots for main and supplementary figures for the associated paper.

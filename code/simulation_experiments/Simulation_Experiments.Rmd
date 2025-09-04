@@ -1,0 +1,916 @@
+---
+title: <center style="font-size:30px;font-style:normal;color:#0E0E7D;">Simulation Experiments</center>
+author: |
+  <br />
+  <center style="font-style:normal;">
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="https://smith-vidaurrelab.github.io/">Grace Smith-Vidaurre</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1-3*</span></sup> 
+  <br />
+  <br />
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">1</span></sup>Department of Integrative Biology, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">2</span></sup>Department of Computational Mathematics, Science, and Engineering, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">3</span></sup>Ecology, Evolution, and Behavior Program, Michigan State University</center>
+  <br />
+  <center style="font-size:18px;"><sup style="font-size:12px;">*</sup>Corresponding author (smithvid@msu.edu)</center>
+date: <center style=font-size:22px;font-style:normal;>`r format(Sys.time(), '%d %B %Y')`</center>
+  <br />
+output: 
+  html_document:
+    toc: false
+---
+
+<style type="text/css">
+body{
+  font-family: Arial;
+  font-size: 14pt;
+}
+h1{
+  font-size: 22pt;
+}
+
+h2{
+  font-size: 18pt;
+}
+
+h3{
+  font-size: 16pt;
+}
+</style>
+
+
+**Purpose**: We designed simulation experiments to test the detection of identity information in synthetic vocalizations with spectrographic cross-correlation, a computational tool traditionally applied to biacoustics datasets. In these synthetic experiments, we manipulated the complexity of identity information encoding (e.g. identity information was encoded over one or two social levels), as well as the density of the simulated signaling environment (the number of classes at each social level, or the size of synthetic datasets).
+
+We used a similar pipeline to analyze the datasets arising from each treatment combination as the example datasets generated in previous scripts. Here we also performed unsupervised clustering and measured the accuracy of predicted labels at each social level with a bipartite matching approach, which allowed us to assess how well an analytical pipeline based on spectrographic cross-correlation could be used for identity information detection. We analyzed both the character string (edit distance) and audio (spectrographic cross-correlation) representations of the synthetic vocalizations in these experiments. In the next script, we used effect sizes to make statistical inferences about the accuracy of detection of the social level with the most identity information encoded.
+
+We expected both the complexity of identity information encoding (e.g. identity information was encoded over one or two social levels) and the density of the simulated signaling environment to influence the distinctiveness or uniqueness synthetic vocalizations at either social level. For instance, when creating datasets of vocalizations that are more individually distinctive and less group-specific (more individual information encoded than group information), the percentage of original individual-level labels recovered by clustering should be high, but low for the group-level, because patterns of acoustic variation should contain a lot of information about individual identity but less about group membership.
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE)
+
+```
+
+Load packages and set cores.
+```{r warnings = FALSE, messages = FALSE}
+
+# Clean the global environment
+rm(list = ls())
+
+# Initialize packages for data processing and analysis
+X <- c("devtools", "dplyr", "stringdist", "tidyverse", "ggplot2", "apcluster", "soundgen", "parallel", "stringr", "data.table", "tuneR", "pbapply", "Rmisc", "warbleR", "stringdist", "mclust", "combinat")
+
+# Install packages if they're not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
+# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
+# Install the paRsynth package from GitHub if you haven't installed it already
+# devtools::install_github("gsvidaurre/paRsynth")
+
+# Add paRsynth to the list of packages to load
+# X <- c(X, "paRsynth")
+
+# Set cores for parallel processing
+cores <- parallel::detectCores() - 4
+
+```
+
+```{r load packages, eval = FALSE}
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+Initialize working directories for data and figures.
+```{r}
+
+###################### Manually update in every new coding session ##################################
+
+# Initialize a base path (we will need a separate base path per user)
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+
+###################################################################################
+
+```
+
+```{r}
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_simulation_experiments"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+data_dir <- "data"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+data_path <- file.path(path, analysis_dir, data_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(data_path)){ 
+  dir.create(data_path)
+}
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+figure_dir <- "figures"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figure_path <- file.path(path, analysis_dir, figure_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(figure_path)){ 
+  dir.create(figure_path)
+}
+
+```
+
+Source custom functions for the associated paper.
+```{r eval = FALSE}
+
+# Load custom functions for the code below
+# This line of code loads a function to calculate the maximum global accuracy of clustering by finding and calculating accuracy across all bipartite matchings (matchings between original class labels and predicted cluster labels)
+source(file.path(path, "GitHub_repos/paRsynth-methods-paper-internal/code/functions/accuracy_score.R"))
+
+```
+
+```{r echo = FALSE}
+
+# Load custom functions for the code below
+# This line of code loads a function to calculate the maximum global accuracy of clustering by finding and calculating accuracy across all bipartite matchings (matchings between original class labels and predicted cluster labels)
+source("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper-internal/code/functions/accuracy_score.R")
+
+```
+
+```{r echo = FALSE, eval = FALSE}
+
+# Load the bipartite matching function in a separate chunk because RMarkdown knitting continues to fail with the source call() above.
+
+# Created: Vanessa Ferdinand
+
+########################################################################
+# overview:
+
+# find_best_mapping() finds the best mapping of true labels to inferred labels
+# and then calculates the percentage of rows in your dataframe that follow that mapping.
+# that percentage is the "accuracy score" you're looking for.
+
+########################################################################
+# for testing the function: create a demo dataframe
+
+# k <- 10
+# true_label <- c(rep(seq(1:k),10))
+# inferred_label <- sample(c(rep(letters[1:k],10)))
+# signal <- seq(1:length(true_label))
+# 
+# df <- data.frame(signal,true_label,inferred_label)
+# head(df)
+# nrow(df)
+# 
+# table(df$true_label)
+# table(df$inferred_label)
+
+########################################################################
+# how many unique sets of mappings are there between the true and inferred labels?
+# we need to calculate the number of bipartite combinations (i.e. "matchings")
+
+# given a bipartite graph, a "matching" is a subset of the edges 
+# for which every vertex belongs to exactly one of the edges
+
+# we want to calculate the accuracy score for every "matching"
+# and select the matching with the best accuracy score
+# to be the "best matching"
+
+# when you have k true labels and k inferred labels
+# there are k! bipartite matchings that this code will compute an accuracy for
+# (draw the tree yourself and you'll see why it's a factorial)
+# factorial(k)
+# hot tip: check how big this number is before you run the code!
+
+# input: a dataframe with columns named true_label and inferred_label
+# output: a list in the following order
+# 1) the best mapping
+# 2) the accuracy of that mapping (i.e. maximum accuracy found)
+# 3) the list of accuracies computed for each mapping
+find_best_mapping <- function(df) {
+  # get the set of true labels and the set of inferred labels
+  true_label_set <- sort(unique(df$true_label))
+  inferred_label_set <- sort(unique(df$inferred_label))
+  
+  # generate all possible mappings between the two sets of labels
+  # the ith inferred label maps to the ith label in true_label_set
+  mappings <- combinat::permn(inferred_label_set)
+  # mappings
+  
+  # this calculation only works when the two labels sets are the same size
+  if (length(true_label_set) != length(inferred_label_set)) { 
+    warning(print("The number of labels in the true set and the inferred set are not the same!")) 
+  }
+  
+  x <- length(true_label_set)
+  n <- factorial(x)
+  print(paste("checking",n,"mappings"))
+  
+  # for each mapping, calculate the accuracy
+  accs <- c()
+  for (i in 1:length(mappings)) {
+    # if (i %% 100==0) { print(paste(i,"of",n)) }  # print progress every 100th iteration
+    # if (i == n) { print("done")}
+    
+    # put the count of each label pair in matrix format
+    tab <- table(df$true_label,df$inferred_label)
+    
+    # order the table by the current mapping 
+    # so the diagonal will contain the counts for this mapping
+    tab <- tab[true_label_set,mappings[[i]]]
+    
+    # accuracy is the % of rows in the df that follows the mapping
+    hits <- sum(diag(tab))
+    accuracy <- hits/sum(tab)
+    
+    accs[i] <- accuracy
+  }
+  
+  # if there was a single maximum accuracy, then return the maximum accuracy
+  if(length(which(accs == max(accs))) == 1){
+    
+    best <- mappings[[which(accs == max(accs))]]
+    
+  # if there were ties for the maximum accuracy, then randomly sample the mappings from among these ties
+  } else {
+    
+    wh <- which(accs == max(accs))
+    best <- mappings[[sample(wh, size = 1)]]
+    
+  }
+  
+  best_mapping <- rbind(true_label_set,best)
+  
+  row.names(best_mapping) <- c("true label","inferred label")
+  
+  return(list(best_mapping = best_mapping, maximum_accuracy = max(accs), accuracies = accs))
+}
+
+# example usage:
+# find_best_mapping(df)
+# system.time(find_best_mapping(df))
+
+```
+
+Source the paRsynth functions directly from the GitHub repository. 
+```{r}
+
+###################### Manually update in every new coding session ##################################
+
+# Brittany's path should include "GitHub/paRsynth"
+# repo_path <- "~/Desktop/R_packages/paRsynth/R" # Grace's path
+repo_path <- "/Users/gsvidaurre//Desktop/GitHub_repos/paRsynth/R"
+
+# Get all of the R files for each function in this directory
+function_files <- list.files(repo_path, pattern = ".R$", full.names = TRUE)
+function_files
+
+# Iterate over these files to load each function, and silence the output
+invisible(sapply(X = function_files, FUN = source))
+
+###################################################################################
+
+```
+
+Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used. TKTK this will only work when paRsynth is installed as a package 
+```{r eval = FALSE}
+
+# ?paRsynth::generate_strings
+# ?paRsynth::parsons_code
+# ?paRsynth::frequency_anchors
+# ?paRsynth::write_audio
+
+```
+
+We performed simulation experiments over varying social environment characteristics and information encoding rules. These experiments helped us test how well we could detect identity information that was originally encoded over two social levels using a traditional computational tool in bioacoustics. Here we generated synthetic vocal identity signals over varying information encoding rules and signaling environment densities. Then we used the prediction accuracy of original labels by unsupervised clustering (performed on MDS feature spaces derived from the edit distance computed amongst strings and spectrographic cross-correlation computed amongst synthetic vocalizations) to ask how well we detected identity information encoded at the group and individual levels.
+
+We iterated over treatment combinations to calculate a 95% confidence interval around mean accuracy calculations. In the looping structure below, a selection table was made, then the edit distance measurements and SPCC were carried out each time a new call dataset was generated. Audio files were written to a directory associated with the project and removed before initiating the subsequent iteration. The duration of the audio files significantly impacted the computational time (files over 400 ms took a long time to generate). Also, long strings written to short duration audio files did not sound or look biologically relevant, so we used a short string length below. The number of calls that will be compared by the edit distance and SPCC also increased computational time, as well as the number of treatments (social conditions, information encoding) and the number of iterations per treatment.
+```{r eval = FALSE}
+
+#################### Information encoding and social environment treatments #################### 
+
+# Initialize varying values of the number of groups and individuals. Here, each group size and number of individuals will travel together per treatment to create varying social conditions that mimic signaling with few or many individuals or groups
+individual_information <- c(0, 2, 4, 6)
+group_information <- rev(individual_information)
+
+individual_information
+group_information
+
+# Choose social conditions in which we expect to have highly distinguishable group and individual signatures even with small amounts of information encoding
+# Then choose other social conditions with increasing numbers of groups and individuals, such that it should become more difficult to generate sufficiently distinguishable signatures at each social level
+# These numbers were also chosen after checking how many mappings will be used to find all bipartite matchings in accuracy calculations. For instance calculating accuracy over 10! matchings can take nearly 5 minutes
+# N will apply to the number of groups, the number of individuals, and the number of calls per individual, such that we keep balanced sample sizes across classes and exemplars per class at each social level. For instance, when there are 2 groups, 2 individuals, and 2 calls per individual, we will cluster 2 calls back to each individual at the individual-level. But at the group-level, we will cluster 4 calls back to 2 groups. To balance exemplars within classes at each social level, we should randomly select 1 call per individual at the group level.
+N <- c(2, 4, 6, 8)
+
+# Check the total number of call comparisons in the largest social environment treatment, which will need to run 4 times (one per information encoding treatment)
+# Here the total number of calls that will compared in any one iteration is 512, which will take a long time to run on a laptop but should be doable even without a supercomputer 
+(max(N) * max(N) * max(N))
+
+# All call comparisons for each social condition treatment
+(N * N * N)
+
+# [1]   8  64 216 512
+
+# Number of symbols that we are using in Parsons code
+symbols <- 3
+
+# Create a data frame that shows all experimental treatment combinations
+# i <- 1
+experimental_treatements <- data.table::rbindlist(pblapply(1:length(N), function(j){
+  
+  tmp2 <- data.table::rbindlist(lapply(1:length(individual_information), function(i){
+    
+    tmp <- data.frame(
+      n_groups = N[j],
+      n_individuals = N[j],
+      group_information = group_information[i],
+      individual_information = individual_information[i],
+      # These values represent how much of the total social information encoding length is taken up by information encoding at either social level. When this value is 1, all 6 characters are used to encode group information. When this value is less than 0.5, more characters are devoted to individual information encoding. When this value is 0, all characters are used for individual information encoding. These two columns can be used as the x-axis in figures below (and maybe we can have one x-axis on the bottom, one on the top)
+      group_information_proportion = round(group_information[i] / max(group_information), 2),
+      individual_information_proportion = round(individual_information[i] / max(individual_information), 2)
+    )
+    
+    return(tmp)
+    
+  }))
+  
+  return(tmp2)
+  
+}))
+
+# View(experimental_treatements)
+
+# Then set other parameters for creating synthetic vocal identity signals
+# The length of the global header and tail should be the same across strings
+globals <- 8 # 4 characters for the global head, 4 for the global tail
+
+# Create variation within individuals, and this will be the same across strings created for the same individual
+random_variation <- 2
+
+# Initialize the total string length
+string_length <- (globals + max(group_information) + random_variation)
+string_length # 16
+
+# Initialize the number of iterations for each combination of information encoding and social environment treatments (15 total treatments)
+iteratns <- 10
+
+# Testing one iteration of each loop
+# These are the parameters that can be used for internal code review by team members to test if the code is working for separate treatment combinations. After updating the iterating variables below, go to line 375 and run the code from there. Do not run starting on line 365 or you'll run the whole loop. This is in addition to the fine-scale code review line by line.
+# z <- 1 # number of groups and individuals, or social conditions, as well as the number of calls per individual
+# i <- 1 # information encoding treatments
+# n <- 1 # replicates or iterations
+
+# Iterate over the social conditions and information encoding treatments to assess how well the original information encoded about group and individual identity can be recovered across these treatments.
+system.time(
+  
+  # Iterate over group, individual, and call number treatments
+  invisible(pblapply(1:length(N), function(z){
+    
+    # Iterate over information encoding treatments
+    lapply(1:length(group_information), function(i){
+      
+      cat(paste("Number of groups, individuals, and calls per individual =", N[z], "\n", sep = " "))
+      cat(paste("group_information = ", group_information[i], "\n", sep = ""))
+      cat(paste("individual_information = ", individual_information[i], "\n", sep = ""))
+      
+      # Iterating over the number of replicates per treatment combination
+      res_tmp <- data.table::rbindlist(lapply(1:iteratns, function(n){
+        
+        ### Step 1: Generate strings that represent calls
+        calls <- suppressMessages(
+          generate_strings(
+            n_groups = N[z], 
+            n_individuals = N[z], 
+            # Generate more calls than what we need to ensure that we use n_calls with different strings per individual (see below)
+            n_calls = N[z], 
+            string_length = string_length, 
+            group_information = group_information[i], 
+            individual_information = individual_information[i],
+            random_variation = random_variation
+          )
+        )
+        
+        # glimpse(calls)
+        
+        ### Step 2: Convert the strings to Parsons code
+        calls_parsons <- parsons_code(
+          # df = calls_filt, 
+          df = calls,
+          string_col = "Call",
+          global_head_col = "Global_head",
+          group_head_col = "Group_head", 
+          individual_middle_col = "Individual_middle", 
+          group_tail_col = "Group_tail", 
+          global_tail_col = "Global_tail",
+          random_variation_col = "Random_variation",
+          mapping = list(A = "up", B = "down", C = "constant")
+        )
+        
+        # glimpse(calls_parsons)
+        
+        ### Step 3: Convert the Parsons code to frequency values
+        calls_parsons_frequencies <- frequency_anchors(
+          df = calls_parsons, 
+          parsons_col = "Call_Parsons_Code", 
+          group_id_col = "Group", 
+          individual_id_col = "Individual", 
+          call_id_col = "Call_ID", 
+          call_string_col = "Call",
+          starting_frequency = 4000, 
+          frequency_shift = 1000, 
+          section_transition = "starting_frequency"
+        )
+        
+        # glimpse(calls_parsons_frequencies)
+        
+        # Find the maximum frequency anchor and set an upper frequency 0.5 kH above this for spectrographic cross-correlation
+        freq_cols <- calls_parsons_frequencies[, grep("^Freq", names(calls_parsons_frequencies))]
+        upp_freq <- (max(sapply(freq_cols, max))/1000) + 0.5
+        
+        ### Step 4: For each call or string, use these frequency vectors to generate synthetic audio files with paRsynth and the soundgen package
+        
+        synthetic_call_metadata <- write_audio(
+          df = calls_parsons_frequencies, 
+          save_path = data_path, 
+          sampling_rate = 44100,
+          sylLen = 200,
+          temperature = 0.025,
+          prefix = paste(paste("Classes", N[z], sep = "-"), paste("groupInfo", group_information[i], sep = "-"), sep = "_"),
+          invalidArgAction = "ignore" # This argument fixes the variable sampling rates that soundgen assigns in the background
+        )
+        
+        # glimpse(synthetic_call_metadata)
+        
+        wavs <- list.files(
+          path = data_path, 
+          pattern = paste(paste(paste("Classes", N[z], sep = "-"), paste("groupInfo", group_information[i], sep = "-"), sep = "_"), "_", sep = "")
+        )
+        
+        cat(paste("Number of audio files = ", length(wavs), "\n"))
+        
+        
+        ###### Information detection pipeline with traditional bioacoustics tools
+        
+        ### Step 5: Generate a selection table for the warbleR package
+        # w <- 1 # testing
+        
+        sel_tbl <- data.table::rbindlist(lapply(1:length(wavs), function(w){
+          
+          # Read in the given audio file
+          tmp <- tuneR::readWave(file.path(data_path, wavs[w]))
+          
+          # Return the metadata for the given call using the synthetic metadata generated during audio file generation above
+          metadats_tmp <- synthetic_call_metadata %>%
+            dplyr::filter(grepl(wavs[w], audio_file_name))
+          
+          # glimpse(metadats_tmp)
+          
+          # Create a row for the selection table in warbleR format if the audio file exists and metadata for that file also exists
+          # Use 0.1s as a margin to indicate where the vocalization starts and ends in the audio file
+          # soundgen::soundgen() adds 100ms of silence before and after the synthetic vocalization by default 
+          res <- data.frame(
+            sound.files = wavs[w], 
+            selec = 1,
+            start = 0.1, 
+            end = seewave::duration(tmp) - 0.1,
+            duration = seewave::duration(tmp),
+            upper_bandpass_frequency = upp_freq,
+            group_ID = metadats_tmp[["Group"]],
+            individual_ID = metadats_tmp[["Individual"]],
+            call_ID = metadats_tmp[["Call_ID"]],
+            call_string = metadats_tmp[["Call"]], 
+            sampling_rate = tmp@samp.rate,
+            group_information = group_information[i], 
+            individual_information = individual_information[i],
+            n_groups = N[z],
+            n_individuals = N[z]
+          )
+          
+          return(res)
+          
+        }))
+        
+        # See the selection table in warbleR format with all useful metadata for the simulation experiment
+        # glimpse(sel_tbl)
+        
+        # And there is now a single sampling rate, as expected
+        # unique(sel_tbl$sampling_rate)
+        
+        # All files should have the same sampling rate, otherwise the analyses below will fail
+        if(length(unique(sel_tbl$sampling_rate)) > 1){
+          stop("Variable sampling rates detected across synthetic audio files, and downstream analyses will fail")
+        }
+        
+        ### Step 6: Perform SPCC using a default window length and a bandpass filter set 2 kHz above the maximum frequency anchor value
+        xc_mat <- warbleR::cross_correlation(sel_tbl, wl = 512, ovlp = 90, bp = c(0, upp_freq), wn = "hanning", cor.method = "pearson", parallel = cores, na.rm = FALSE, type = "spectrogram", path = data_path)
+        # str(xc_mat)
+        
+        # Get the percentage of values that are negative
+        neg_values <- ((length(xc_mat[xc_mat < 0])/length(xc_mat))) * 100
+        
+        # Set all negative values to the minimum positive value in the SPCC matrix to represent the fact that these calls are very structurally different from one another
+        if(neg_values > 0){
+          
+          # Initialize a record of what was changed to save to the final results
+          neg_notes <- paste(round(neg_values, 8), "% of all SPCC cells or", length(xc_mat[xc_mat < 0])/2,"unique comparisons were negative and were changed to the minimum positive SPCC value of", round(min(xc_mat[xc_mat > 0]), 8), sep = " ")
+          
+          xc_mat[xc_mat < 0] <- round(min(xc_mat[xc_mat > 0]), 8)
+          
+        } else {
+          
+          neg_notes <- ""
+          
+        }
+        
+        # Continue with downstream analyses only if there are no 1's off of the diagonal, otherwise MDS will fail. Record NA values if there are 1's off of the diagonal (e.g. two calls of the same structure will present values of 1 as if the same call were compared to itself)
+        
+        # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
+        ones <- ((length(which(xc_mat[lower.tri(xc_mat)] == 1))*2)/length(xc_mat)) * 100
+        
+        if(ones > 0){
+          
+          # Get the maximum similarity value after 1 in the matrix
+          max_vals <- xc_mat[lower.tri(xc_mat)]
+          
+          # Use a value just under one to catch floating point numbers that are visually represented as 1
+          sec_max_val <- max(max_vals[max_vals < 0.9999999])
+          
+          # Initialize a record of what was changed to save to the final results
+          one_notes <- paste(round(ones, 8), "% of all SPCC cells or", length(which(xc_mat[lower.tri(xc_mat)] == 1)), "unique comparisons were had an original SPCC value of 1 and were changed to the next maximum SPCC value of", round(sec_max_val, 8), sep = " ")
+          
+          # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to the next highest similarity value in this matrix
+          xc_mat[lower.tri(xc_mat)][xc_mat[lower.tri(xc_mat)] == 1] <- round(sec_max_val, 8)
+          xc_mat[upper.tri(xc_mat)][xc_mat[upper.tri(xc_mat)] == 1] <- round(sec_max_val, 8)
+          
+        } else {
+          
+          one_notes <- ""
+          
+        }
+        
+        # Update the dimension names of the matrix
+        dimnames(xc_mat) <- list(wavs, wavs)
+        
+        ### Step 7: Remove .wav files to free up storage space
+        rem_files <- file.path(data_path, wavs)
+        invisible(file.remove(rem_files))
+        
+        ### Step 8: Calculate the edit distance amongst all strings
+        
+        # For each pairwise comparison in the same order as SPCC, calculate the edit distance for the original strings, then assemble this vector into a matrix
+        edit_dists <- unlist(lapply(1:nrow(xc_mat), function(m){
+          lapply(1:ncol(xc_mat), function(p){
+            
+            return(
+              stringdist(
+                a = sel_tbl %>% 
+                  dplyr::filter(
+                    sound.files == dimnames(xc_mat)[[1]][m]
+                  ) %>% 
+                  pull(call_string),
+                b = sel_tbl %>% 
+                  dplyr::filter(
+                    sound.files == dimnames(xc_mat)[[2]][p]
+                  ) %>% 
+                  pull(call_string),
+                method = "lv"
+              )
+            )
+            
+          })
+        }))
+        
+        edit_mat <- matrix(edit_dists, nrow = nrow(xc_mat), ncol = ncol(xc_mat), byrow = TRUE)
+        
+        # As the number of groups, individuals, and calls per individual increases, the likelihood of generating the same call strings across individuals or groups increases, so the code below replaces edit distance values of 0 off of the diagonal with a small number close to 0. The lowest non-zero value in the edit distance matrix is 1. Replace zeroes off of the diagonal with 1/10th of this value, or 0.1.
+        
+        # Check if there are values of 0 off of the diagonal in the edit distance matrix, which will happen by chance when the exact same strings are generated within an individual (even with the random variation)
+        # Make sure to calculate the true number of values in the symmetric matrix (multiply the number of unique values that are 1 by 2)
+        zeroes <- ((length(which(edit_mat[lower.tri(edit_mat)] == 0))*2)/length(edit_mat)) * 100
+        
+        if(zeroes > 0){
+          
+          # Get the minimum non-zero similarity value in the matrix, this should always be 1
+          min_vals <- edit_mat[lower.tri(edit_mat)]
+          
+          sec_min_val <- min(min_vals[min_vals > 0])
+          
+          # Initialize a record of what was changed to save to the final results
+          zero_notes <- paste(round(zeroes, 8), "% of all edit distance cells or", length(which(edit_mat[lower.tri(edit_mat)] == 0)), "unique comparisons off of the diagonal had an original edit distance value of 0 and were changed to the next minimum edit distance value of", round(sec_min_val/10, 8), sep = " ")
+          
+          # Then set the values of 1 off of the diagonal (in both the upper and lower triangle) to 1/10th of the next smallest non-zero value (1)
+          edit_mat[lower.tri(edit_mat)][edit_mat[lower.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
+          edit_mat[upper.tri(edit_mat)][edit_mat[upper.tri(edit_mat)] == 0] <- round(sec_min_val/10, 8)
+          
+        } else {
+          
+          zero_notes <- ""
+          
+        }
+        
+        # These dimension names are helpful below
+        dimnames(edit_mat) <- list(dimnames(xc_mat)[[1]], dimnames(xc_mat)[[2]])
+        
+        # str(edit_mat)
+        
+        ### Step 9: Perform MDS on SPCC and edit distance matrices
+        
+        # Convert the SPCC similarity matrix to a distance matrix and dist object for isoMDS
+        spcc_dist_mat <- stats::as.dist(1 - xc_mat, diag = TRUE, upper = TRUE)
+        
+        # str(1 - xc_mat)
+        # str(spcc_dist_mat)
+        
+        # Convert the edit distance matrix to a dist object for isoMDS
+        # Do not subtract the edit distance values from 1 because these are already distances, not proximity values
+        edit_dist_mat <- stats::as.dist(edit_mat, diag = TRUE, upper = TRUE)
+        
+        # str(edit_dist_mat)
+        
+        # Reduce the dimensionality of the SPCC and edit matrices using multidimensional scaling (MDS). In other words, convert the proximity or distance space of these two matrices to a feature space that can be used in clustering approaches to predict labels of vocalizations. Use the a different number of total MDS dimensions per treatment combination in order to reduce the stress of the final solution
+        if(N[z] == 2){
+          k <- 2
+        } else {
+          k <- 10
+        }
+        
+        # Perform MDS to obtain SPCC feature space
+        iso_spcc <- invisible(MASS::isoMDS(spcc_dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # str(iso_spcc)
+        
+        # Perform MDS to obtain edit distance feature space
+        iso_edit <- invisible(MASS::isoMDS(edit_dist_mat, k = k, maxit = 1000, trace = FALSE))
+        # str(iso_edit)
+        
+        # Make a data frame of the first two SPCC MDS dimensions and call metadata
+        mds_spcc <- data.frame(sound.files = dimnames(iso_spcc$points)[[1]]) %>%
+          dplyr::mutate(
+            X = iso_spcc$points[, 1],
+            Y = iso_spcc$points[, 2]
+          ) %>%
+          inner_join(
+            sel_tbl %>%
+              dplyr::select(sound.files, group_ID, individual_ID, call_ID),
+            by = c("sound.files")
+          )
+        
+        # glimpse(mds_spcc)
+        
+        # Make a data frame of the first two edit distance MDS dimensions and call metadata
+        mds_edit <- data.frame(sound.files = dimnames(iso_edit$points)[[1]]) %>%
+          dplyr::mutate(
+            X = iso_edit$points[, 1],
+            Y = iso_edit$points[, 2]
+          ) %>%
+          inner_join(
+            sel_tbl %>%
+              dplyr::select(sound.files, group_ID, individual_ID, call_ID),
+            by = c("sound.files")
+          )
+        
+        # glimpse(mds_edit)
+        
+        ### Step 10: Perform clustering and accuracy calculations
+        # In order to calculate accuracy at two social levels (individual and group), we need to run clustering at these two levels
+        
+        ### Group-level clustering and accuracy calculations
+        
+        # Set the number of clusters to the number of unique groups
+        num_clusters <- length(unique(mds_spcc$group_ID))
+        # num_clusters
+        
+        # Randomly select 1 call per individual per group, to ensure that the call exemplars clustered per class match between social levels
+        grp_calls <- mds_spcc %>%
+          # Group by the group and individual identities
+          group_by(group_ID, individual_ID) %>%
+          # Then randomly select 1 row or call per individual in each group
+          slice_sample(n = 1) %>% 
+          ungroup() %>% 
+          # Extract the sound file names of these calls, which can be used to index both the SPCC and edit distance objects below
+          pull(sound.files)
+        
+        # grp_calls
+        
+        # Filter the SPCC MDS object by the group-level exemplar calls
+        mds_spcc_filt <- mds_spcc[grep(paste(grp_calls, collapse = "|"), mds_spcc[["sound.files"]]), ]
+        
+        if(nrow(mds_spcc_filt) != N[z] * length(unique(mds_spcc_filt[["group_ID"]]))){
+          stop("The number of call exemplars per class must match between social levels")
+        }
+        
+        # Perform kmeans clustering on the SPCC and edit distance feature spaces with the number of clusters above, and also on the calls selected above for the group-level exemplars
+        # Ensure that the clustering algorithms use only the MDS variables, restricting them to information from the patterns of acoustic variation in order to detect clusters
+        spcc_km_grp <- kmeans(x = mds_spcc_filt[, grep("X|Y", names(mds_spcc_filt))], centers = num_clusters)
+        # str(spcc_km_grp)
+        
+        # Combine the resulting cluster labels with the original information about signals
+        # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+        mds_spcc_clust <- mds_spcc_filt %>% 
+          dplyr::mutate(
+            inferred_label = spcc_km_grp$cluster
+          ) %>% 
+          dplyr::rename(
+            `true_label` = "group_ID"
+          ) %>% 
+          dplyr::select(true_label, inferred_label)
+        
+        # glimpse(mds_spcc_clust)
+        
+        # Calculate accuracy scores after bipartite matching of original class and cluster labels
+        acc_spcc <- find_best_mapping(mds_spcc_clust)
+        acc_spcc_grp <- acc_spcc[["maximum_accuracy"]]
+        # acc_spcc_grp
+        
+        # Perform these same steps for the edit distance MDS features
+        
+        # Filter the edit distance MDS object by the group-level exemplar calls
+        mds_edit_filt <- mds_edit[grep(paste(grp_calls, collapse = "|"), mds_edit[["sound.files"]]), ]
+        
+        if(nrow(mds_edit_filt) != N[z] * length(unique(mds_edit_filt[["group_ID"]]))){
+          stop("The number of call exemplars per class must match between social levels")
+        }
+        
+        edit_km_grp <- kmeans(x = mds_edit_filt[, grep("X|Y", names(mds_edit_filt))], centers = num_clusters)
+        # str(edit_km_grp)
+        
+        # Combine the resulting cluster labels with the original information about signals
+        # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+        mds_edit_clust <- mds_edit_filt %>% 
+          dplyr::mutate(
+            inferred_label = edit_km_grp$cluster
+          ) %>% 
+          dplyr::rename(
+            `true_label` = "group_ID"
+          ) %>% 
+          dplyr::select(true_label, inferred_label)
+        
+        # glimpse(mds_edit_clust)
+        
+        # Calculate accuracy scores after bipartite matching of original class and cluster labels
+        acc_edit <- find_best_mapping(mds_edit_clust)
+        acc_edit_grp <- acc_edit[["maximum_accuracy"]]
+        # acc_edit_grp
+        
+        
+        ### Individual-level clustering on the SPCC and edit distance features, accuracy calculations
+        
+        # Set the number of clusters to the number of unique individuals within each group
+        num_clusters <- mds_spcc %>% 
+          distinct(individual_ID) %>% 
+          nrow()
+        
+        # num_clusters
+
+        # Perform kmeans clustering with this number of clusters at the individual level within each group, so iterate over groups for the accuracy calculations. Use SPCC MDS features here
+        # m <- 1 # testing
+        acc_spcc_inds <- unlist(lapply(1:N[z], function(m){
+          
+          tmp <- mds_spcc[mds_spcc$group_ID == m, ]
+          
+          # Checking, looks good
+          # unique(tmp$group_ID)
+          # all(tmp$group_ID == m)
+          
+          if(nrow(tmp) != N[z] * length(unique(tmp[["individual_ID"]]))){
+            stop("The number of call exemplars per class must match between social levels")
+          }
+          
+          # Perform clustering using the MDS coordinates as input
+          res <- kmeans(x = tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+          
+          # Combine the resulting cluster labels with the original information about signals
+          # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+          tmp_clust <- tmp %>% 
+            dplyr::mutate(
+              inferred_label = res$cluster
+            ) %>% 
+            dplyr::rename(
+              `true_label` = "individual_ID"
+            ) %>% 
+            dplyr::select(true_label, inferred_label)
+          
+          # glimpse(tmp_clust)
+          
+          # Calculate accuracy scores after bipartite matching of original class and cluster labels
+          acc_spcc_tmp <- find_best_mapping(tmp_clust)
+          acc_spcc_ind <- acc_spcc_tmp[["maximum_accuracy"]]
+          # acc_spcc_ind
+          
+          # Return the individual-level accuracy
+          return(acc_spcc_ind)
+          
+        }))
+        
+        # str(acc_spcc_inds)
+        
+        # Take the mean of the individual-level accuracies across groups
+        acc_spcc_ind <- mean(acc_spcc_inds)
+        
+        
+        # Perform the same analyses using the edit distance MDS features here
+        # m <- 1 # testing
+        acc_edit_inds <- unlist(lapply(1:N[z], function(m){
+          
+          tmp <- mds_edit[mds_edit$group_ID == m, ]
+          
+          # Checking, looks good
+          # unique(tmp$group_ID)
+          # all(tmp$group_ID == m)
+          
+          if(nrow(tmp) != N[z] * length(unique(tmp[["individual_ID"]]))){
+            stop("The number of call exemplars per class must match between social levels")
+          }
+          
+          # Perform clustering using the MDS coordinates as input
+          res <- kmeans(x = tmp[, grep("X|Y", names(tmp))], centers = num_clusters)
+          
+          # Combine the resulting cluster labels with the original information about signals
+          # We can do this column addition because we used mds_spcc directly as input to the clustering algorithm, so rows in each object are in the same order
+          tmp_clust <- tmp %>% 
+            dplyr::mutate(
+              inferred_label = res$cluster
+            ) %>% 
+            dplyr::rename(
+              `true_label` = "individual_ID"
+            ) %>% 
+            dplyr::select(true_label, inferred_label)
+          
+          # glimpse(tmp_clust)
+          
+          # Calculate accuracy scores after bipartite matching of original class and cluster labels
+          acc_edit_tmp <- find_best_mapping(tmp_clust)
+          acc_edit_ind <- acc_edit_tmp[["maximum_accuracy"]]
+          # acc_edit_ind
+          
+          # Return the individual-level accuracy
+          return(acc_edit_ind)
+          
+        }))
+        
+        # str(acc_edit_inds)
+        
+        # Take the mean of the individual-level accuracies across groups
+        acc_edit_ind <- mean(acc_edit_inds)
+        
+        ### Step 11: Return results
+        # Gather results that will be returned for downstream statistics and figures
+        results <- data.frame(
+          n_groups = N[z],
+          n_individuals = N[z],
+          n_calls_per_level = N[z],
+          group_information = group_information[i], 
+          individual_information = individual_information[i],
+          iteration = n,
+          group_information_proportion = group_information[i] / max(group_information),
+          individual_information_proportion = individual_information[i] / max(individual_information),
+          accuracy_SPCC_group = acc_spcc_grp,
+          accuracy_edit_group = acc_edit_grp,
+          accuracy_mean_SPCC_individual = acc_spcc_ind,
+          accuracy_mean_edit_individual = acc_edit_ind,
+          notes = paste(neg_notes, one_notes, zero_notes, sep = "; ")
+        )
+         
+        # results
+    
+        return(results)
+        
+      }))
+      
+      ### Step 12: Write out the results for the given treatment combination across iterations
+      res_tmp %>% 
+        write.csv(file.path(data_path, paste("Accuracy_", paste(paste("classes", N[z], sep = "-"), paste("groupInfo", group_information[i], sep = "-"), sep = "_"), ".csv", sep = "")), row.names = FALSE)
+      
+    })
+    
+  }))
+  
+)
+
+```
+
+The spreadsheets written out across iterations per treatment combination are used in the subsequent script for effect size calculations and graphics.

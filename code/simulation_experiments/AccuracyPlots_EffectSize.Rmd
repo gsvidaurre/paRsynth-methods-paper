@@ -1,0 +1,718 @@
+---
+title: <center style="font-size:30px;font-style:normal;color:#0E0E7D;">Accuracy figure and effect size calculations</center>
+author: |
+<br />
+  <center style="font-style:normal;">
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="https://brittanycoppinger.weebly.com/">Brittany A. Coppinger</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1,3</span></sup>,
+  <a style="font-style:normal;font-size:22px;color:#337ab7;text-decoration: underline;"href="https://smith-vidaurrelab.github.io/">Grace Smith-Vidaurre</a><sup><span style="font-style:normal;font-size:12px;color:black;text-decoration:none!important;">1-3*</span></sup>
+  <br />
+  <br />
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">1</span></sup>Department of Integrative Biology, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">2</span></sup>Department of Computational Mathematics, Science, and Engineering, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">3</span></sup>Ecology, Evolution, and Behavior Program, Michigan State University</center>
+  <br />
+  <center style="font-size:18px;"><sup style="font-size:12px;">*</sup>Corresponding author (smithvid@msu.edu)</center>
+  date: <center style=font-size:22px;font-style:normal;>`r format(Sys.time(), '%d %B %Y')`</center>
+  <br />
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+---
+
+<style type="text/css">
+body{
+font-family: Arial;
+font-size: 14pt;
+}
+h1{
+font-size: 22pt;
+}
+
+h2{
+font-size: 18pt;
+}
+
+h3{
+font-size: 16pt;
+}
+</style>
+
+**Purpose**: The following code was designed to visualize the accuracy scores of information detection at each social level for each combination of group information proportion and social class treatment, for both SPCC and edit distance measures. Additionally, this code calculates the effect sizes of accuracy comparisons between social levels for each combinations of treatments, then visualizes those effect sizes. 
+
+In part 1, the code creates a figure (Fig 4 in manuscript) that visualizes accuracy scores. This figure uses output from the script "Simulation_Experiments" to create a data frame which is used to create plots of average accuracy by group information proportions and social class treatment for each social information level (individual and group). This plot averages over 10 iterations performed in "Simulation_Experiments" to calculate averages and 95% confidence intervals.
+
+In part 2, this code calculates Cliff's Delta Effect Size for Group vs Individual Information level accuracy measures across all Social Environment by Group Information Proportion by Method conditions. Before calculating these effect sizes, we check the distribution of our accuracy measures. They are not normally distributed, so we opt to calculate Cliff's Delta as the effect size. This code saves the data table with all the Cliff's Delta values, 95% Confidence Intervals and effect size magnitudes. Magnitude is assessed through the effsize package, which uses thresholds provided in Romano, 2006. (|d|<0.147 "negligible", |d|<0.33 "small", |d|<0.474 "medium", otherwise "large"). These values are included in the supplemental table in the manuscript. Finally, we create density plots to visualize effect size measures to create main and supplemental figures for the manuscript. 
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE, root.dir = "~/Desktop")
+
+```
+
+Load packages and set cores.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Initialize packages for data processing and analysis
+X <- c("pbapply", "tidyverse", "effsize", "paletteer")
+
+# Install packages if they're not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+# Set cores for parallel processing
+cores <- parallel::detectCores() - 4
+
+```
+
+```{r load packages, eval = FALSE}
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+Initialize working directories for data and figures.
+```{r}
+
+###################### Manually update in every new coding session ##################################
+
+# Initialize a base path
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+# path <- "/home/gsvidaurre/Desktop" # Grace's path
+path <- "/Users/gsvidaurre/Desktop" # Grace's path
+# path <- "C:/Users/britt/Desktop/paRsynth_methods_synthetic_dataset" #Brittany's path
+
+# Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper-internal/figures" # Britt's path
+git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper-internal/figures") # Grace's path
+###################################################################################
+
+```
+
+```{r}
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_simulation_experiments"
+
+# Specify a folder inside the analysis directory where data will be written out/read in
+data_dir <- "data"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+data_path <- file.path(path, analysis_dir, data_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(data_path)){ 
+  dir.create(data_path)
+}
+
+```
+
+# Step 1: Plotting accuracy scores for information detection at each social level by group information proportion and social class
+
+Read in accuracy calculations from "Simulation_Experiments" output.
+```{r}
+
+# create a list of the files that contain accuracy output in the data path, then view this list. This step is for checking that all files are found in the correct path. There should be 16 files, 1 for each unique combination of social class and group information proportion condition. 
+files <- list.files(path = data_path, pattern = "^Accuracy_")
+files
+
+# Create a data frame called res that complies all the accuracy output data into one data frame. 
+res <- data.table::rbindlist(pblapply(1:length(files), function(n){
+  
+  return(read.csv(file.path(data_path, files[n])))
+  
+}), fill = TRUE)
+
+# view "res" to double check that the structure of the dataframe is as expected. There should be 160 rows (16 original files, 10 rows (iterations) per file)
+glimpse(res)
+
+# Now, perform various checks of the dataframe res to verify that the data are good to work with:
+
+# Checking the data in the notes column to determine if any SPCC values were found to be negative. or if there any values of 1 off of the diagonal in the SPCC matrices.
+# unique(res$notes)
+
+# There are no notes about any issues found in the SPCC matrices. All notes are about replacing values of 1 off of the diagonal in the edit distance matrix, looks good to proceed with these accuracy measurements. 
+length(grep("SPCC", res$notes))
+length(grep("edit", res$notes)) + length(grep("^; ; $", res$notes)) == length(res$notes)
+
+# Check that there are no accuracy values above 1, looks good to proceed
+sapply(res %>%
+         dplyr::select(names(.)[grep("accuracy", names(.))]),
+       function(X){
+         any(X > 1)
+       }
+)
+
+# Check that there are no accuracy values below 0, looks good to proceed
+sapply(res %>%
+         dplyr::select(names(.)[grep("accuracy", names(.))]),
+       function(X){
+         any(X < 0)
+       }
+)
+
+```
+
+Modify datframe "res" to allow for plotting of accuracy results and 95% confidence intervals, save this dataframe as "res_summ_acc".
+```{r}
+
+# Summarize the results from the synthetic experiments to calculate the mean and 95% CI per each treatment combination of social class and group information proportion condition. 
+
+res_summ_acc <- res %>%
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>%
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Then use "separate" to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>%
+  # Group by the columns that have information about each experimental treatment. This grouping should yield 16 groups across the two experimental treatments (4 x 4), plus the two methods and social levels for accuracy calculations
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method, accuracy_level) %>%
+  # Now that the data frame is grouped, calculate summary statistics for each grouping
+  dplyr::summarise(
+    mean_accuracy = mean(accuracy_measurements),
+    upper_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["upper"]],
+    lower_95_CI = Rmisc::CI(accuracy_measurements, ci = 0.95)[["lower"]]
+  ) %>%
+  # Make sure to ungroup before plotting, and the columns used for grouping will be retained
+  ungroup() %>%
+  # mutate() creates new columns and can be used to modify/overwrite exist columns, like below when reorganizing factor levels
+  dplyr::mutate(
+    n_groups = factor(n_groups),
+    # Convert the x-axis column to factor to control axis ticks
+    group_information_proportion = factor(round(group_information_proportion, 2))
+  )  %>% 
+  # Change "group" and "individual" to be capitalized
+  # Also change the edit distance and SPCC labels for the final figure
+  dplyr::mutate(
+    accuracy_level = str_replace(accuracy_level, "group", "Group"),
+    accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
+    accuracy_method = str_replace(accuracy_method, "edit", "Edit distance"),
+    accuracy_method = str_replace(accuracy_method, "SPCC", "Spectrographic cross-correlation")
+  ) %>% 
+  # Change the group proportion labels of 1 and 0 to have decimal points
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0$", "0.00"),
+    group_information_proportion = str_replace(group_information_proportion, "^1$", "1.00")
+  )
+
+# There should be 4 social conditions * 4 information encoding conditions * 2 accuracy methods * 2 social levels in rows, or 64 rows, looks good
+glimpse(res_summ_acc)
+
+# The levels for the social condition treatment column looks good
+levels(res_summ_acc$n_groups)
+
+# Looks good
+unique(res_summ_acc$accuracy_method)
+unique(res_summ_acc$accuracy_level)
+unique(res_summ_acc$group_information_proportion)
+
+```
+
+Set up objects to be used in all plots in this code. 
+``` {r figure asthetic set up}
+
+# Make color list that contains the first and second color hex codes from paletteer_packages:Arches, which will be the theme colors for this manuscript. 
+# paletteer_d("nationalparkcolors::Arches")
+#A8CDECFF #F6955EFF #682C37FF #9B6981FF #7887A4FF #A89F8EFF
+# Use #A8CDECFF #F6955EFF
+
+# Make list for color
+cols <- c("#A8CDECFF", "#F6955EFF")
+
+# Make list for color fill, that is more transparent
+fillcols <- scales::alpha(cols, alpha = 0.2)
+
+# we will encode accuracy method by shape, so make a list of the two shapes we wany, using number that correspond with the "points" funtion. 
+shps <- c(21, 24)
+
+# Make named character vectors to relabel facet text:
+
+# Renaming n_groups to be social class labels
+class_labs <- c("Classes: 2", "Classes: 4", "Classes: 6", "Classes: 8")
+names(class_labs) <- c("2", "4", "6", "8")
+
+# Renaming the accuracy_method labels
+method_labs <- c("Edit distance", "Spectrographic cross-correlation")
+names(method_labs) <- c("Edit distance", "Spectrographic cross-correlation")
+
+# Renaming group information proportion treatment levels
+prop_labs <- c("Proportion of n group information: 0.00", "0.33", "0.67", "1.00")
+names(prop_labs) <- unique(res$group_information_proportion)
+
+# Set strip background color to grey 
+ngrey <- scales::alpha("grey", 0.2)
+
+```
+
+Plot accuracy scores.
+```{r}
+
+# Create the accuracy plot that will make up Fig 4 in the manuscript. Plot average accuracy as a function of group information proportion condition, using facet_grid to great separate plots for each accuracy method and social class combination. 
+res_summ_acc %>%
+  ggplot(aes(x = group_information_proportion, y = mean_accuracy, color = accuracy_level, fill = accuracy_level, shape = accuracy_level)) +
+  # line width controls the width of the error bar lines, stroke controls the width of the symbol border
+  geom_pointrange(aes(ymin = lower_95_CI, ymax = upper_95_CI), linewidth = 0.5, stroke = 0.5, size = 0.75) +
+  facet_grid(
+    accuracy_method ~ n_groups,
+    labeller = labeller(accuracy_method = method_labs, n_groups = class_labs)
+  ) +
+  scale_y_continuous(limits = c(0, 1.05)) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols) +
+  scale_shape_manual(values = shps) +
+  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
+  guides(color = guide_legend(title = "Social level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Social level"),
+         shape = guide_legend(title = "Social level")) +
+  labs(y = "Average accuracy and 95% CI", x = "Proportion of group information") +
+  theme_bw() +
+  # Remove grid lines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 11),
+    axis.title = element_text(size = 12),
+    legend.position = "top",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = -0.25, l = 0, unit = "line"),
+    strip.text.x = element_text (size = 11, face = "plain"),
+    strip.text.y = element_text (size = 11, face = "plain"),
+    strip.background = element_rect(color = "black", fill = ngrey)
+  )
+```
+
+Save plot
+``` {r eval=FALSE}
+# save as tiff file. Remember, the object git_path contains the figures directory already
+ggsave(filename = file.path(git_path, "Fig_4", "AverageAccuracy_PointRange.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+
+```
+
+
+# Step 2: Calculating effect sizes for all social level comparisons. 
+
+First, check the normality the accuracy measures (summed by social level) before running effect size analyses. For each measure, create density and QQ plots to visualize the distribution of the data, then perform a Shapiro Wilks test of normality. 
+```{r}
+
+# Start with data frame "res"
+# glimpse(res)
+
+# To check the distribution of our accuracy measures, we need to set up new data the has separate columns for group and individual accuracy measures and saves the information about method (SPCC or edit distance) in another column
+# To do this, we will create a table called "res_summ_eff"
+res_summ_eff <- res %>%
+  #Make data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy", take the column names and move them to a column called "accuracy_type" and the values to a column called "accuracy_measurements"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>% 
+  # Create new columns that extract information in "accuracy_type" about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    accuracy_type = gsub(pattern = "_mean", replace = "", accuracy_type)
+  ) %>%
+  # Then use "separate" to extract the information that we want. The "NA" in "into" allows us to drop information that we don't want to retain
+  tidyr::separate(col = accuracy_type, into = c(NA, "accuracy_method", "accuracy_level")) %>% 
+  # Now, recover "level" as separate columns with pivot wider. 
+  pivot_wider(
+    names_from = accuracy_level, 
+    values_from = accuracy_measurements,
+    names_glue = "accuracy_{accuracy_level}_measurements"
+  ) 
+
+# end with the new data table, "res_summ_eff"
+glimpse(res_summ_eff)
+
+# Now check distribution  of two accuracy measures (Group and Individual) using 3 methods: density plot, QQ plot, and Shaprio Wilks Normality Test
+
+# First, check the distribution of accuracy_group_measurements
+# Create a density plot for all values in "accuracy_group_measurements". Normally distributed data would follow a bell-shaped curve here. Our density plot does not appear to be normally distributed.
+print(ggpubr::ggdensity(res_summ_eff$accuracy_group_measurements, 
+                        main = "Density plot of SPCC Group Accuracy", 
+                        xlab = "Accuracy"))
+# Create a qq plot. Normally distributed data would follow the trend line on the qq plot, but our data deviates from this line.
+print(ggpubr::ggqqplot(res_summ_eff$accuracy_group_measurements))
+# perform a Shapiro Wilk's test for normality
+print(shapiro.test(res_summ_eff$accuracy_group_measurements))
+
+# Density plot is left skewed and QQ plot is not aligned
+# P value of <0.05 implies the data are significantly different from normal. NOT NORMALLY DISTRIBUTED
+
+# Now repeat the steps above, but for "accuracy_individual_measurements"
+print(ggpubr::ggdensity(res_summ_eff$accuracy_individual_measurements, 
+                        main = "Density plot of SPCC Group Accuracy", 
+                        xlab = "Accuracy"))
+print(ggpubr::ggqqplot(res_summ_eff$accuracy_individual_measurements))
+# Density plot is left skewed and QQ plot is not aligned
+# 	Shapiro-Wilk normality test
+# data:  res_summ_eff$accuracy_individual_measurements
+# W = 0.94642, p-value = 2.201e-09
+# P value of <0.05 implies the data are significantly different from normal). NOT NORMALLY DISTRIBUTED
+
+#Because the accuracy measures are not normally distributed, we will use Cliff's delta to calculate effect size. Cliff's D can be used to estimate the effect size for an experiment comparing two samples with ordinal data. See this page for an R tutorial: https://openpublishing.library.umass.edu/pare/article/id/1977/
+```
+
+Second, calculate effect sizes for Group vs Individual Accuracy for all Social x Info Proportion combinations between Methods.
+
+Note that the effect size calculations below throw a warning about fully disjoint distributions. This is an expected error when two distributions of accuracy values have no overlap, which did occur in some of our experimental treatments.
+```{r}
+
+# Start with data frame "res_sum_eff" created above
+glimpse(res_summ_eff)
+
+# Calculate effect sizes of the difference between levels per treatment combination, and save these results to a table called "eff_res_level"
+eff_res_level <- res_summ_eff %>% 
+  # Group by the columns that have information about each experimental treatment
+  # Operations like this are helpful for avoiding nested loops. This grouping should yield 32 groups
+  dplyr::group_by(n_groups, group_information_proportion, accuracy_method) %>% 
+  # Once the data frame is grouped, we can calculate effect size comparisons 
+  # Because we call Group measurements before Individual measurements in this function, it means Group is the comparison group. Therefore, a negative eff_delta value means the distribution of Group measurements is smaller than Individual measurements. A positive value means it is bigger. Below, we save all the delta values, 95% confidence intervals, and the magnitudes of each effect size comparison. 
+  dplyr::reframe(
+    eff_delta = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["estimate"]],
+    eff_CI_upper = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["upper"]],
+    eff_CI_lower = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["conf.int"]][["lower"]],
+    eff_magnitude = effsize::cliff.delta(accuracy_group_measurements, accuracy_individual_measurements, conf.level = .95)[["magnitude"]]
+  ) 
+
+glimpse(eff_res_level)
+
+# Print the results
+eff_res_level %>%
+  # The period indicates the current object
+  print(n = nrow(.))
+
+# Save the results as a .csv file as well
+eff_res_level %>%
+  write.csv(., file = file.path(data_path, "effect_sizes_byLevel.csv"), row.names = FALSE)
+
+```
+
+Third, create figures (1 main, 1 supplemental) of density plots to highlight how effect sizes were calculated. 
+
+Make one main figure that has class sizes of 2 and 8 only. This is used as Fig 5 in the manuscript.
+```{r}
+
+# Create data frame of density values
+res_density_values <- res %>%
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>%
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp),
+    # Convert the the group information proportion to control decimal points in strip labels
+    group_information_proportion = factor(round(group_information_proportion, 2))
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_") %>%
+  # Change "group" and individual to be capitalized
+  # Also change the edit distance and SPCC labels for the final figure
+  dplyr::mutate(
+    accuracy_level = str_replace(accuracy_level, "group", "Group"),
+    accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
+    accuracy_method = str_replace(accuracy_method, "edit", "Edit distance"),
+    accuracy_method = str_replace(accuracy_method, "SPCC", "Spectrographic\n cross-correlation")
+  ) %>% 
+  # Change the group proportion labels of 1 and 0 to have decimal points
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0$", "0.00"),
+    group_information_proportion = str_replace(group_information_proportion, "^1$", "1.00")
+  ) %>% 
+  # Then add text to the group proportion of 0 to have clearer strip labels
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0.00$", "Proportion of \ngroup information: 0.00")
+  ) %>% 
+  # Make this column into a factor and order the levels accordingly
+  dplyr::mutate(
+    group_information_proportion = factor(group_information_proportion, levels = c("Proportion of \ngroup information: 0.00", "0.33", "0.67", "1.00"))
+  )
+
+glimpse(res_density_values)
+
+# Looks good
+unique(res_density_values$accuracy_level)
+unique(res_density_values$accuracy_method)
+unique(res_density_values$group_information_proportion)
+
+# Generate means for vertical dashed lines
+means <- res_density_values %>%
+  dplyr::filter(n_groups %in% c(2, 8)) %>%
+  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>%
+  dplyr::summarize(
+    mean_val = mean(accuracy_measurements)
+  ) %>% 
+  dplyr::select(
+    accuracy_level, accuracy_method, n_groups, group_information_proportion, mean_val
+  ) %>%
+  ungroup() %>% 
+  # change "group" and individual to be capitalized
+  # Also change the edit distance and SPCC labels for the final figure
+  dplyr::mutate(
+    accuracy_level = str_replace(accuracy_level, "group", "Group"),
+    accuracy_level = str_replace(accuracy_level, "individual", "Individual"),
+    accuracy_method = str_replace(accuracy_method, "edit", "Edit distance"),
+    accuracy_method = str_replace(accuracy_method, "SPCC", "Spectrographic\n cross-correlation")
+  ) %>% 
+  # Change the group proportion labels of 1 and 0 to have decimal points
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0$", "0.00"),
+    group_information_proportion = str_replace(group_information_proportion, "^1$", "1.00")
+  ) %>% 
+  # Then add text to the group proportion of 0 to have clearer strip labels
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0.00$", "Proportion of \ngroup information: 0.00")
+  ) %>% 
+  # Make this column into a factor and order the levels accordingly
+  dplyr::mutate(
+    group_information_proportion = factor(group_information_proportion, levels = c("Proportion of \ngroup information: 0.00", "0.33", "0.67", "1.00"))
+  )
+
+glimpse(means)
+
+# Looks good
+unique(means$accuracy_level)
+unique(means$accuracy_method)
+unique(means$group_information_proportion)
+
+# Make labels of the effect size value and the 95% CI
+glimpse(eff_res_level)
+
+eff_res_label <- eff_res_level %>%
+  dplyr::filter(n_groups %in% c(2, 8)) %>%
+  dplyr::mutate(
+    # Convert the the group information proportion to control decimal points in strip labels
+    group_information_proportion = factor(round(group_information_proportion, 2)),
+    # Make sure the method labels match other objects
+    accuracy_method = str_replace(accuracy_method, "edit", "Edit distance"),
+    accuracy_method = str_replace(accuracy_method, "SPCC", "Spectrographic\n cross-correlation")
+  ) %>% 
+  # Change the group proportion labels of 1 and 0 to have decimal points
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0$", "0.00"),
+    group_information_proportion = str_replace(group_information_proportion, "^1$", "1.00")
+  ) %>% 
+  group_by(n_groups, accuracy_method, group_information_proportion) %>% 
+  dplyr::mutate(
+    eff_label = paste(c(sprintf("%.02f", round(eff_delta, 2)), " (", paste(c(sprintf("%.02f", round(eff_CI_lower, 2)), sprintf("%.02f", round(eff_CI_upper, 2))), collapse = ", "), ")"), collapse = "")
+  ) %>% 
+  # Add a label to create bolded text for large and significant effect sizes (>= 0.474), as well as more opaque bar fills
+  # Need to check that the 95% CI also does not cross zero, to only blod large and significant effect sizes
+  dplyr::mutate(
+    eff_magnitude = ifelse(abs(eff_delta) >= 0.474 & sign(eff_CI_lower) == sign(eff_CI_upper), "large", "not large"),
+    eff_fontface = ifelse(abs(eff_delta) >= 0.474 & sign(eff_CI_lower) == sign(eff_CI_upper), "bold", "plain")
+  ) %>% 
+  ungroup() %>% 
+  # Then add text to the group proportion of 0 to have clearer strip labels
+  dplyr::mutate(
+    group_information_proportion = str_replace(group_information_proportion, "^0.00$", "Proportion of \ngroup information: 0.00")
+  ) %>% 
+  # Make this column into a factor and order the levels accordingly
+  dplyr::mutate(
+    group_information_proportion = factor(group_information_proportion, levels = c("Proportion of \ngroup information: 0.00", "0.33", "0.67", "1.00"))
+  )
+
+glimpse(eff_res_label)
+
+# Looks good
+unique(eff_res_label$accuracy_method)
+unique(eff_res_label$group_information_proportion)
+
+# Use the means to generate coordinates for where bars to indicate effect size calculations should start and end
+bar_coords <- means %>%
+  pivot_wider(
+    values_from = "mean_val",
+    names_from = "accuracy_level"
+  ) %>% 
+  # Add information for coloring these bars by which information had greater accuracy
+  dplyr::mutate(
+    stronger_encoding = ifelse(Group > Individual, "Group", "Individual")
+  ) %>% 
+  # Join with the effect size results to get information about which of these bars or segments correspond to large effect sizes
+  inner_join(
+    eff_res_label %>% 
+      dplyr::select(accuracy_method, group_information_proportion, n_groups, eff_magnitude),
+    by = c("accuracy_method", "group_information_proportion", "n_groups")
+  )
+
+glimpse(bar_coords)
+
+# Finally, create the density plots to visualize effect size comparisons
+res_density_values %>%
+  dplyr::filter(n_groups %in% c(2, 8)) %>%
+  ggplot() +
+  # Density curves for group level (blue)
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(n_groups %in% c(2, 8)) %>%
+                 dplyr::filter(accuracy_level == "Group"), color = scales::alpha(fillcols[1], 0), fill = scales::alpha(fillcols[1], 0.65), aes(x = accuracy_measurements)) +
+  # Add a mean line using geom_segment to control height: mean line for group level
+  geom_segment(data = means %>%
+                 dplyr::filter(accuracy_level == "Group"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.75, color = fillcols[1], linetype = "dashed") +
+  # Density curves for individual level (orange)
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(n_groups %in% c(2, 8)) %>%
+                 dplyr::filter(accuracy_level == "Individual"), color = scales::alpha(fillcols[2], 0), fill = scales::alpha(fillcols[2], 0.65), aes(x = accuracy_measurements)) +
+  # Add a mean line using geom_segment to control height: mean line for individual level
+  geom_segment(data = means %>%
+                 dplyr::filter(accuracy_level == "Individual"), aes(x = mean_val, xend = mean_val, y = 0, yend = 40), linewidth = 0.75, color = fillcols[2], linetype = "dashed") +
+  # Add horizontal bars or segments between the means of each density curve that represent each effect size calculation. These bars are colored by the social level with higher accuracy, and the transparency folows the strength of the effect size (large effect sizes are more opaque)
+  geom_segment(data = bar_coords, aes(x = Group, xend = Individual, y = 40, yend = 40, color = stronger_encoding, alpha = eff_magnitude), linewidth = 2) +
+  facet_grid(
+    n_groups ~ accuracy_method ~ group_information_proportion,
+    scales = "fixed",
+    labeller = labeller(accuracy_method = method_labs, n_groups = class_labs, group_information_proportion = prop_labs)
+  ) +
+  # Add the effect size values plus the 95% CIs. Add bolded text for large effect sizes
+  geom_text(data = eff_res_label, aes(label = eff_label, y = 50, x = 0.65, fontface = eff_fontface), size = 3) +
+  scale_y_continuous(limits = c(0, 55)) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols) +
+  scale_shape_manual(values = shps) +
+  scale_alpha_manual(values = c(1, 0.5)) +
+  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
+  guides(color = guide_legend(title = "Social level", override.aes = list(size = 0.8)), fill = guide_legend(title = "Social level"), alpha = "none") +
+  labs(y = "Density of accuracy values at either social level", x = "Accuracy values") +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    panel.spacing.x = unit(0.75, "lines"),
+    axis.text = element_text(size = 8),
+    axis.title = element_text(size = 11),
+    legend.position = "top",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.margin = margin(t = 0, r = 0, b = -0.25, l = 0, unit = "line"),
+    strip.text.x = element_text (size = 9, face = "plain"),
+    strip.text.y = element_text (size = 10, face = "plain"),
+    strip.background = element_rect(color = "black", fill = ngrey)
+  )
+
+```
+
+Save plot.
+``` {r eval=FALSE}
+# save as tiff file. Remember, the object git_path contains the figures directory already
+ggsave(filename = file.path(git_path, "Fig_5", "AccuracyDensityPlots_EffectSizes.tiff"), width = 7.25, height = 6.25, units = "in", dpi = 300)
+
+```
+
+Make a supplementary figures of all classes for edit distance and SPCC only.
+```{r}
+
+res_density_values <- res %>%
+  # Make the data frame longer so that each row is a separate accuracy calculation
+  pivot_longer(
+    # Select all of the columns that start with the pattern "accuracy"
+    cols = names(.)[grep("^accuracy", names(.))],
+    names_to = "accuracy_type",
+    values_to = "accuracy_measurements"
+  ) %>%
+  # Create new columns that extract information in accuracy_type about the method used to calculate accuracy and the social level at which accuracy was calculated
+  dplyr::mutate(
+    tmp = accuracy_type,
+    # Replace the pattern "_mean" with nothing so that all values in this column have 3 units separated by an underscore
+    tmp = gsub(pattern = "_mean", replace = "", tmp)
+  ) %>%
+  # Then use separate to extract the information that we want. The NA in into allows us to drop information that we don't want to retain
+  tidyr::separate(col = tmp, into = c(NA, "accuracy_method", "accuracy_level"), sep = "_")
+
+glimpse(res_density_values)
+
+# Generate means
+means <- res_density_values %>%
+  group_by(accuracy_level, accuracy_method, n_groups, group_information_proportion) %>%
+  dplyr::summarize(
+    mean_val = mean(accuracy_measurements)
+  ) %>%
+  dplyr::select(
+    accuracy_level, accuracy_method, n_groups, group_information_proportion, mean_val
+  )
+
+res_density_values %>%
+  ggplot(aes(x = accuracy_measurements)) +
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(accuracy_level == "group"), color = cols[1], fill = fillcols[1]) +
+  geom_vline(data = means %>%
+               dplyr::filter(accuracy_level == "group"), aes(xintercept = mean_val), color = cols[1], linetype = "dashed") +
+  geom_density(data = res_density_values %>%
+                 dplyr::filter(accuracy_level == "individual"), color = cols[2], fill = fillcols[2]) +
+  geom_vline(data = means %>%
+               dplyr::filter(accuracy_level == "individual"), aes(xintercept = mean_val), color = cols[2], linetype = "dashed") +
+  facet_grid(
+    accuracy_method ~ n_groups ~ group_information_proportion,
+    scales = "free",
+    labeller = labeller(accuracy_method = method_labs, n_groups = class_labs, group_information_proportion = prop_labs)
+  ) +
+  scale_color_manual(values = cols) +
+  scale_fill_manual(values = fillcols) +
+  scale_shape_manual(values = shps) +
+  # Change the legend titles, make sure to do this for all legend aesthetic layers. You can also override aesthetics set in the main plot
+  guides(color = guide_legend(title = "Method", override.aes = list(size = 0.8)), fill = guide_legend(title = "Method"),
+         shape = guide_legend(title = "Accuracy level", order = 1, override.aes = list(size = 0.8))) +
+  labs(y = "Density", x = "Accuracy measurements") +
+  theme_bw() +
+  # Remove gridlines using theme() and change the background color of the strip labels
+  # Place legend on the top
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    legend.position = "top",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.margin = margin(t = 0, r = 0, b = -0.25, l = 0, unit = "line"),
+    strip.text.x = element_text (size = 10, face = "plain"),
+    strip.text.y = element_text (size = 10, face = "plain"),
+    strip.background = element_rect(color = "black", fill = ngrey)
+  )
+
+```
+
+Save plot.
+``` {r eval=FALSE}
+# Save as tiff file. Then object git_path contains the figures directory already
+ggsave(filename = file.path(git_path, "supplementary_figures", "DensityPlot_EffectSizeAide.tiff"), width = 7.25, height = 5.25, units = "in", dpi = 300)
+
+```

@@ -1,0 +1,272 @@
+---
+title: <center style="font-size:30px;font-style:normal;color:#0E0E7D;">Conceptual frequency anchors figure and spectrogram image</center>
+author: |
+  <br />
+  <center style="font-style:normal;">
+  <a style="font-style:normal;font-size:22px;color:#337ab7;text-decoration: underline;"href="https://smith-vidaurrelab.github.io/team/">Summer G. Eckhardt</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1,3</span></sup>,
+  <a style="font-size:22px;color:#337ab7;text-decoration: underline;"href="https://smith-vidaurrelab.github.io/">Grace Smith-Vidaurre</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1-3*</span></sup>,
+  <a style="font-style:normal;font-size:22px;color:#337ab7;text-decoration: underline;"href="https://brittanycoppinger.weebly.com/">Brittany A. Coppinger</a><sup><span style="font-size:12px;color:black;text-decoration:none!important;">1,3</span></sup>
+  <br />
+  <br />
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">1</span></sup>Department of Integrative Biology, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">2</span></sup>Department of Computational Mathematics, Science, and Engineering, Michigan State University</center>
+  <center style="font-size:18px;font-style:normal;color:black;"><sup><span style="font-size:12px;color:black;">3</span></sup>Ecology, Evolution, and Behavior Program, Michigan State University</center>
+  <br />
+  <center style="font-size:18px;"><sup style="font-size:12px;">*</sup>Corresponding author (smithvid@msu.edu)</center>
+date: <center style=font-size:22px;font-style:normal;>`r format(Sys.time(), '%d %B %Y')`</center>
+  <br />
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+---
+
+<style type="text/css">
+body{
+  font-family: Arial;
+  font-size: 14pt;
+}
+h1{
+  font-size: 22pt;
+}
+
+h2{
+  font-size: 18pt;
+}
+
+h3{
+  font-size: 16pt;
+}
+</style>
+
+
+**Purpose**: This script uses data from the synthetic call metadata to create a conceptual graphic of frequency anchors over time to represent step 3 in the paRsynth pipeline. This graphic is then imported to Inkscape to create part of Figure 1. This code also creates a spectrogram of the resulting synthetic vocalization from the selected character string. This spectrograms is also used in Figure 1. 
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, messsage = FALSE)
+
+```
+
+Load packages and set cores.
+```{r}
+
+# Clean the global environment
+rm(list = ls())
+
+# Specify the required packages
+X <- c("tidyverse", "tuneR", "seewave", "warbleR")
+
+# Install the packages in X if not already installed
+is_installed <- function(p) is.element(p, installed.packages()[,1])
+
+invisible(lapply(1:length(X), function(x){
+  if(!is_installed(X[x])){
+    install.packages(X[x], repos = "http://lib.stat.cmu.edu/R/CRAN")
+  }
+}))
+
+cores <- parallel::detectCores() - 4
+cores
+
+```
+
+```{r load packages, eval = FALSE}
+
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+```{r load packages in background, include = FALSE}
+
+# The only solution right now to avoid having a whole bunch of verbose output printed from the chunk above
+# Load all of the packages specified above
+invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))
+
+```
+
+Initialize working directories for data on your local machine.
+```{r}
+
+# Initialize a base path (this will need to be different per user)
+# path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
+path <- "/Users/gsvidaurre/Desktop/" # Grace's path
+# path <- "C:/Users/britt/Desktop" # Britt's path
+# path <- "/Users/summe/OneDrive/Desktop" #Summer's path
+
+# Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
+# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper-internal/figures" # Britt's path
+git_path <- "/Users/gsvidaurre/Desktop/GitHub_repos/paRsynth-methods-paper-internal/figures"
+# git_path <- "/Users/summe/OneDrive/Desktop/github_repo/paRsynth-methods-paper-internal/figures" #Summer's path
+
+# Initialize the directory for analysis on your local computer
+analysis_dir <- "paRsynth_methods_synthetic_dataset"
+
+# Combine the base path and the data directory into a single path
+analysis_path <- file.path(path, analysis_dir)
+
+# Specify a folder inside the analysis directory where audio will be written out/read in
+audio_dir <- "audio"
+
+# Combine the base path, the analysis directory, and the audio directory into a single path
+audio_path <- file.path(path, analysis_dir, audio_dir)
+
+# Create the data directory if it doesn't already exist on your computer
+if(!dir.exists(analysis_path)){ 
+  dir.create(analysis_path)
+}
+
+# Specify a folder inside the github directory where data will be written out/read in
+figure_dir <- "Fig_1"
+
+# Combine the base path, the analysis directory, and the data directory into a single path
+figure_path <- file.path(git_path, figure_dir)
+```
+
+Read in the synthetic call metadata.
+```{r}
+
+synthetic_call_metadata <- read.csv(file.path(analysis_path, "synthetic_call_metadata.csv"))
+glimpse(synthetic_call_metadata)
+
+```
+
+# Step 1: Choose a single call for the conceptual representation of the pipeline step. For this call, store the frequency anchor data
+```{r}
+
+# Choose the first call in this dataset (Group 1, Individual 1, Call 1)
+filt_data <- synthetic_call_metadata %>% 
+  slice(1)
+
+glimpse(filt_data)
+
+# Call string
+filt_data$Call
+
+# [1] "CABCAABACCBCCBAA"
+
+# Frequency anchors are in columns, pull these out as a vector
+freq_cols <- filt_data %>%
+  # Select only the columns that start with the pattern "Frequency"
+  select(names(.)[grep("^Frequency", names(.))])
+
+glimpse(freq_cols)
+
+# We need to transpose this data frame so that all of the frequency values are in rows not columns, and then we need to convert the resulting matrix to a vector
+frequency_anchors <- as.vector(t(freq_cols))
+
+# Looks good
+frequency_anchors
+length(frequency_anchors)
+
+```
+
+# Step 2: Make the conceptual graphic
+
+The graphic should show how the frequency values produced from the paRsynth pipeline serve as frequency modulation "anchors" for soundgen to generate synthetic audio files. This should be a line graph of the frequency anchors identified in the previous step.
+```{r}
+
+# Create a data frame of the frequency anchors plus timestamps
+freq_anchors <- data.frame(
+  freq_anchors = frequency_anchors,
+  # The timestamps should be evenly spaced across the duration of the call, which is the soundgen default
+  # We generated calls in the first script that had 200 ms duration
+  time = round(seq(0.1, 0.3, 0.2/(length(frequency_anchors) - 1)), 3)
+)
+
+# X-axis is time, y-axis is frequency
+glimpse(freq_anchors)
+
+# Make a graphic of the frequency anchors plus a line through them
+ggplot(freq_anchors, aes(x = time, y = freq_anchors/1000)) +
+  # geom_line(color = scales::alpha("#A8CDECFF"), linetype = "dotted", linewidth = 2) +
+  geom_line(color = "grey24", linetype = "dotted", linewidth = 1) +
+  geom_point(size = 3, shape = 21, color = "black", fill = "grey60", stroke = 1.2) +
+  #geom_point(size = 3, shape = 19, color = "grey56") +
+  xlab("Time (s)") +
+  ylab("Frequency (kHz)") +
+  scale_y_continuous(limits = c(2, 7), breaks = seq(2, 7, 2)) +
+  theme_bw() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.border = element_rect(linetype = "solid", fill = NA, color = "black"),
+    # axis.title = element_text(size = 16),
+    axis.text = element_text(size = 8, color = "black"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # Removing numbers and ticks from x axis for figure
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) 
+
+```
+
+Save plot
+```{r eval=FALSE}
+
+# This is the size of the graphic for use in Figure 1 creation, done manually in Inkscape
+ggsave(file.path(figure_path, "Concept_FreqAnch.tiff"), units = "in", width = 5.025, height = 2.18, dpi = 600)
+
+```
+
+# Step 3: Make a spectrogram of the audio file that corresponds with the call used for this figure
+```{r}
+
+# Set color palette for spectrograms
+gray_colors <- reverse.gray.colors.2(12)
+
+# Read in the audio file, return a wave object
+tmp_wav <- tuneR::readWave(file.path(audio_path, "GroupMembership_Group1_Indiv1_Call1.wav"))
+# str(tmp_wav)
+
+# Use ggspectro to generate a spectrogram
+ggspectro(wave = tmp_wav, f = tmp_wav@samp.rate, ovlp = 90) +
+  
+  # Plot amplitude values or cells in the spectrogram. Interpolation needs to be TRUE and sit outside of the aes() call to smoothen the otherwise very pixelated appearance of the raster
+  geom_raster(aes(fill = amplitude), hjust = 0, vjust = 0, interpolate = TRUE) +
+  
+  # Control the x-axis aesthetics
+  scale_x_continuous(limits = c(0.08, 0.33), breaks = seq(0.1, 0.3, 0.05), labels = seq(0.1, 0.3, 0.05), expand = c(0, 0)) +
+  
+  # Control the y-axis aesthetics
+  scale_y_continuous(limits = c(2, 7), breaks = seq(2, 7, 2), labels = seq(2, 7, 2), expand = c(0, 0)) +
+  
+  # We want spectrograms to be in grayscale
+  # Change the values of limits to change how colors are assigned across amplitude bins
+  scale_fill_gradientn(colours = gray_colors, name = "Amplitude \n (dB)", na.value = "transparent", limits = c(-35, 10)) +
+  # Use the theme function above to modify the overall plot aesthetics
+  theme(
+    # Use element_blank() to remove grid lines
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    panel.border = element_rect(linetype = "solid", fill = NA, color = "black"),
+    axis.line = element_line(linewidth = 0.15),
+    legend.position = "none",
+    plot.background = element_rect(fill = "white"),
+    # Control the white space around the figure in the resulting image file
+    plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "lines"), # top, right, bottom, left
+    # Turn off the axis titles, which should remove titles for all 3 axes, including amplitude and the amplitude scale bar
+    axis.title = element_blank(),
+    # Control the size of the x and y-axis text 
+    axis.text = element_text(size = 8, color = "black", vjust = 0),
+    # Control the size of the axis tick lines
+    axis.ticks = element_line(color = "black", linewidth = 0.15)
+  )
+
+
+```
+
+Save plot
+```{r eval=FALSE}
+
+# Save spectrogram for at appropriate size for use in Inkscape for creating Figure 1 
+ggsave(filename = file.path(figure_path, "GroupMembership_Group1_Indiv1_Call1.tiff"), units = "in", width = 4.9, height = 2.2, dpi = 600)
+
+```
+
