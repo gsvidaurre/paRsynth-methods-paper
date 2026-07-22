@@ -1,6 +1,6 @@
 # Synthetic vocal identity signals with paRsynth
 
-This repository holds code for a paper on creating synthetic vocal identity signals by sonifying character strings with the `paRsynth` and `soundgen` packages, and detecting identity information in the resulting synthetic vocalizations using a traditional bioacoustics tool. The repository holds code (scripts and functions), as well as lightweight spreadsheets of results from our simulation experiments. 
+This repository holds code for a paper on creating synthetic vocal identity signals by sonifying character strings with the [`paRsynth`](https://github.com/gsvidaurre/paRsynth) and [`soundgen`](https://cogsci.se/soundgen.html) packages, and detecting identity information in the resulting synthetic vocalizations using a traditional bioacoustics tool. The repository holds code (scripts and functions), as well as lightweight spreadsheets of results from our simulation experiments. 
 
 The manuscript associated with this repository is:
 <br />
