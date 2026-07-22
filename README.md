@@ -12,7 +12,7 @@ The manuscript associated with this repository is:
 
 Below we describe the code and data directories and the files in each directory.
 
-The **`code`** directory holds the sub-directories and scripts described below. Across each of these files, we make scripts available as RMarkdown files that can be used to reproduce our results. We also make the knitted HTML reports associated with each RMarkdown document available. These knitted reports document the results produced by this code on our local machines that were used to write the associated paper.
+The **`code`** directory holds the sub-directories and scripts described below. Across each of these files, we make scripts available as RMarkdown files that can be used to reproduce our results. We also make the knitted HTML reports associated with each RMarkdown document available. These knitted HTML reports document the results produced by this code on our local machines that were used to write the associated paper. While the HTML files will not render automatically in a browser, you can download them to your own computer and open them in any default Internet browser to see our narrative text together with our code and code output.
 
 `./example_datasets`:
 
