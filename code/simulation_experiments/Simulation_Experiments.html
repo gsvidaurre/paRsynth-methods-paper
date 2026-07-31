@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2025-08-21" />
+<meta name="date" content="2026-07-25" />
 
 <title> Simulation Experiments </title>
 
@@ -375,7 +375,7 @@ Evolution, and Behavior Program, Michigan State University
 <sup style="font-size:12px;">*</sup>Corresponding author (<a href="mailto:smithvid@msu.edu" class="email">smithvid@msu.edu</a>)
 </center></h4>
 <h4 class="date"><center style="font-size:22px;font-style:normal;"><br />
-21 August 2025<br />
+25 July 2026<br />
 </center><br />
 <br /></h4>
 
@@ -445,14 +445,6 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
-# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
-# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
-# Install the paRsynth package from GitHub if you haven&#39;t installed it already
-# devtools::install_github(&quot;gsvidaurre/paRsynth&quot;)
-
-# Add paRsynth to the list of packages to load
-# X &lt;- c(X, &quot;paRsynth&quot;)
-
 # Set cores for parallel processing
 cores &lt;- parallel::detectCores() - 4</code></pre>
 <pre class="r"><code># Load all of the packages specified above
@@ -500,7 +492,7 @@ if(!dir.exists(figure_path)){
 <p>Source custom functions for the associated paper.</p>
 <pre class="r"><code># Load custom functions for the code below
 # This line of code loads a function to calculate the maximum global accuracy of clustering by finding and calculating accuracy across all bipartite matchings (matchings between original class labels and predicted cluster labels)
-source(file.path(path, &quot;GitHub_repos/paRsynth-methods-paper/code/functions/accuracy_score.R&quot;))</code></pre>
+source(file.path(path, &quot;GitHub_repos/paRsynth-methods-paper-internal/code/functions/accuracy_score.R&quot;))</code></pre>
 <p>Source the paRsynth functions directly from the GitHub
 repository.</p>
 <pre class="r"><code>###################### Manually update in every new coding session ##################################
@@ -520,13 +512,6 @@ function_files</code></pre>
 invisible(sapply(X = function_files, FUN = source))
 
 ###################################################################################</code></pre>
-<p>Check out documentation for the paRsynth functions. These functions
-are written below in the order in which they should be used. TKTK this
-will only work when paRsynth is installed as a package</p>
-<pre class="r"><code># ?paRsynth::generate_strings
-# ?paRsynth::parsons_code
-# ?paRsynth::frequency_anchors
-# ?paRsynth::write_audio</code></pre>
 <p>We performed simulation experiments over varying social environment
 characteristics and information encoding rules. These experiments helped
 us test how well we could detect identity information that was

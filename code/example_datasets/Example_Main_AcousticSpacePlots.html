@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2025-08-21" />
+<meta name="date" content="2026-07-25" />
 
 <title> Acoustic space plots for main figures </title>
 
@@ -1510,7 +1510,7 @@ Evolution, and Behavior Program, Michigan State University
 <sup style="font-size:12px;">*</sup>Corresponding author (<a href="mailto:smithvid@msu.edu" class="email">smithvid@msu.edu</a>)
 </center></h4>
 <h4 class="date"><center style="font-size:22px;font-style:normal;"><br />
-21 August 2025<br />
+25 July 2026<br />
 </center><br />
 <br /></h4>
 
@@ -1582,7 +1582,7 @@ if(!dir.exists(analysis_path)){
 }
 
 # Specify a folder inside the analysis directory where images for figures will be written out/read in
-figures_dir &lt;- &quot;paRsynth-methods-paper/figures&quot;
+figures_dir &lt;- &quot;paRsynth-methods-paper-internal/figures&quot;
 
 # Combine the base path, the analysis directory, and the data directory into a single path
 figures_path &lt;- file.path(git_path, figures_dir)</code></pre>
@@ -1772,10 +1772,10 @@ glimpse(hulls)</code></pre>
 <p>Save edit distance plot.</p>
 <pre class="r"><code># Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, &quot;Fig_2&quot;, &quot;Main_AcousticSpace_edit_GroupMembership_GroupPolygons_legend.tiff&quot;), width = 4.5, height = 2.4, units = &quot;in&quot;, dpi = 300)
+ggsave(filename = file.path(figures_path, &quot;Fig_3&quot;, &quot;Main_AcousticSpace_edit_GroupMembership_GroupPolygons_legend.tiff&quot;), width = 4.5, height = 2.4, units = &quot;in&quot;, dpi = 300)
 
 # Version without legend for figure creation purposes
-ggsave(filename = file.path(figures_path, &quot;Fig_2&quot;, &quot;Main_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
+ggsave(filename = file.path(figures_path, &quot;Fig_3&quot;, &quot;Main_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
 <p>Create the group membership plots for SPCC.</p>
 <pre class="r"><code># Filter the MDS coordinates by the two groups that will be shown in these plots
 mds_spcc_grp_filt &lt;- mds_spcc_grp %&gt;% 
@@ -1833,7 +1833,7 @@ mds_spcc_grp_filt %&gt;%
 <p>Save SPCC plot.</p>
 <pre class="r"><code># Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, &quot;Fig_2&quot;, &quot;Main_AcousticSpace_SPCC_GroupMembership_GroupPolygons.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
+ggsave(filename = file.path(figures_path, &quot;Fig_3&quot;, &quot;Main_AcousticSpace_SPCC_GroupMembership_GroupPolygons.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
 </div>
 <div id="step-2-generate-low-dimensional-acoustic-space-plots-for-the-individual-identity-dataset" class="section level2">
 <h2>Step 2: Generate low-dimensional acoustic space plots for the
@@ -1982,7 +1982,7 @@ mds_edit_ind_filt %&gt;%
 <p>Save edit distance plots.</p>
 <pre class="r"><code># Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, &quot;Fig_3&quot;, &quot;Main_AcousticSpace_edit_IndividualIdentity_IndividualPolygons_legend.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
+ggsave(filename = file.path(figures_path, &quot;Fig_4&quot;, &quot;Main_AcousticSpace_edit_IndividualIdentity_IndividualPolygons_legend.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
 <p>Create the individual identity plots for SPCC.</p>
 <pre class="r"><code># Filter the MDS coordinates by the two groups that will be shown in these plots
 mds_spcc_ind_filt &lt;- mds_spcc_ind %&gt;% 
@@ -2039,11 +2039,11 @@ mds_spcc_ind_filt %&gt;%
 <pre class="r"><code># Save this plot as an image file
 
 # With legend
-ggsave(filename = file.path(figures_path, &quot;Fig_3&quot;, &quot;Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons_legend.tiff&quot;), width = 4, height = 2.6, units = &quot;in&quot;, dpi = 300)
+ggsave(filename = file.path(figures_path, &quot;Fig_4&quot;, &quot;Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons_legend.tiff&quot;), width = 4, height = 2.6, units = &quot;in&quot;, dpi = 300)
 
 # Without legend
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, &quot;Fig_3&quot;, &quot;Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
+ggsave(filename = file.path(figures_path, &quot;Fig_4&quot;, &quot;Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff&quot;), width = 3.75, height = 2.6, units = &quot;in&quot;, dpi = 300)</code></pre>
 </div>
 
 

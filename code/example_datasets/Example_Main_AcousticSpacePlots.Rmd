@@ -109,7 +109,7 @@ if(!dir.exists(analysis_path)){
 }
 
 # Specify a folder inside the analysis directory where images for figures will be written out/read in
-figures_dir <- "paRsynth-methods-paper/figures"
+figures_dir <- "paRsynth-methods-paper-internal/figures"
 
 # Combine the base path, the analysis directory, and the data directory into a single path
 figures_path <- file.path(git_path, figures_dir)
@@ -247,10 +247,10 @@ Save edit distance plot.
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_edit_GroupMembership_GroupPolygons_legend.tiff"), width = 4.5, height = 2.4, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_edit_GroupMembership_GroupPolygons_legend.tiff"), width = 4.5, height = 2.4, units = "in", dpi = 300)
 
 # Version without legend for figure creation purposes
-ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_edit_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 
 ```
 
@@ -308,7 +308,7 @@ Save SPCC plot.
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Fig_2", "Main_AcousticSpace_SPCC_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_SPCC_GroupMembership_GroupPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 
 ```
 
@@ -425,7 +425,7 @@ Save edit distance plots.
 
 # Save this plot as an image file
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_edit_IndividualIdentity_IndividualPolygons_legend.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_4", "Main_AcousticSpace_edit_IndividualIdentity_IndividualPolygons_legend.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 
 ```
 
@@ -482,10 +482,10 @@ Save SPCC plot.
 # Save this plot as an image file
 
 # With legend
-ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons_legend.tiff"), width = 4, height = 2.6, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_4", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons_legend.tiff"), width = 4, height = 2.6, units = "in", dpi = 300)
 
 # Without legend
 # This image size (and font sizes or other aesthetics above) should be iteratively updated to fit a composite figure of multiple acoustic space plots created in other software
-ggsave(filename = file.path(figures_path, "Fig_3", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
+ggsave(filename = file.path(figures_path, "Fig_4", "Main_AcousticSpace_SPCC_IndividualIdentity_IndividualPolygons.tiff"), width = 3.75, height = 2.6, units = "in", dpi = 300)
 
 ```

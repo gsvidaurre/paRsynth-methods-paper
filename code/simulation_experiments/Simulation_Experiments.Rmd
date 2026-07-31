@@ -67,14 +67,6 @@ invisible(lapply(1:length(X), function(x){
   }
 }))
 
-# TKTK we will not use the package installation for now, instead directly source the paRsynth functions from the GitHub repo
-# TKTK once we start using the package again in package format, we need to add paRsynth:: before each function
-# Install the paRsynth package from GitHub if you haven't installed it already
-# devtools::install_github("gsvidaurre/paRsynth")
-
-# Add paRsynth to the list of packages to load
-# X <- c(X, "paRsynth")
-
 # Set cores for parallel processing
 cores <- parallel::detectCores() - 4
 
@@ -294,16 +286,6 @@ function_files
 invisible(sapply(X = function_files, FUN = source))
 
 ###################################################################################
-
-```
-
-Check out documentation for the paRsynth functions. These functions are written below in the order in which they should be used. TKTK this will only work when paRsynth is installed as a package 
-```{r eval = FALSE}
-
-# ?paRsynth::generate_strings
-# ?paRsynth::parsons_code
-# ?paRsynth::frequency_anchors
-# ?paRsynth::write_audio
 
 ```
 

@@ -97,12 +97,12 @@ Initialize working directories for data on your local machine.
 # Initialize a base path (this will need to be different per user)
 # path <- "/Users/raneemsamman/Desktop" # Raneem's path
 # path <- "/Users/gracesmith-vidaurre/Desktop" # Grace's path
-path <- "/Users/gsvidaurre/Desktop" # Grace's path
-# path <- "C:/Users/britt/Desktop" # Brittany's path
+# path <- "/Users/gsvidaurre/Desktop" # Grace's path
+path <- "C:/Users/britt/Desktop" # Brittany's path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures" # Britt's path
-git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos") # Grace's path
+git_path <- "C:/Users/britt/Documents/GitHub/paRsynth-methods-paper-internal/figures" # Britt's path
+# git_path <- file.path("/Users/gsvidaurre/Desktop/GitHub_repos") # Grace's path
 
 ```
 
@@ -464,7 +464,7 @@ invisible(pblapply(1:length(img_list), function(i){
     # magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
     
     # saving thick versions of the figures for presentations
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_2",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_3",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
     
   })
   
@@ -562,7 +562,7 @@ invisible(pblapply(1:length(img_list), function(i){
     # magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "10x10"), path = file.path(git_path, "Fig_3", paste(img_list[[i]][z], "_border.jpeg", sep = "")), format = "jpeg")
         
     # saving thick versions of the figures for presentations
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_3",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = "20x20"), path = file.path(git_path, "Fig_4",  paste(img_list[[i]][z], "_border_thick.jpeg", sep = "")), format = "jpeg")
   })
   
 }))

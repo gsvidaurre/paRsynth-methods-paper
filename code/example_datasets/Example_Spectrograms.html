@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2025-08-21" />
+<meta name="date" content="2026-07-06" />
 
 <title> Generate spectrogram image files for example datasets </title>
 
@@ -1512,7 +1512,7 @@ Evolution, and Behavior Program, Michigan State University
 <sup style="font-size:12px;">*</sup>Corresponding author (<a href="mailto:smithvid@msu.edu" class="email">smithvid@msu.edu</a>)
 </center></h4>
 <h4 class="date"><center style="font-size:22px;font-style:normal;"><br />
-21 August 2025<br />
+06 July 2026<br />
 </center><br />
 <br /></h4>
 
@@ -1568,7 +1568,7 @@ invisible(lapply(1:length(X), function(x){
 
 cores &lt;- parallel::detectCores() - 4
 cores</code></pre>
-<pre><code>## [1] 4</code></pre>
+<pre><code>## [1] 16</code></pre>
 <pre class="r"><code># Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))</code></pre>
 <p>Initialize working directories for data on your local machine.</p>
@@ -1577,12 +1577,12 @@ invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))</code></pr
 # Initialize a base path (this will need to be different per user)
 # path &lt;- &quot;/Users/raneemsamman/Desktop&quot; # Raneem&#39;s path
 # path &lt;- &quot;/Users/gracesmith-vidaurre/Desktop&quot; # Grace&#39;s path
-path &lt;- &quot;/Users/gsvidaurre/Desktop&quot; # Grace&#39;s path
-# path &lt;- &quot;C:/Users/britt/Desktop&quot; # Brittany&#39;s path
+# path &lt;- &quot;/Users/gsvidaurre/Desktop&quot; # Grace&#39;s path
+path &lt;- &quot;C:/Users/britt/Desktop&quot; # Brittany&#39;s path
 
 # Initialize a path for the local GitHub repo for this manuscript, for saving final figures here
-# git_path &lt;- &quot;C:/Users/britt/Documents/GitHub/paRsynth-methods-paper/figures&quot; # Britt&#39;s path
-git_path &lt;- file.path(&quot;/Users/gsvidaurre/Desktop/GitHub_repos&quot;) # Grace&#39;s path</code></pre>
+git_path &lt;- &quot;C:/Users/britt/Documents/GitHub/paRsynth-methods-paper-internal/figures&quot; # Britt&#39;s path
+# git_path &lt;- file.path(&quot;/Users/gsvidaurre/Desktop/GitHub_repos&quot;) # Grace&#39;s path</code></pre>
 <pre class="r"><code># Initialize the directory for analysis on your local computer
 analysis_dir &lt;- &quot;paRsynth_methods_synthetic_dataset&quot;
 
@@ -1735,7 +1735,7 @@ glimpse(sel_tbl)</code></pre>
 ## $ sound.files   &lt;chr&gt; &quot;GroupMembership_Group1_Indiv1_Call1.wav&quot;, &quot;GroupMembers…
 ## $ selec         &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
 ## $ start         &lt;dbl&gt; 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0…
-## $ end           &lt;dbl&gt; 0.3103855, 0.3102041, 0.3092063, 0.3091156, 0.3094785, 0…
+## $ end           &lt;dbl&gt; 0.3101361, 0.3101814, 0.3092744, 0.3085034, 0.3097959, 0…
 ## $ sampling_rate &lt;int&gt; 44100, 44100, 44100, 44100, 44100, 44100, 44100, 44100, …
 ## $ group_ID      &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
 ## $ individual_ID &lt;int&gt; 1, 1, 1, 1, 1, 10, 10, 10, 10, 10, 2, 2, 2, 2, 2, 3, 3, …
@@ -1971,7 +1971,7 @@ invisible(pblapply(1:length(img_list), function(i){
     # magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = &quot;10x10&quot;), path = file.path(git_path, &quot;Fig_2&quot;,  paste(img_list[[i]][z], &quot;_border.jpeg&quot;, sep = &quot;&quot;)), format = &quot;jpeg&quot;)
     
     # saving thick versions of the figures for presentations
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = &quot;20x20&quot;), path = file.path(git_path, &quot;Fig_2&quot;,  paste(img_list[[i]][z], &quot;_border_thick.jpeg&quot;, sep = &quot;&quot;)), format = &quot;jpeg&quot;)
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = &quot;20x20&quot;), path = file.path(git_path, &quot;Fig_3&quot;,  paste(img_list[[i]][z], &quot;_border_thick.jpeg&quot;, sep = &quot;&quot;)), format = &quot;jpeg&quot;)
     
   })
   
@@ -2067,7 +2067,7 @@ invisible(pblapply(1:length(img_list), function(i){
     # magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = &quot;10x10&quot;), path = file.path(git_path, &quot;Fig_3&quot;, paste(img_list[[i]][z], &quot;_border.jpeg&quot;, sep = &quot;&quot;)), format = &quot;jpeg&quot;)
         
     # saving thick versions of the figures for presentations
-    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = &quot;20x20&quot;), path = file.path(git_path, &quot;Fig_3&quot;,  paste(img_list[[i]][z], &quot;_border_thick.jpeg&quot;, sep = &quot;&quot;)), format = &quot;jpeg&quot;)
+    magick::image_write(magick::image_border(image = img, color = cols_indivs[i], geometry = &quot;20x20&quot;), path = file.path(git_path, &quot;Fig_4&quot;,  paste(img_list[[i]][z], &quot;_border_thick.jpeg&quot;, sep = &quot;&quot;)), format = &quot;jpeg&quot;)
   })
   
 }))</code></pre>

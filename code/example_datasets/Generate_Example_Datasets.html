@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2025-08-21" />
+<meta name="date" content="2026-07-25" />
 
 <title> Create example datasets of synthetic vocal identity signals </title>
 
@@ -1510,7 +1510,7 @@ Evolution, and Behavior Program, Michigan State University
 <sup style="font-size:12px;">*</sup>Corresponding author (<a href="mailto:smithvid@msu.edu" class="email">smithvid@msu.edu</a>)
 </center></h4>
 <h4 class="date"><center style="font-size:22px;font-style:normal;"><br />
-21 August 2025<br />
+25 July 2026<br />
 </center><br />
 <br /></h4>
 
@@ -1560,14 +1560,7 @@ invisible(lapply(1:length(X), function(x){
   if(!is_installed(X[x])){
     install.packages(X[x], repos = &quot;http://lib.stat.cmu.edu/R/CRAN&quot;)
   }
-}))
-
-# Install the paRsynth package from GitHub if you haven&#39;t installed it already
-# remove.packages(&quot;paRsynth&quot;)
-# devtools::install_github(&quot;gsvidaurre/paRsynth&quot;)
-
-# Add paRsynth to the list of packages to load
-# X &lt;- c(X, &quot;paRsynth&quot;)</code></pre>
+}))</code></pre>
 <pre class="r"><code># Load all of the packages specified above
 invisible(lapply(X, library, character.only = TRUE, verbose = FALSE))</code></pre>
 <p>Initialize working directories for data on your local machine.</p>
@@ -1626,12 +1619,6 @@ function_files</code></pre>
 invisible(sapply(X = function_files, FUN = source))
 
 ###################################################################################</code></pre>
-<p>Check out documentation for the paRsynth functions. These functions
-are written below in the order in which they should be used.</p>
-<pre class="r"><code># ?paRsynth::generate_strings
-# ?paRsynth::parsons_code
-# ?paRsynth::frequency_anchors
-# ?paRsynth::write_audio</code></pre>
 <div id="step-1-create-character-strings-representing-vocal-signals-with-more-group-membership-information-than-individual-information" class="section level1">
 <h1>Step 1: Create character strings representing vocal signals with
 more group membership information than individual information</h1>
